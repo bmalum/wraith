@@ -121,16 +121,8 @@ defmodule Wraith.Comments do
   def delete(%{"pk" => pk, "sk" => sk, "post_id" => post_id} = c) do
     if for_post(post_id, include_hidden: true)
        |> Enum.any?(&(&1.comment["id"] == c["id"] and &1.replies != [])) do
-      {:ok, _} =
-        Store.update(
-          pk,
-          sk,
-          &Map.merge(&1, %{
-            "body" => "",
-            "status" => "hidden",
-            "gsi1pk" => Keys.comments_index("hidden")
-          })
-        )
+      # the text goes; the comment stays published so its replies keep their place
+      {:ok, _} = Store.update(pk, sk, &Map.put(&1, "body", ""))
     else
       Store.delete(pk, sk)
     end
