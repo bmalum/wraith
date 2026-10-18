@@ -20,13 +20,28 @@ defmodule WraithWeb.Site.MemberLive do
 
   @impl true
   def handle_event("request-link", %{"email" => email}, socket) do
-    # the same answer whether or not the address is known: no member enumeration
-    case Members.get_by_email(email) do
-      %{} = member -> Newsletter.send_login_link(member)
-      nil -> :ok
-    end
+    # limited per address and per client; the answer never says whether the address is known
+    with :ok <-
+           Wraith.RateLimit.check(
+             :magic_link,
+             socket.assigns[:client_ip] || socket.assigns[:visitor]
+           ),
+         :ok <- Wraith.RateLimit.check(:magic_link, String.downcase(email)) do
+      case Members.get_by_email(email) do
+        %{} = member -> Newsletter.send_login_link(member)
+        nil -> :ok
+      end
 
-    {:noreply, assign(socket, sent: true)}
+      {:noreply, assign(socket, sent: true)}
+    else
+      {:error, _} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Too many sign-in links requested. Check your inbox, or wait a few minutes."
+         )}
+    end
   end
 
   def handle_event("toggle-newsletter", _params, %{assigns: %{current_member: %{} = m}} = socket) do

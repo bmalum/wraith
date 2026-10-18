@@ -19,6 +19,7 @@ defmodule WraithWeb.ConnCase do
 
   setup _tags do
     Wraith.StoreCase.reset()
+    Wraith.RateLimit.reset_all()
     :ok = Wraith.Widgets.seed_builtins()
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end

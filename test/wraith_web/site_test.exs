@@ -105,11 +105,28 @@ defmodule WraithWeb.SiteTest do
       assert html =~ "Some text."
     end
 
-    test "subscribe", %{conn: conn} do
+    test "subscribe is double opt-in", %{conn: conn} do
+      import Swoosh.TestAssertions
+      set_swoosh_global()
       {:ok, view, _} = live(conn, ~p"/subscribe")
       view |> form("#subscribe-form", %{email: "reader@x.io", name: "R"}) |> render_submit()
       assert render(view) =~ "You&#39;re in"
-      assert Wraith.Members.get_by_email("reader@x.io")
+      m = Wraith.Members.get_by_email("reader@x.io")
+      refute m["subscribed"], "not subscribed until confirmed"
+
+      assert_email_sent(fn email ->
+        assert email.subject =~ "Confirm your subscription"
+        [_, token] = Regex.run(~r{/members/confirm/([\w\-\.]+)}, email.html_body)
+        conn = get(build_conn(), ~p"/members/confirm/#{token}")
+        assert redirected_to(conn) == ~p"/"
+        assert get_session(conn, :member_token), "confirming signs the member in"
+        assert Wraith.Members.get_by_email("reader@x.io")["subscribed"]
+        true
+      end)
+
+      assert_email_sent(subject: "Welcome to Wraith")
+      # a forged token is refused
+      assert redirected_to(get(build_conn(), ~p"/members/confirm/nope")) == ~p"/subscribe"
     end
 
     test "themes: paper is the default, ink renders the same pages, unknown names are refused", %{

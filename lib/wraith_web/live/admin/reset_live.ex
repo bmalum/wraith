@@ -18,7 +18,11 @@ defmodule WraithWeb.Admin.ResetLive do
 
   @impl true
   def handle_event("request", %{"user" => %{"email" => email}}, socket) do
-    :ok = Accounts.request_password_reset(email)
+    case Wraith.RateLimit.check(:forgot, String.downcase(email)) do
+      :ok -> :ok = Accounts.request_password_reset(email)
+      {:error, _} -> :ok
+    end
+
     {:noreply, assign(socket, sent: true)}
   end
 

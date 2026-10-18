@@ -45,6 +45,7 @@ defmodule WraithWeb.Router do
     end
 
     get "/members/login/:token", MemberController, :login
+    get "/members/confirm/:token", MemberController, :confirm
     get "/members/unsubscribe/:token", MemberController, :unsubscribe
     get "/members/logout", MemberController, :logout
     get "/members/upgrade", MemberController, :upgrade
@@ -54,11 +55,13 @@ defmodule WraithWeb.Router do
 
   pipeline :content_api do
     plug :accepts, ["json"]
+    plug WraithWeb.RateLimitPlug, scope: :api
     plug WraithWeb.ApiAuth, :content
   end
 
   pipeline :admin_api do
     plug :accepts, ["json"]
+    plug WraithWeb.RateLimitPlug, scope: :api
     plug :fetch_session
     plug :fetch_current_user
     plug WraithWeb.ApiAuth, :admin
@@ -100,11 +103,21 @@ defmodule WraithWeb.Router do
   end
 
   # the MCP server for any agent (Kiro CLI, Claude, Cursor, …)
+  pipeline :mcp do
+    plug :accepts, ["json"]
+    plug WraithWeb.RateLimitPlug, scope: :api
+  end
+
   scope "/mcp", WraithWeb do
-    pipe_through :api
+    pipe_through :mcp
     post "/", McpController, :handle
     get "/", McpController, :not_allowed
     delete "/", McpController, :close
+  end
+
+  scope "/health", WraithWeb do
+    get "/", HealthController, :ready
+    get "/live", HealthController, :live
   end
 
   scope "/webhooks", WraithWeb do
@@ -121,8 +134,12 @@ defmodule WraithWeb.Router do
 
   # ---- signing in -------------------------------------------------------------------
 
+  pipeline :login_limit do
+    plug WraithWeb.RateLimitPlug, scope: :login
+  end
+
   scope "/admin", WraithWeb.Admin do
-    pipe_through [:browser, :redirect_if_user_is_authenticated]
+    pipe_through [:browser, :redirect_if_user_is_authenticated, :login_limit]
 
     live_session :auth, on_mount: [{WraithWeb.UserAuth, :mount_current_user}] do
       live "/setup", SetupLive, :new

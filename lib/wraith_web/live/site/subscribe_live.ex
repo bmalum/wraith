@@ -19,12 +19,25 @@ defmodule WraithWeb.Site.SubscribeLive do
 
   @impl true
   def handle_event("subscribe", %{"email" => email, "name" => name}, socket) do
-    case Members.create(%{email: email, name: name}) do
-      {:ok, member} ->
-        Wraith.Newsletter.send_welcome(member)
-        {:noreply, assign(socket, done: true)}
+    with :ok <-
+           Wraith.RateLimit.check(
+             :subscribe,
+             socket.assigns[:client_ip] || socket.assigns[:visitor]
+           ),
+         {:ok, member} <- Members.create(%{email: email, name: name, subscribed: false}) do
+      # double opt-in: the welcome comes once the confirmation link is opened
+      Wraith.Newsletter.send_confirmation(member)
+      {:noreply, assign(socket, done: true)}
+    else
+      {:error, retry_ms} when is_integer(retry_ms) ->
+        {:noreply,
+         put_flash(socket, :error, "Too many sign-ups from here; try again in a few minutes.")}
 
       {:error, %{"email" => "is already a member"}} ->
+        # the same answer as a fresh sign-up (no enumeration); a pending member gets the link again
+        if m = Members.get_by_email(email),
+          do: if(m["subscribed"], do: :ok, else: Wraith.Newsletter.send_confirmation(m))
+
         {:noreply, assign(socket, done: true)}
 
       {:error, errors} ->

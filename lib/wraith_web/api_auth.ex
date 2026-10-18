@@ -36,6 +36,28 @@ defmodule WraithWeb.ApiAuth do
   end
 
   defp unauthorized(conn, msg) do
+    # a wrong key is counted against the client: 20 misses a minute, then 429
+    case Wraith.RateLimit.check(:api_auth_fail, WraithWeb.RateLimitPlug.client_ip(conn)) do
+      :ok ->
+        conn
+
+      {:error, _} ->
+        conn
+        |> put_status(429)
+        |> Phoenix.Controller.json(%{
+          "errors" => [
+            %{"message" => "too many failed attempts", "type" => "TooManyRequestsError"}
+          ]
+        })
+        |> halt()
+    end
+    |> case do
+      %Plug.Conn{halted: true} = c -> c
+      conn -> unauthorized_now(conn, msg)
+    end
+  end
+
+  defp unauthorized_now(conn, msg) do
     conn
     |> put_status(401)
     |> Phoenix.Controller.json(%{

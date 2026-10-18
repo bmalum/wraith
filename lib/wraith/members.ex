@@ -127,6 +127,13 @@ defmodule Wraith.Members do
 
   def unsubscribe(%{} = member), do: update(member, %{subscribed: false})
 
+  @doc "The confirmation link was opened: the member is now subscribed."
+  def confirm(%{"id" => id} = member) do
+    {pk, sk} = Keys.member(id)
+    _ = member
+    Store.update(pk, sk, &Map.merge(&1, %{"subscribed" => true, "confirmed_at" => Store.now()}))
+  end
+
   @doc "May this member read a post of this visibility?"
   def can_read?(_member, "public"), do: true
   def can_read?(nil, _visibility), do: false

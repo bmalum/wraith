@@ -32,6 +32,20 @@ defmodule Wraith.Newsletter do
     |> deliver()
   end
 
+  @doc "Double opt-in: the link that turns a sign-up into a subscriber."
+  def send_confirmation(%{"email" => email} = member) do
+    site = Settings.get()
+
+    mail(email, member["name"], "Confirm your subscription to #{site["title"]}", """
+    <p>One click and you are in: confirm that you want new posts from <strong>#{esc(site["title"])}</strong> in this inbox.</p>
+    <p><a href="#{confirm_url(member)}" style="display:inline-block;padding:.6em 1.1em;background:#111;color:#fff;border-radius:6px;text-decoration:none">Confirm subscription</a></p>
+    <p style="color:#777">If you did not sign up, ignore this mail and nothing happens.</p>
+    """)
+    |> deliver()
+  end
+
+  def confirm_url(%{"id" => id}), do: url("/members/confirm/" <> Tokens.sign(:confirm, id))
+
   def send_login_link(%{"email" => email} = member) do
     site = Settings.get()
 

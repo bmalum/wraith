@@ -74,7 +74,15 @@ defmodule WraithWeb.Site.PostLive do
   end
 
   @impl true
-  def handle_event("widget", params, socket), do: {:noreply, widget_event(socket, params)}
+  def handle_event("widget", params, socket) do
+    case Wraith.RateLimit.check(
+           :widget_event,
+           socket.assigns[:visitor] || socket.assigns[:client_ip]
+         ) do
+      :ok -> {:noreply, widget_event(socket, params)}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Easy there — too many clicks.")}
+    end
+  end
 
   def handle_event(
         "comment",
@@ -83,9 +91,15 @@ defmodule WraithWeb.Site.PostLive do
       ) do
     parent = if params["parent_id"] in [nil, ""], do: nil, else: params["parent_id"]
 
-    case Comments.create(socket.assigns.post, member, body, parent) do
-      {:ok, _} -> {:noreply, assign(socket, reply_to: nil)}
-      {:error, why} -> {:noreply, put_flash(socket, :error, why)}
+    with :ok <- Wraith.RateLimit.check(:comment, member["id"]),
+         {:ok, _} <- Comments.create(socket.assigns.post, member, body, parent) do
+      {:noreply, assign(socket, reply_to: nil)}
+    else
+      {:error, retry_ms} when is_integer(retry_ms) ->
+        {:noreply, put_flash(socket, :error, "You are commenting too fast; wait a moment.")}
+
+      {:error, why} ->
+        {:noreply, put_flash(socket, :error, why)}
     end
   end
 

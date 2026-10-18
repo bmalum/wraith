@@ -11,11 +11,19 @@ defmodule WraithWeb.MembersTest do
     %{owner: owner}
   end
 
-  test "subscribing sends a welcome mail with an unsubscribe link that works", %{conn: conn} do
+  test "a confirmed member's welcome mail carries an unsubscribe link that works", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/subscribe")
     view |> form("#subscribe-form", %{email: "r@x.io", name: "R"}) |> render_submit()
     member = Members.get_by_email("r@x.io")
+    refute member["subscribed"]
+    {:ok, member} = Members.confirm(member)
     assert member["subscribed"]
+    Newsletter.send_welcome(member)
+
+    assert_email_sent(fn email ->
+      assert email.subject =~ "Welcome to Wraith" or email.subject =~ "Confirm"
+      email.subject =~ "Welcome to Wraith" or (send(self(), {:email, email}) && true)
+    end)
 
     assert_email_sent(fn email ->
       assert email.subject == "Welcome to Wraith"

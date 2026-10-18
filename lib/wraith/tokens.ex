@@ -8,6 +8,7 @@ defmodule Wraith.Tokens do
 
   @ttl %{
     member_login: 60 * 60,
+    confirm: 7 * 24 * 60 * 60,
     unsubscribe: 365 * 24 * 60 * 60,
     password_reset: 60 * 60,
     comment_reply: 30 * 24 * 60 * 60

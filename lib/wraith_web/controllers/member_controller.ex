@@ -21,6 +21,31 @@ defmodule WraithWeb.MemberController do
     end
   end
 
+  def confirm(conn, %{"token" => token}) do
+    with {:ok, id} <- Tokens.verify(:confirm, token),
+         %{} = member <- Members.get(id),
+         {:ok, member} <- Members.confirm(member) do
+      if is_nil(member["welcomed_at"]) do
+        Wraith.Newsletter.send_welcome(member)
+        Members.update(member, %{welcomed_at: Wraith.Store.now()})
+      end
+
+      conn
+      |> put_flash(:info, "You're subscribed. Welcome!")
+      |> MemberAuth.log_in_member(member, ~p"/")
+    else
+      {:error, :expired} ->
+        conn
+        |> put_flash(:error, "That link has expired — subscribe again for a fresh one.")
+        |> redirect(to: ~p"/subscribe")
+
+      _ ->
+        conn
+        |> put_flash(:error, "That confirmation link is not valid.")
+        |> redirect(to: ~p"/subscribe")
+    end
+  end
+
   def unsubscribe(conn, %{"token" => token}) do
     with {:ok, id} <- Tokens.verify(:unsubscribe, token),
          %{} = member <- Members.get(id),

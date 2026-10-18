@@ -54,7 +54,7 @@ defmodule WraithWeb.UserAuth do
 
   @doc "Give every browser a stable anonymous id (for polls, reactions)."
   def fetch_visitor(conn, _opts) do
-    conn = fetch_cookies(conn)
+    conn = conn |> fetch_cookies() |> put_session(:ip, WraithWeb.RateLimitPlug.client_ip(conn))
 
     case conn.cookies[@visitor_cookie] do
       id when is_binary(id) and byte_size(id) >= 16 ->
@@ -117,7 +117,10 @@ defmodule WraithWeb.UserAuth do
   end
 
   def on_mount(:mount_visitor, _params, session, socket) do
-    {:cont, Phoenix.Component.assign_new(socket, :visitor, fn -> session["visitor"] end)}
+    {:cont,
+     socket
+     |> Phoenix.Component.assign_new(:visitor, fn -> session["visitor"] end)
+     |> Phoenix.Component.assign_new(:client_ip, fn -> session["ip"] end)}
   end
 
   defp mount_current_user(socket, session) do

@@ -18,7 +18,8 @@ defmodule Wraith.Application do
         WraithWeb.Telemetry,
         {DNSCluster, query: Application.get_env(:wraith, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Wraith.PubSub},
-        WraithWeb.Presence
+        WraithWeb.Presence,
+        Wraith.RateLimit
       ] ++
         store_children() ++
         [{Task, &Wraith.Widgets.seed_builtins/0}, Wraith.Search] ++

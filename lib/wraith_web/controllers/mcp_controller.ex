@@ -38,15 +38,21 @@ defmodule WraithWeb.McpController do
         end
 
       :error ->
-        # 403, not 401: a WWW-Authenticate header makes some clients start OAuth discovery
-        conn
-        |> put_status(403)
-        |> json(
-          rpc_error(
-            -32001,
-            "a valid API key is required: Authorization: Bearer <key> (create one at /admin/integrations)"
-          )
-        )
+        case Wraith.RateLimit.check(:api_auth_fail, WraithWeb.RateLimitPlug.client_ip(conn)) do
+          {:error, _} ->
+            conn |> put_status(429) |> json(rpc_error(-32001, "too many failed attempts"))
+
+          # 403, not 401: a WWW-Authenticate header makes some clients start OAuth discovery
+          :ok ->
+            conn
+            |> put_status(403)
+            |> json(
+              rpc_error(
+                -32001,
+                "a valid API key is required: Authorization: Bearer <key> (create one at /admin/integrations)"
+              )
+            )
+        end
     end
   end
 
