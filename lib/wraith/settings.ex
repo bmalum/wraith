@@ -20,7 +20,7 @@ defmodule Wraith.Settings do
     "setup_done" => false
   }
 
-  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled)
+  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled stripe_secret_key stripe_webhook_secret stripe_price_id paid_price_label redirects comments_enabled)
 
   def defaults, do: @defaults
 

@@ -10,7 +10,11 @@
   <h1>{@post["title"]}</h1>
   <img :if={@post["feature_image"]} src={@post["feature_image"]} alt="" class="ink-figure" />
   <div :if={@locked} class="ink-lock">
-    <p>// members only — <.link navigate={~p"/subscribe"}>subscribe</.link> to read on</p>
+    <p>
+      // {@post["visibility"]} members only — <.link navigate={~p"/subscribe"}>subscribe</.link>
+      or <.link navigate={~p"/members"}>sign in</.link>
+      to read on
+    </p>
   </div>
   <.toc :if={not @locked} toc={@toc} />
   <.body :if={not @locked} segments={@segments} widgets={@widgets} />

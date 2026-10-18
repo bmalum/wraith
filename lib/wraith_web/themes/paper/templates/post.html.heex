@@ -20,9 +20,25 @@
   </figure>
 
   <div :if={@locked} class="paywall">
-    <h3>This post is for members</h3>
-    <p>Sign up for free to keep reading.</p>
-    <.link navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
+    <h3>
+      {if @post["visibility"] == "paid",
+        do: "This post is for paid members",
+        else: "This post is for members"}
+    </h3>
+    <p>
+      {if @post["visibility"] == "paid",
+        do: "Upgrade to keep reading.",
+        else: "Sign up for free to keep reading."}
+    </p>
+    <.link
+      :if={@post["visibility"] == "paid" and @current_member}
+      navigate={~p"/members"}
+      class="btn-accent"
+    >Upgrade</.link>
+    <.link :if={is_nil(@current_member)} navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
+    <p :if={is_nil(@current_member)} class="form-help">
+      Already a member? <.link navigate={~p"/members"}>Sign in</.link>
+    </p>
   </div>
 
   <.toc :if={not @locked} toc={@toc} />

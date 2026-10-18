@@ -1,0 +1,29 @@
+<section class="ink-intro">
+  <h1>{if @current_member, do: "account", else: "sign in"}</h1>
+</section>
+<%= if @current_member do %>
+  <p>
+    {@current_member["email"]} · plan: {@current_member["status"]} · newsletter: {if @current_member[
+                                                                                       "subscribed"
+                                                                                     ],
+                                                                                     do: "on",
+                                                                                     else: "off"}
+    <button phx-click="toggle-newsletter" class="ink-link-btn">[toggle]</button>
+  </p>
+  <p :if={@current_member["status"] == "free" and @site["stripe_price_id"] not in [nil, ""]}>
+    <a href={~p"/members/upgrade"}>→ upgrade to paid</a>
+  </p>
+  <p><a href={~p"/members/logout"}>→ sign out</a></p>
+<% else %>
+  <p :if={@sent} class="ink-ok">// if that address is a member, a sign-in link is on its way</p>
+  <.form
+    :if={not @sent}
+    for={@form}
+    phx-submit="request-link"
+    class="ink-form"
+    id="member-login-form"
+  >
+    <label>email <input type="email" name="email" required placeholder="you@example.com" /></label>
+    <button type="submit">send sign-in link →</button>
+  </.form>
+<% end %>

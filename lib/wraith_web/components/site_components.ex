@@ -20,6 +20,7 @@ defmodule WraithWeb.SiteComponents do
   attr :theme, :atom, required: true
   attr :site, :map, required: true
   attr :current_user, :map, default: nil
+  attr :current_member, :map, default: nil
   slot :inner_block, required: true
 
   def theme_layout(%{theme: theme} = assigns) do

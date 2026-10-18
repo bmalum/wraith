@@ -8,6 +8,7 @@ config :wraith,
   kiro_key_verifier: Wraith.FakeKiroKeyVerifier
 
 config :wraith, Wraith.Mailer, adapter: Swoosh.Adapters.Test
+config :wraith, stripe_api: Wraith.FakeStripe
 config :wraith, Wraith.Uploads, adapter: Wraith.Uploads.Local, root: "tmp/test_uploads"
 config :swoosh, :api_client, false
 

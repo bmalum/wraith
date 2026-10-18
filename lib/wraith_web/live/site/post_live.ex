@@ -53,7 +53,9 @@ defmodule WraithWeb.Site.PostLive do
                do: nil,
                else: post["meta_description"] || post["excerpt"]
              ),
-           locked: post["visibility"] == "members" and is_nil(socket.assigns.current_user)
+           locked:
+             not (socket.assigns.current_user != nil or
+                    Wraith.Members.can_read?(socket.assigns[:current_member], post["visibility"]))
          )
          |> mount_widgets(post["markdown"], post["id"], post)}
     end
@@ -92,7 +94,13 @@ defmodule WraithWeb.Site.PostLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.site flash={@flash} site={@site} theme={@theme} current_user={@current_user}>
+    <Layouts.site
+      flash={@flash}
+      site={@site}
+      theme={@theme}
+      current_user={@current_user}
+      current_member={assigns[:current_member]}
+    >
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:post}

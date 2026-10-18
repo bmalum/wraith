@@ -12,12 +12,18 @@ defmodule WraithWeb.Layouts do
   attr :site, :map, required: true
   attr :theme, :atom, required: true, doc: "the theme module (`WraithWeb.Themes.current/0`)"
   attr :current_user, :map, default: nil
+  attr :current_member, :map, default: nil
   slot :inner_block, required: true
 
   @doc "Every public page: the theme's layout around the page, then the flash."
   def site(assigns) do
     ~H"""
-    <WraithWeb.SiteComponents.theme_layout theme={@theme} site={@site} current_user={@current_user}>
+    <WraithWeb.SiteComponents.theme_layout
+      theme={@theme}
+      site={@site}
+      current_user={@current_user}
+      current_member={@current_member}
+    >
       {render_slot(@inner_block)}
     </WraithWeb.SiteComponents.theme_layout>
     <.flash_group flash={@flash} />

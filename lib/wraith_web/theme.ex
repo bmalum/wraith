@@ -9,6 +9,7 @@ defmodule WraithWeb.Theme do
       templates/tag.html.heex      # @tag, @posts, @authors
       templates/author.html.heex   # @author, @posts, @authors
       templates/subscribe.html.heex # @form, @done
+      templates/member.html.heex   # @current_member (or nil), @form, @sent
 
   and its stylesheet at `priv/static/themes/<name>.css` (plain CSS, served
   as is; the root layout links it). Templates are HEEx compiled into the
@@ -30,6 +31,7 @@ defmodule WraithWeb.Theme do
   @callback tag(map()) :: Phoenix.LiveView.Rendered.t()
   @callback author(map()) :: Phoenix.LiveView.Rendered.t()
   @callback subscribe(map()) :: Phoenix.LiveView.Rendered.t()
+  @callback member(map()) :: Phoenix.LiveView.Rendered.t()
 
   defmacro __using__(opts) do
     name = Keyword.fetch!(opts, :name)

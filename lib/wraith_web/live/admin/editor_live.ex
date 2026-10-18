@@ -25,6 +25,7 @@ defmodule WraithWeb.Admin.EditorLive do
         drawer: false,
         saved_at: nil,
         widget_defs: Widgets.list_enabled(),
+        sent: Wraith.Newsletter.send_record(post),
         all_authors: Wraith.Accounts.list_users(),
         page_title: if(post["title"] == "", do: "New " <> post["type"], else: post["title"])
       )
@@ -116,6 +117,22 @@ defmodule WraithWeb.Admin.EditorLive do
     else
       {:error, %{} = errors} -> {:noreply, assign(socket, errors: errors)}
       _ -> {:noreply, put_flash(socket, :error, "Give me a date and time.")}
+    end
+  end
+
+  def handle_event("send-newsletter", _params, socket) do
+    case Wraith.Newsletter.send_post(socket.assigns.post) do
+      {:ok, n} ->
+        {:noreply,
+         socket
+         |> assign(sent: Wraith.Newsletter.send_record(socket.assigns.post))
+         |> put_flash(:info, "Sent to #{n} member(s).")}
+
+      {:error, :already_sent} ->
+        {:noreply, put_flash(socket, :error, "This post already went out.")}
+
+      {:error, :not_published} ->
+        {:noreply, put_flash(socket, :error, "Publish first.")}
     end
   end
 
@@ -227,6 +244,17 @@ defmodule WraithWeb.Admin.EditorLive do
               disabled={@title == ""}
             >Publish</button>
             <button :if={@post["status"] == "published"} phx-click="unpublish" class="btn-ghost">Unpublish</button>
+            <button
+              :if={@post["status"] == "published" and is_nil(@sent)}
+              phx-click="send-newsletter"
+              class="btn-ghost"
+              data-confirm="Mail this post to every subscribed member?"
+              title="Send as newsletter"
+            ><.icon name="hero-envelope" class="size-4" /> Send</button>
+            <span :if={@sent} class="row-sub" title={@sent["sent_at"]}><.icon
+              name="hero-envelope-open"
+              class="size-4"
+            /> sent to {@sent["recipients"]}</span>
           </div>
         </header>
 

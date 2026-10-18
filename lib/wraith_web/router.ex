@@ -2,6 +2,7 @@ defmodule WraithWeb.Router do
   use WraithWeb, :router
 
   import WraithWeb.UserAuth
+  import WraithWeb.MemberAuth, only: [fetch_current_member: 2]
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -12,6 +13,11 @@ defmodule WraithWeb.Router do
     plug :put_secure_browser_headers
     plug :fetch_current_user
     plug :fetch_visitor
+    plug :fetch_current_member
+  end
+
+  pipeline :api do
+    plug :accepts, ["json"]
   end
 
   pipeline :feed do
@@ -24,13 +30,28 @@ defmodule WraithWeb.Router do
     pipe_through :browser
 
     live_session :site,
-      on_mount: [{WraithWeb.UserAuth, :mount_current_user}, {WraithWeb.UserAuth, :mount_visitor}] do
+      on_mount: [
+        {WraithWeb.UserAuth, :mount_current_user},
+        {WraithWeb.UserAuth, :mount_visitor},
+        {WraithWeb.MemberAuth, :mount_current_member}
+      ] do
       live "/", Site.HomeLive, :index
       live "/page/:page", Site.HomeLive, :page
       live "/tag/:slug", Site.TagLive, :show
       live "/author/:slug", Site.AuthorLive, :show
       live "/subscribe", Site.SubscribeLive, :new
+      live "/members", Site.MemberLive, :account
     end
+
+    get "/members/login/:token", MemberController, :login
+    get "/members/unsubscribe/:token", MemberController, :unsubscribe
+    get "/members/logout", MemberController, :logout
+    get "/members/upgrade", MemberController, :upgrade
+  end
+
+  scope "/webhooks", WraithWeb do
+    pipe_through :api
+    post "/stripe", WebhookController, :stripe
   end
 
   scope "/", WraithWeb do
@@ -95,7 +116,11 @@ defmodule WraithWeb.Router do
     pipe_through :browser
 
     live_session :post,
-      on_mount: [{WraithWeb.UserAuth, :mount_current_user}, {WraithWeb.UserAuth, :mount_visitor}] do
+      on_mount: [
+        {WraithWeb.UserAuth, :mount_current_user},
+        {WraithWeb.UserAuth, :mount_visitor},
+        {WraithWeb.MemberAuth, :mount_current_member}
+      ] do
       live "/:slug", Site.PostLive, :show
     end
   end

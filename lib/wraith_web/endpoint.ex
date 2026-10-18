@@ -47,6 +47,7 @@ defmodule WraithWeb.Endpoint do
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
+    body_reader: {WraithWeb.RawBody, :read_body, []},
     pass: ["*/*"],
     json_decoder: Phoenix.json_library()
 

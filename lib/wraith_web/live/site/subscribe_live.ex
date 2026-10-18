@@ -20,7 +20,8 @@ defmodule WraithWeb.Site.SubscribeLive do
   @impl true
   def handle_event("subscribe", %{"email" => email, "name" => name}, socket) do
     case Members.create(%{email: email, name: name}) do
-      {:ok, _} ->
+      {:ok, member} ->
+        Wraith.Newsletter.send_welcome(member)
         {:noreply, assign(socket, done: true)}
 
       {:error, %{"email" => "is already a member"}} ->
@@ -40,7 +41,13 @@ defmodule WraithWeb.Site.SubscribeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.site flash={@flash} site={@site} theme={@theme} current_user={@current_user}>
+    <Layouts.site
+      flash={@flash}
+      site={@site}
+      theme={@theme}
+      current_user={@current_user}
+      current_member={assigns[:current_member]}
+    >
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:subscribe}

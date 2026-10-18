@@ -54,7 +54,13 @@ defmodule WraithWeb.Site.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.site flash={@flash} site={@site} theme={@theme} current_user={@current_user}>
+    <Layouts.site
+      flash={@flash}
+      site={@site}
+      theme={@theme}
+      current_user={@current_user}
+      current_member={assigns[:current_member]}
+    >
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:index}

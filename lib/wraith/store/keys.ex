@@ -51,6 +51,8 @@ defmodule Wraith.Store.Keys do
   def author_posts_pk(user_id), do: "AUTHOR#" <> user_id
 
   def member(id), do: {"MEMBER#" <> id, "MEMBER"}
+  def member_session(token_hash), do: {"MTOKEN#" <> token_hash, "SESSION"}
+  def stripe_customer(customer_id), do: {"STRIPE#" <> customer_id, "MEMBER"}
   def member_email(email), do: {"MEMBER_EMAIL#" <> String.downcase(email), "MEMBER"}
   def members_index, do: "MEMBERS"
 
@@ -59,6 +61,13 @@ defmodule Wraith.Store.Keys do
   def widget_versions_prefix, do: "VER#"
   def widgets_index, do: "WIDGETS"
   def widget_state(widget, instance), do: {"WSTATE#" <> widget <> "#" <> instance, "STATE"}
+
+  def comment(post_id, sort), do: {"POST#" <> post_id, "COMMENT#" <> sort}
+  def comments_prefix, do: "COMMENT#"
+  def comments_index(status), do: "COMMENTS#" <> status
+  def api_key(id), do: {"APIKEY#" <> id, "KEY"}
+  def api_keys_index, do: "APIKEYS"
+  def newsletter_send(post_id), do: {"POST#" <> post_id, "NEWSLETTER"}
 
   def studio_session(id), do: {"STUDIO", "SESSION#" <> id}
   def studio_sessions_prefix, do: "SESSION#"
