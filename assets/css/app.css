@@ -89,6 +89,9 @@ a { color: inherit; }
 .prose-wraith code { font-family: var(--mono); font-size: .85em; background: var(--paper-2); padding: .1em .35em; border-radius: 4px; }
 .prose-wraith pre { background: oklch(20% 0.012 60); color: oklch(92% 0.01 60); padding: 1.25rem; border-radius: 10px; overflow-x: auto; font-size: .9rem; line-height: 1.55; }
 .prose-wraith pre code { background: none; padding: 0; font-size: inherit; }
+/* Lumis-highlighted blocks carry their own colours */
+.prose-wraith pre.lumis { border: 1px solid var(--rule); }
+.prose-wraith .l-line { display: block; }
 .prose-wraith img { max-width: 100%; border-radius: 8px; }
 .prose-wraith hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5em 0; }
 .prose-wraith table { width: 100%; border-collapse: collapse; font-size: .95rem; }

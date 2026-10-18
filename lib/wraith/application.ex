@@ -8,6 +8,8 @@ defmodule Wraith.Application do
   @impl true
   def start(_type, _args) do
     WraithWeb.Themes.register()
+    # code-block highlighting parsers, compiled once off the first request
+    Lumis.Languages.async_load(~w(elixir erlang html css javascript typescript json yaml bash python go rust sql markdown))
 
     children =
       [

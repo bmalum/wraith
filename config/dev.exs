@@ -62,3 +62,6 @@ config :phoenix_live_view,
   debug_attributes: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
+
+# sent mail shows up at /dev/mailbox
+config :swoosh, serve_mailbox: true, preview_port: 4001

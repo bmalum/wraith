@@ -24,3 +24,7 @@ config :logger, level: :info
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
+
+# Amazon SES through ex_aws's credential chain (region from AWS_REGION in runtime.exs)
+config :wraith, Wraith.Mailer, adapter: Swoosh.Adapters.ExAwsAmazonSES
+config :swoosh, local: false

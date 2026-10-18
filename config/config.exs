@@ -17,6 +17,13 @@ config :wraith,
 
 config :wraith, Wraith.Store.Dynamo, table: "wraith"
 
+# mail: Swoosh over Req; the adapter is set per environment (Local in dev, Test in test, SES in prod)
+config :swoosh, api_client: Swoosh.ApiClient.Req
+config :wraith, Wraith.Mailer, adapter: Swoosh.Adapters.Local
+
+# code blocks are highlighted by Lumis (a precompiled mdex_native variant)
+config :mdex_native, syntax_highlighter: :lumis
+
 # ex_aws rides on Req (no hackney) and Jason
 config :ex_aws,
   http_client: ExAws.Request.Req,

@@ -25,6 +25,7 @@ defmodule WraithWeb.Admin.EditorLive do
         drawer: false,
         saved_at: nil,
         widget_defs: Widgets.list_enabled(),
+        all_authors: Wraith.Accounts.list_users(),
         page_title: if(post["title"] == "", do: "New " <> post["type"], else: post["title"])
       )
       |> mount_widgets(post["markdown"], post["id"], post)

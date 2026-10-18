@@ -39,3 +39,8 @@ html { background: oklch(16% 0.01 260); color: oklch(88% 0.01 90); font-family: 
 .ink-foot { display: flex; gap: 1.5rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px dashed oklch(35% 0.01 260); color: oklch(55% 0.01 260); font-size: .85rem; }
 .ink .pager { border-color: oklch(30% 0.01 260); }
 .ink .pager-link, .ink .pager-page { color: oklch(70% 0.01 260); }
+.ink .toc { border-left: 1px dashed oklch(40% 0.01 260); padding-left: 1rem; margin-bottom: 1.5rem; font-size: .85rem; }
+.ink .toc-title { color: oklch(60% 0.01 260); display: block; margin-bottom: .4rem; }
+.ink .toc ol { list-style: none; margin: 0; padding: 0; }
+.ink .toc li.is-h3 { padding-left: 1rem; }
+.ink .prose-wraith pre.lumis { filter: invert(1) hue-rotate(180deg); }

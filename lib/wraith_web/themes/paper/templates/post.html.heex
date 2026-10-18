@@ -25,15 +25,18 @@
     <.link navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
   </div>
 
+  <.toc :if={not @locked} toc={@toc} />
   <.body :if={not @locked} segments={@segments} widgets={@widgets} />
 
-  <footer :if={@author} class="post-foot">
-    <div class="author-card">
-      <div class="author-avatar">{String.first(@author["name"])}</div>
+  <footer :if={@co_authors != []} class="post-foot">
+    <div :for={a <- @co_authors} class="author-card">
+      <img :if={a["avatar"]} src={a["avatar"]} alt="" class="author-avatar is-img" />
+      <div :if={is_nil(a["avatar"])} class="author-avatar">{String.first(a["name"])}</div>
       <div>
-        <.link navigate={~p"/author/#{@author["slug"]}"} class="author-name">{@author["name"]}</.link>
-        <p :if={@author["bio"] not in [nil, ""]} class="author-bio">{@author["bio"]}</p>
+        <.link navigate={~p"/author/#{a["slug"]}"} class="author-name">{a["name"]}</.link>
+        <p :if={a["bio"] not in [nil, ""]} class="author-bio">{a["bio"]}</p>
       </div>
     </div>
   </footer>
 </article>
+<.related posts={@related} authors={@authors} />

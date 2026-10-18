@@ -69,6 +69,35 @@ defmodule WraithWeb.SiteComponents do
     """
   end
 
+  @doc "A table of contents from `Wraith.Markdown.toc/1`."
+  attr :toc, :list, required: true
+
+  def toc(assigns) do
+    ~H"""
+    <nav :if={@toc != []} class="toc" aria-label="Contents">
+      <span class="toc-title">Contents</span>
+      <ol>
+        <li :for={h <- @toc} class={"is-h#{h["level"]}"}><a href={"#" <> h["id"]}>{h["text"]}</a></li>
+      </ol>
+    </nav>
+    """
+  end
+
+  @doc "Related posts under an article."
+  attr :posts, :list, required: true
+  attr :authors, :map, default: %{}
+
+  def related(assigns) do
+    ~H"""
+    <aside :if={@posts != []} class="related" aria-label="Read next">
+      <h2 class="related-title">Read next</h2>
+      <div class="feed is-related">
+        <.post_card :for={p <- @posts} post={p} authors={@authors} />
+      </div>
+    </aside>
+    """
+  end
+
   @doc "The rendered post body: HTML segments raw, widget segments live."
   attr :segments, :list, required: true
   attr :widgets, :map, required: true

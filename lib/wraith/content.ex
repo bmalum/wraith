@@ -23,8 +23,8 @@ defmodule Wraith.Content do
 
   @statuses ~w(draft scheduled published)
   @types ~w(post page)
-  @visibilities ~w(public members)
-  @fields ~w(type title slug markdown custom_excerpt status visibility featured tags author_id published_at feature_image meta_title meta_description)
+  @visibilities ~w(public members paid)
+  @fields ~w(type title slug markdown custom_excerpt status visibility featured tags author_id authors published_at feature_image feature_image_alt canonical_url og_image meta_title meta_description show_toc)
   @max_revisions 30
 
   @topic "content"
@@ -154,6 +154,27 @@ defmodule Wraith.Content do
     |> Enum.filter(&(&1["status"] == "published"))
   end
 
+  @doc "Published posts sharing the most tags with this one (then the newest), up to `n`."
+  def related(%{"id" => id, "tags" => tags}, n \\ 3) do
+    tags
+    |> Enum.flat_map(&posts_tagged(&1, limit: 20).posts)
+    |> Enum.reject(&(&1["id"] == id))
+    |> Enum.group_by(& &1["id"])
+    |> Enum.map(fn {_id, [p | _] = dups} -> {length(dups), p} end)
+    |> Enum.sort_by(fn {shared, p} -> {-shared, p["published_at"] || ""} end, fn {a, pa}, {b, pb} -> {a, pa} <= {b, pb} end)
+    |> Enum.map(&elem(&1, 1))
+    |> then(fn list ->
+      list = Enum.take(list, n)
+      # fill up with the newest posts when tags are thin
+      if length(list) < n do
+        extra = list_posts("published", limit: n + 5, type: "post").posts |> Enum.reject(&(&1["id"] == id or &1["id"] in Enum.map(list, fn p -> p["id"] end)))
+        list ++ Enum.take(extra, n - length(list))
+      else
+        list
+      end
+    end)
+  end
+
   def revisions(post_id) do
     Store.all("POST#" <> post_id, begins_with: Keys.post_revisions_prefix(), forward: false)
   end
@@ -183,8 +204,13 @@ defmodule Wraith.Content do
       "author_id" => nil,
       "published_at" => nil,
       "feature_image" => nil,
+      "feature_image_alt" => nil,
+      "canonical_url" => nil,
+      "og_image" => nil,
       "meta_title" => nil,
-      "meta_description" => nil
+      "meta_description" => nil,
+      "authors" => [],
+      "show_toc" => false
     }
 
     save(nil, base |> Map.merge(Map.take(attrs, @fields)) |> lock_slug(attrs))
@@ -341,8 +367,17 @@ defmodule Wraith.Content do
       |> Enum.map(&Slug.slugify/1)
       |> Enum.uniq()
 
+    # co-authors: the primary author first, then the rest, no duplicates
+    authors =
+      [post["author_id"] | List.wrap(post["authors"]) |> Enum.flat_map(&if(is_binary(&1), do: String.split(&1, ","), else: [&1]))]
+      |> Enum.map(&(&1 && String.trim(to_string(&1))))
+      |> Enum.reject(&(&1 in [nil, ""]))
+      |> Enum.uniq()
+
     post
     |> Map.put("tags", tags)
+    |> Map.put("authors", authors)
+    |> Map.put("show_toc", post["show_toc"] in [true, "true", "on"])
     |> Map.put("featured", post["featured"] in [true, "true", "on"])
     |> Map.put("title", to_string(post["title"]))
     |> Map.put("markdown", to_string(post["markdown"]))
@@ -389,7 +424,7 @@ defmodule Wraith.Content do
     id = post["id"]
 
     Enum.map(post["tags"] || [], &Keys.tag_post(&1, sort, id)) ++
-      if(post["author_id"], do: [Keys.author_post(post["author_id"], sort, id)], else: [])
+      Enum.map(post["authors"] || List.wrap(post["author_id"]), &Keys.author_post(&1, sort, id))
   end
 
   defp membership_keys(_), do: []

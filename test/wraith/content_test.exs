@@ -158,4 +158,33 @@ defmodule Wraith.ContentTest do
     {:ok, _} = Content.publish_post(p)
     assert_receive {:content, :updated, %{"status" => "published"}}
   end
+
+  test "co-authors, related posts, toc, highlighting", %{owner: o} do
+    {:ok, co} = Accounts.create_user(%{email: "c@x.io", name: "Co Author", password: "another long pw"})
+    p = draft(o, %{authors: [co["id"]], tags: "a, b", markdown: "## One\n\ntext\n\n### Two\n\n```elixir\ndef x, do: 1\n```\n\n{{widget counter}}\n\n## Three"})
+    assert p["authors"] == [o["id"], co["id"]]
+    {:ok, p} = Content.publish_post(p)
+    assert [%{"id" => id}] = Content.posts_by_author(co["id"]).posts
+    assert id == p["id"]
+
+    assert Wraith.Markdown.toc(p["markdown"]) == [
+             %{"level" => 2, "text" => "One", "id" => "one"},
+             %{"level" => 3, "text" => "Two", "id" => "two"},
+             %{"level" => 2, "text" => "Three", "id" => "three"}
+           ]
+
+    html = Wraith.Markdown.to_html(p["markdown"])
+    assert html =~ ~s(<h2 id="one">One)
+    assert html =~ ~s(class="lumis")
+    assert html =~ "language-elixir"
+
+    other = draft(o, %{title: "Shares a tag", tags: "a"})
+    {:ok, other} = Content.publish_post(other)
+    unrelated = draft(o, %{title: "Nothing in common", tags: "zzz"})
+    {:ok, unrelated} = Content.publish_post(unrelated)
+    related = Content.related(p, 2) |> Enum.map(& &1["id"])
+    assert hd(related) == other["id"]
+    assert unrelated["id"] in related, "fills up with the newest"
+    refute p["id"] in related
+  end
 end

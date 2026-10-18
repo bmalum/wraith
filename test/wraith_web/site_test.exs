@@ -99,8 +99,9 @@ defmodule WraithWeb.SiteTest do
       post = post_fixture(owner, %{title: "Inner circle", visibility: "members"})
       {:ok, _, html} = live(conn, ~p"/#{post["slug"]}")
       assert html =~ "for members"
-      refute html =~ "Some text."
+      refute html =~ ~s(class="prose-wraith")
       {:ok, _, html} = conn |> log_in(owner) |> live(~p"/#{post["slug"]}")
+      assert html =~ ~s(class="prose-wraith")
       assert html =~ "Some text."
     end
 

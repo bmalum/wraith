@@ -4,7 +4,7 @@ defmodule WraithWeb.Site.PostLive do
   alias WraithWeb.Themes
   import WraithWeb.WidgetHost
 
-  alias Wraith.{Accounts, Content, Settings}
+  alias Wraith.{Accounts, Content, Markdown, Settings}
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -18,6 +18,8 @@ defmodule WraithWeb.Site.PostLive do
       post ->
         if connected?(socket), do: Content.subscribe()
         author = post["author_id"] && Accounts.get_user(post["author_id"])
+        authors = Accounts.list_users() |> Map.new(&{&1["id"], &1})
+        url = url(~p"/#{post["slug"]}")
 
         {:ok,
          socket
@@ -26,7 +28,20 @@ defmodule WraithWeb.Site.PostLive do
            theme: Themes.get(site["theme"]),
            post: post,
            author: author && Accounts.public(author),
-           authors: if(author, do: %{author["id"] => author}, else: %{}),
+           authors: authors,
+           co_authors: (post["authors"] || []) |> Enum.map(&authors[&1]) |> Enum.reject(&is_nil/1),
+           toc: if(post["show_toc"], do: Markdown.toc(post["markdown"]), else: []),
+           related: if(post["status"] == "published" and post["type"] == "post", do: Content.related(post), else: []),
+           meta: %{
+             type: "article",
+             title: post["meta_title"] || post["title"],
+             description: post["meta_description"] || post["custom_excerpt"] || post["excerpt"],
+             url: url,
+             canonical: post["canonical_url"] || url,
+             image: post["og_image"] || post["feature_image"],
+             published_at: post["published_at"],
+             tags: post["tags"]
+           },
            page_title: post["meta_title"] || post["title"],
            meta_description:
              if(post["visibility"] == "members",

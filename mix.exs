@@ -77,12 +77,24 @@ defmodule Wraith.MixProject do
       {:luerl, "~> 1.5"},
       # markdown → HTML (sanitised)
       {:mdex, "~> 0.14"},
+      # code block syntax highlighting for mdex
+      {:lumis, "~> 0.10"},
+      {:lumis_wasm_bundle_web, "~> 0.1"},
+      {:lumis_wasm_bundle_backend, "~> 0.1"},
+      {:lumis_wasm_elixir, "~> 0.26"},
+      {:lumis_wasm_bash, "~> 0.26"},
+      {:lumis_wasm_yaml, "~> 0.26"},
+      {:lumis_wasm_markdown, "~> 0.26"},
       # ACP (JSON-RPC over WebSocket) to Kiro Agent Servers
       {:mint_web_socket, "~> 1.0"},
       # owner password
       {:bcrypt_elixir, "~> 3.3"},
       # the SQL store adapter (PostgreSQL and Aurora DSQL)
-      {:postgrex, "~> 0.22"}
+      {:postgrex, "~> 0.22"},
+      # uploads to S3
+      {:ex_aws_s3, "~> 2.5"},
+      # mail: newsletters, magic links, password resets (SES in prod via ex_aws)
+      {:swoosh, "~> 1.29"}
     ]
   end
 

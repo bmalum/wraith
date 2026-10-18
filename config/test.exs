@@ -7,6 +7,9 @@ config :wraith,
   acp_client: Wraith.Kiro.ACP.Fake,
   kiro_key_verifier: Wraith.FakeKiroKeyVerifier
 
+config :wraith, Wraith.Mailer, adapter: Swoosh.Adapters.Test
+config :swoosh, :api_client, false
+
 # fast hashing in tests
 config :bcrypt_elixir, log_rounds: 4
 

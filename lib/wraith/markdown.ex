@@ -35,11 +35,40 @@ defmodule Wraith.Markdown do
       ],
       parse: [smart: true],
       render: [unsafe: true],
-      sanitize: MDEx.Document.default_sanitize_options()
+      syntax_highlight: [formatter: {:html_inline, theme: "github_light"}],
+      sanitize: sanitize_options()
     )
   end
 
   def to_html(_), do: ""
+
+  # the sanitizer must keep what the highlighter emits: inline colour styles,
+  # `class`/`data-line`/`translate`/`tabindex` on pre/code/span, heading ids
+  defp sanitize_options do
+    MDEx.Document.default_sanitize_options()
+    |> Keyword.update(:generic_attributes, ["id", "class", "style", "translate", "tabindex", "data-line"], &Enum.uniq(&1 ++ ["id", "class", "style", "translate", "tabindex", "data-line"]))
+  end
+
+  @doc "The headings (h2/h3) of a body as `[%{id, level, text}]` — the table of contents."
+  @spec toc(String.t()) :: [map()]
+  def toc(markdown) when is_binary(markdown) do
+    markdown
+    |> String.replace(@shortcode, "")
+    |> String.replace(~r/```.*?```/s, "")
+    |> String.split("\n")
+    |> Enum.flat_map(fn line ->
+      case Regex.run(~r/^(\#{2,3})\s+(.+?)\s*\#*\s*$/, line) do
+        [_, hashes, text] ->
+          text = String.replace(text, ~r/[*_`\[\]]/, "")
+          [%{"level" => String.length(hashes), "text" => text, "id" => Wraith.Slug.slugify(text)}]
+
+        _ ->
+          []
+      end
+    end)
+  end
+
+  def toc(_), do: []
 
   @doc "Split a post body into HTML and widget segments; `scope` seeds unnamed instance ids."
   @spec segments(String.t(), String.t()) :: [segment()]

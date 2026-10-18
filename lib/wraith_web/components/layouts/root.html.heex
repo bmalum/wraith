@@ -10,6 +10,21 @@
       phx-no-format
     >{assigns[:page_title]}</.live_title>
     <meta :if={assigns[:meta_description]} name="description" content={@meta_description} />
+    <%= if assigns[:meta] do %>
+      <link :if={@meta[:canonical]} rel="canonical" href={@meta[:canonical]} />
+      <meta property="og:site_name" content={(assigns[:site] && @site["title"]) || "Wraith"} />
+      <meta property="og:type" content={@meta[:type] || "website"} />
+      <meta property="og:title" content={@meta[:title]} />
+      <meta :if={@meta[:description]} property="og:description" content={@meta[:description]} />
+      <meta :if={@meta[:url]} property="og:url" content={@meta[:url]} />
+      <meta :if={@meta[:image]} property="og:image" content={@meta[:image]} />
+      <meta :if={@meta[:published_at]} property="article:published_time" content={@meta[:published_at]} />
+      <meta :for={tag <- @meta[:tags] || []} property="article:tag" content={tag} />
+      <meta name="twitter:card" content={if @meta[:image], do: "summary_large_image", else: "summary"} />
+      <meta name="twitter:title" content={@meta[:title]} />
+      <meta :if={@meta[:description]} name="twitter:description" content={@meta[:description]} />
+      <meta :if={@meta[:image]} name="twitter:image" content={@meta[:image]} />
+    <% end %>
     <link rel="alternate" type="application/rss+xml" title="RSS" href={~p"/rss"} />
     <link rel="alternate" type="application/feed+json" title="JSON Feed" href={~p"/feed.json"} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

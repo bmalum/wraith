@@ -144,6 +144,8 @@ if config_env() != :test do
         region: region
   end
 
+  if from = System.get_env("MAIL_FROM"), do: config(:wraith, mail_from: from)
+
   if key = System.get_env("KIRO_API_KEY") do
     config :wraith, kiro_api_key: key
   end
