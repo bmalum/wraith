@@ -99,6 +99,14 @@ defmodule WraithWeb.Router do
     post "/db", AdminController, :import
   end
 
+  # the MCP server for any agent (Kiro CLI, Claude, Cursor, …)
+  scope "/mcp", WraithWeb do
+    pipe_through :api
+    post "/", McpController, :handle
+    get "/", McpController, :not_allowed
+    delete "/", McpController, :close
+  end
+
   scope "/webhooks", WraithWeb do
     pipe_through :api
     post "/stripe", WebhookController, :stripe

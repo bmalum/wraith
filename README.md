@@ -28,6 +28,7 @@ widgets and runs the site with you.
 | Search: in-memory inverted index over published posts, `/search` as you type | `Wraith.Search` |
 | Author profiles: avatar, bio, socials, password change, reset by mail | `WraithWeb.Admin.{ProfileLive,ResetLive}` |
 | Redirects (exact and `/old/*`), navigation picker for pages | `WraithWeb.Redirects`, Settings |
+| **MCP server**: every admin action as a tool (49), posts as resources, at `/mcp` for any agent — Kiro CLI, Claude, Cursor; the studio agent uses the same registry | `Wraith.Tools`, `WraithWeb.McpController`, `Wraith.Kiro.MCP` |
 | JSON APIs in Ghost's shape: Content API (read, `?key=`), Admin API (Bearer key or session), Ghost-compatible export and **import of a Ghost site** | `WraithWeb.Api.*`, `Wraith.ApiKeys`, `Wraith.Ghost` |
 | Public site: feed, post, tag, author, subscribe, RSS / JSON Feed / sitemap | `WraithWeb.Site.*`, `WraithWeb.FeedController` |
 | Themes: `paper` (editorial) and `ink` (dark terminal), switchable in Settings | `WraithWeb.Theme`, `WraithWeb.Themes`, `lib/wraith_web/themes/*`, `priv/static/themes/*.css` |
@@ -137,6 +138,33 @@ Themes are compiled into the release, by design: no template code is loaded
 at runtime. Ghost (Handlebars) theme compatibility would be a second theme
 kind on top of this contract; it is not there yet.
 
+## The MCP server
+
+Everything you can do in the admin, an agent can do over MCP. `Wraith.Tools`
+is one registry — posts, pages, revisions, publishing and scheduling,
+newsletters, tags, authors, members, comments, Lua widgets (docs, test, save,
+versions, rollback, live state), uploads, settings, themes, redirects, API
+keys, export/import, search — served as an MCP server (Streamable HTTP, JSON)
+at `POST /mcp`, and as the studio agent's tool server over the bridge.
+
+Create a key at `/admin/integrations` and point any client at it:
+
+```json
+{"mcpServers": {"wraith": {"url": "https://your-site/mcp",
+                            "headers": {"Authorization": "Bearer <key>"}}}}
+```
+
+```sh
+kiro-cli mcp add --name wraith --url https://your-site/mcp --header "Authorization: Bearer <key>"
+```
+
+An Admin key gets every tool; a Content key only the ones annotated
+`readOnlyHint` (list, get, search, docs, export). Destructive tools carry
+`destructiveHint`. `resources/list` exposes the settings, the widget guide
+and every post as `wraith://posts/<slug>`. The test
+`test/wraith_web/mcp_test.exs` drives the whole site lifecycle through the
+endpoint and checks the catalogue against the admin's actions.
+
 ## The agent studio
 
 `/admin/studio`. Paste a Kiro API key (`ksk_…`, minted at app.kiro.dev; stored
@@ -185,7 +213,7 @@ Uniqueness (slugs, emails) is a conditional put inside a transaction
 ## Tests
 
 ```sh
-mix test                                              # 86 tests, in-memory store, fake agent, test mailer
+mix test                                              # 90 tests, in-memory store, fake agent, test mailer
 WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test     # the same suite on DynamoDB Local
 WRAITH_TEST_POSTGRES=postgres://postgres:postgres@127.0.0.1:5434/wraith_test mix test   # … on PostgreSQL
 mix compile --warnings-as-errors

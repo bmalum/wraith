@@ -410,3 +410,4 @@ a { color: inherit; }
 .nav-page { display: flex; align-items: center; gap: .5rem; font-size: .9rem; }
 .new-key { border: 1px solid color-mix(in oklch, var(--accent) 40%, var(--rule)); background: color-mix(in oklch, var(--accent) 6%, var(--paper)); border-radius: 8px; padding: .75rem 1rem; display: flex; flex-direction: column; gap: .4rem; font-size: .9rem; }
 .new-key code { font-family: var(--mono); font-size: .8rem; word-break: break-all; }
+.mcp-config { font-family: var(--mono); font-size: .78rem; background: var(--paper-2); padding: .75rem 1rem; border-radius: 8px; overflow-x: auto; white-space: pre; margin: 0; }

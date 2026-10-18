@@ -61,6 +61,20 @@ defmodule WraithWeb.Admin.IntegrationsLive do
     {:noreply, socket |> assign(new_key: nil) |> load()}
   end
 
+  defp mcp_config(key) do
+    Jason.encode!(
+      %{
+        "mcpServers" => %{
+          "wraith" => %{
+            "url" => WraithWeb.Endpoint.url() <> "/mcp",
+            "headers" => %{"Authorization" => "Bearer " <> (key || "<your admin key>")}
+          }
+        }
+      },
+      pretty: true
+    )
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -114,6 +128,24 @@ defmodule WraithWeb.Admin.IntegrationsLive do
               </div>
             </li>
           </ul>
+        </section>
+
+        <section class="panel">
+          <header class="panel-head">
+            <h2>MCP server</h2>
+          </header>
+          <div class="panel-form">
+            <p class="form-help">
+              Everything in this admin is a tool for agents:
+              <strong>{length(Wraith.Tools.names())}</strong>
+              tools and the site's posts as resources, at <code>{WraithWeb.Endpoint.url()}/mcp</code>. Authenticate with an API key; a Content key sees the read-only tools, an Admin key all of them.
+            </p>
+            <pre class="mcp-config">{mcp_config(@new_key)}</pre>
+            <p class="form-help">
+              Kiro CLI:
+              <code>kiro-cli mcp add --name wraith --url {WraithWeb.Endpoint.url()}/mcp --header "Authorization: Bearer &lt;key&gt;"</code>
+            </p>
+          </div>
         </section>
 
         <section class="panel">

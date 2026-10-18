@@ -201,6 +201,7 @@ defmodule WraithWeb.ApiTest do
     {:ok, view, _} = live(log_in(conn, owner2), ~p"/admin/integrations")
     view |> form("#key-create-form", %{label: "zapier", kind: "content"}) |> render_submit()
     assert render(view) =~ "shown once"
+    assert render(view) =~ "/mcp" and render(view) =~ "mcpServers"
     assert Enum.any?(ApiKeys.list(), &(&1["label"] == "zapier"))
   end
 end
