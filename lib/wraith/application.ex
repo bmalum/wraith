@@ -46,7 +46,7 @@ defmodule Wraith.Application do
   end
 
   defp clock_children do
-    if Application.get_env(:wraith, :clock, true), do: [Wraith.Clock], else: []
+    if Application.get_env(:wraith, :clock, true), do: [Wraith.Clock, Wraith.Janitor], else: []
   end
 
   # the offline runtime keeps its VMs in an Agent

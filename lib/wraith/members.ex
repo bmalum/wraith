@@ -148,13 +148,20 @@ defmodule Wraith.Members do
     token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
     {pk, sk} = Keys.member_session(hash(token))
 
+    expires =
+      DateTime.utc_now()
+      |> DateTime.add(@session_days, :day)
+      |> DateTime.truncate(:millisecond)
+      |> DateTime.to_iso8601()
+
     :ok =
       Store.put(%{
         "pk" => pk,
         "sk" => sk,
+        "gsi1pk" => Keys.sessions_index(),
+        "gsi1sk" => expires <> "#" <> hash(token),
         "member_id" => member_id,
-        "expires_at" =>
-          DateTime.utc_now() |> DateTime.add(@session_days, :day) |> DateTime.to_iso8601(),
+        "expires_at" => expires,
         "ttl" => System.system_time(:second) + @session_days * 86_400
       })
 

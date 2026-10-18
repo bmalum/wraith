@@ -214,7 +214,7 @@ defmodule Wraith.Widgets do
     meta = Map.merge(%{instance: instance, visitor: nil, presence: 0, post: nil}, meta)
 
     case run(widget, :render, [state, props, meta_for(meta)], meta) do
-      {:ok, html} when is_binary(html) -> {:ok, html}
+      {:ok, html} when is_binary(html) -> {:ok, sanitize(html)}
       {:ok, other} -> {:error, "render returned #{inspect(other)}, not a string"}
       {:error, _} = e -> e
     end
@@ -258,6 +258,28 @@ defmodule Wraith.Widgets do
     {pk, sk} = Keys.widget_state(slug, instance)
     Store.delete(pk, sk)
   end
+
+  # ---- what a widget may emit ------------------------------------------------------
+
+  # Widget authors are admins (and, through MCP, anyone with an Admin key); their
+  # HTML still goes through an allowlist before it reaches every reader: no scripts,
+  # no event handlers, no javascript: URLs. Styling (class, style), structure,
+  # form controls and the `phx-*` / `data-*` / `aria-*` attributes stay.
+  @sanitize MDEx.Document.default_sanitize_options()
+            |> Keyword.put(
+              :add_tags,
+              ~w(button input label select option textarea form svg path circle rect line polyline polygon g progress meter time small b section article header footer nav figure figcaption details summary)
+            )
+            |> Keyword.put(
+              :add_generic_attributes,
+              ~w(class style id role title type name value disabled checked selected placeholder min max step tabindex datetime for width height viewBox fill stroke d cx cy r x y x1 y1 x2 y2 points transform)
+            )
+            |> Keyword.put(:add_generic_attribute_prefixes, ~w(phx- data- aria-))
+            |> Keyword.put(:rm_tags, ~w(script iframe object embed))
+
+  @doc "Allowlist-sanitise widget HTML (`MDEx.safe_html/2`, ammonia underneath)."
+  def sanitize(html) when is_binary(html),
+    do: MDEx.safe_html(html, sanitize: @sanitize, escape: [content: false])
 
   # Lua gets meta as a plain table (atoms become strings), Elixir widgets the map
   defp meta_for(meta),

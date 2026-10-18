@@ -161,4 +161,64 @@ defmodule Wraith.WidgetsTest do
     assert Markdown.to_text("# Hi\n\n{{widget counter}}\n\nthere *you*") == "Hi there you"
     assert Markdown.reading_minutes("word") == 1
   end
+
+  test "widget html is sanitised: scripts and handlers go, phx/data/style stay" do
+    html =
+      ~S|<div class="w-x" style="color:red" onclick="x()"><button phx-click="widget" phx-value-event="go" data-n="1" aria-label="go">go</button><script>alert(1)</script><img src="x" onerror="alert(1)"><a href="javascript:alert(1)">l</a></div>|
+
+    out = Widgets.sanitize(html)
+
+    assert out =~ ~s(phx-click="widget") and out =~ ~s(phx-value-event="go") and
+             out =~ ~s(data-n="1") and out =~ ~s(style="color:red")
+
+    refute out =~ "onclick" or out =~ "<script" or out =~ "onerror" or out =~ "javascript:"
+
+    src =
+      "function init(p) return {} end function render(s,p,m) return '<b onmouseover=\"evil()\">hi</b><script>bad()</script>' end function handle(s,e,p,m) return s end"
+
+    {:ok, w} = Widgets.save(%{slug: "evil", name: "Evil", source: src})
+    {:ok, rendered} = Widgets.render(w, "i", %{}, %{}, %{})
+    assert rendered == "<b>hi</b>"
+  end
+
+  test "janitor drops expired sessions" do
+    {:ok, user} =
+      Wraith.Accounts.create_user(%{email: "j@x.io", name: "J", password: "a very long password"})
+
+    {:ok, member} = Wraith.Members.create(%{email: "m@x.io"})
+    live_tok = Wraith.Accounts.create_session(user)
+    dead_tok = Wraith.Accounts.create_session(user)
+    mdead_tok = Wraith.Members.create_session(member)
+
+    # age two of them past their expiry
+    for tok <- [dead_tok, mdead_tok] do
+      {pk, sk} =
+        if tok == dead_tok,
+          do: Wraith.Store.Keys.session(hash(tok)),
+          else: Wraith.Store.Keys.member_session(hash(tok))
+
+      {:ok, _} =
+        Wraith.Store.update(
+          pk,
+          sk,
+          &Map.merge(&1, %{
+            "expires_at" => "2000-01-01T00:00:00.000Z",
+            "gsi1sk" => "2000-01-01T00:00:00.000Z#" <> hash(tok)
+          })
+        )
+    end
+
+    assert Wraith.Janitor.sweep() == 2
+    assert Wraith.Accounts.user_by_session(live_tok)
+
+    assert Wraith.Store.get(elem(Wraith.Store.Keys.session(hash(dead_tok)), 0), "SESSION") ==
+             :error
+
+    assert Wraith.Store.get(elem(Wraith.Store.Keys.member_session(hash(mdead_tok)), 0), "SESSION") ==
+             :error
+
+    assert Wraith.Janitor.sweep() == 0
+  end
+
+  defp hash(token), do: :crypto.hash(:sha256, token) |> Base.url_encode64(padding: false)
 end

@@ -28,3 +28,7 @@ config :logger, level: :info
 # Amazon SES through ex_aws's credential chain (region from AWS_REGION in runtime.exs)
 config :wraith, Wraith.Mailer, adapter: Swoosh.Adapters.ExAwsAmazonSES
 config :swoosh, local: false
+
+# bandit 1.12.5 (EEF-CVE-2026-105659) is an HTTP/2 flow-control issue with no fixed release
+# yet; the load balancer terminates TLS and speaks HTTP/1.1 to us, so h2 is off here.
+config :wraith, WraithWeb.Endpoint, http: [http_2_options: [enabled: false]]

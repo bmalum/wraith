@@ -213,11 +213,30 @@ Uniqueness (slugs, emails) is a conditional put inside a transaction
 ## Tests
 
 ```sh
-mix test                                              # 90 tests, in-memory store, fake agent, test mailer
+mix test                                              # 100 tests, in-memory store, fake agent, test mailer
 WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test     # the same suite on DynamoDB Local
 WRAITH_TEST_POSTGRES=postgres://postgres:postgres@127.0.0.1:5434/wraith_test mix test   # … on PostgreSQL
 mix compile --warnings-as-errors
 ```
+
+## Security notes
+
+- Secrets (the Kiro key, Stripe secret and webhook secret) are encrypted at rest with
+  `Wraith.Vault` under `SECRET_KEY_BASE`; only hints are ever shown or exported.
+- Rate limits (`Wraith.RateLimit`, per IP / visitor / address): 5 logins a minute,
+  3 magic links per 15 min, 5 sign-ups an hour, 10 comments a minute, 60 widget
+  events a minute, 300 API/MCP calls a minute and 20 failed key attempts a minute.
+  Behind a proxy the first `x-forwarded-for` hop is the client.
+- Subscriptions are double opt-in: a sign-up is a member with `subscribed: false`
+  until the confirmation link is opened.
+- Sessions expire (60 days authors, 180 members); `Wraith.Janitor` deletes expired
+  ones hourly and DynamoDB tables get a TTL on `ttl`.
+- Widget HTML goes through an allowlist sanitiser (`Wraith.Widgets.sanitize/1`):
+  no scripts, handlers or `javascript:` URLs, whoever wrote the widget.
+- Code injection (Settings) is raw HTML by design — only the owner edits it.
+- HTTP/2 is disabled in prod (`http_2_options: [enabled: false]`) while bandit
+  1.12.5's HTTP/2 advisory (EEF-CVE-2026-105659) has no fixed release.
+- `/health` (readiness: the store answers) and `/health/live` for load balancers.
 
 ## Deploy
 

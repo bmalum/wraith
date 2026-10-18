@@ -31,7 +31,8 @@ defmodule Wraith.Store.Keys do
   def users_index, do: "USERS"
 
   def session(token_hash), do: {"TOKEN#" <> token_hash, "SESSION"}
-  def sessions_index(user_id), do: "SESSIONS#" <> user_id
+  # every session (author and member) on one index, sorted by expiry: the janitor's query
+  def sessions_index, do: "SESSIONS"
 
   def post(id), do: {"POST#" <> id, "POST"}
   def post_slug(slug), do: {"SLUG#" <> slug, "POST"}

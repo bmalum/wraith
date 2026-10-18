@@ -9,6 +9,7 @@ defmodule Wraith.Store.Dynamo do
   missing (`mix wraith.table`).
   """
   @behaviour Wraith.Store
+  require Logger
   alias ExAws.Dynamo
 
   def table, do: Application.fetch_env!(:wraith, __MODULE__)[:table]
@@ -195,7 +196,8 @@ defmodule Wraith.Store.Dynamo do
   @doc "Create the table (on-demand, with `gsi1`) unless it exists. Blocks until ACTIVE."
   def ensure_table! do
     case Dynamo.describe_table(table()) |> ExAws.request() do
-      {:ok, _} ->
+      {:ok, %{"Table" => _}} ->
+        enable_ttl()
         :exists
 
       {:error, {"ResourceNotFoundException", _}} ->
@@ -222,7 +224,20 @@ defmodule Wraith.Store.Dynamo do
           |> ExAws.request()
 
         wait_active(30)
+        enable_ttl()
         :created
+    end
+  end
+
+  # expired sessions carry a unix `ttl`; the table drops them on its own
+  defp enable_ttl do
+    case Dynamo.update_time_to_live(table(), "ttl", true) |> ExAws.request() do
+      {:ok, _} ->
+        :ok
+
+      # DynamoDB Local does not implement TTL updates on every version; nothing to do
+      {:error, reason} ->
+        Logger.info("dynamo: could not enable TTL on #{table()}: #{inspect(reason)}")
     end
   end
 
