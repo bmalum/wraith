@@ -1,0 +1,145 @@
+# Wraith
+
+A Ghost-style publishing platform in Elixir/Phoenix — with **live widgets**
+(tiny shared-state mini-apps readers interact with in real time), a **Lua
+widget studio**, one **DynamoDB table** for everything, and an **agent
+studio**: a Kiro agent on a Lambda MicroVM that writes posts, scripts
+widgets and runs the site with you.
+
+```
+ reader ──LiveView──▶ Phoenix ──▶ Wraith.Store ──▶ DynamoDB (one table, one GSI)
+                         │
+                         ├─ Wraith.Widgets ── luerl sandbox (Lua) / Elixir modules
+                         │                     state per instance, PubSub fan-out
+                         └─ Wraith.Studio ──ACP/WebSocket──▶ Kiro Agent Server (MicroVM)
+                                   ▲                              │ MCP over the bridge
+                                   └──── Wraith.Studio.Tools ◀────┘
+```
+
+## What's in the box
+
+| Area | Where |
+|---|---|
+| Posts & pages (draft / scheduled / published, slugs, tags, authors, revisions, members-only) | `Wraith.Content`, `Wraith.Members`, `Wraith.Settings`, `Wraith.Accounts` |
+| Public site: feed, post, tag, author, subscribe, RSS / JSON Feed / sitemap | `WraithWeb.Site.*`, `WraithWeb.FeedController` |
+| Admin: setup, login, dashboard, Markdown editor with live preview (widgets live too), posts, tags, members, settings | `WraithWeb.Admin.*` |
+| Widgets: behaviour, Lua sandbox, shared live state, built-ins (counter, poll, reactions, countdown, live visitors) | `Wraith.Widgets`, `Wraith.Widgets.Lua`, `priv/widgets/*.lua` |
+| Widget studio: write Lua, click the live preview, versions & rollback | `WraithWeb.Admin.WidgetEditorLive` |
+| Agent studio: Kiro on a MicroVM, transcript streaming, tool calls, permission prompts | `Wraith.Studio`, `Wraith.Studio.Server`, `Wraith.Studio.Tools`, `WraithWeb.Admin.StudioLive` |
+| Kiro runtime (ported from shadow_corp): MicroVM API, ACP client, bridge, MCP | `Wraith.Kiro.*`, `microvm/` |
+| Storage: one table, Memory and DynamoDB adapters | `Wraith.Store`, `Wraith.Store.Keys` |
+
+## Run it
+
+```sh
+mix setup                       # deps, tailwind/esbuild (codesigns the tailwind binary on macOS)
+mix phx.server                  # http://localhost:4000 → /admin/setup creates the owner
+```
+
+Dev defaults to the in-memory store (`WRAITH_STORE=memory`), so nothing persists
+across restarts. For a real table:
+
+```sh
+docker compose up -d                                           # DynamoDB Local (in-memory)
+export WRAITH_STORE=dynamo DYNAMO_ENDPOINT=http://127.0.0.1:8000
+mix wraith.table                                               # creates `wraith` (idempotent)
+mix phx.server
+```
+
+Against AWS: `WRAITH_STORE=dynamo AWS_PROFILE=… AWS_REGION=… mix wraith.table`.
+All env vars are listed in `.env.example`; `config/runtime.exs` reads them.
+
+### Writing
+
+Posts are Markdown (GFM). Drop a widget in on a line of its own:
+
+```
+{{widget poll question="Tabs or spaces?" options="Tabs|Spaces" id=tabs}}
+{{widget counter label="Readers who agree"}}
+{{widget countdown to=2027-01-01 label="Launch"}}
+{{widget reactions}}
+{{widget live-visitors}}
+```
+
+`id=` names the instance so several posts can share one state. The editor
+palette inserts shortcodes; the preview runs the real widgets.
+
+### Scripting a widget
+
+`/admin/widgets/new` — a Lua chunk with three functions, a clickable preview
+of the unsaved source, and a version per save:
+
+```lua
+function init(props) return { claps = 0 } end
+function render(state, props, meta)
+  return '<button class="w-btn" ' .. wraith.action("clap") .. '>👏 '
+      .. wraith.format(state.claps) .. '</button>'
+end
+function handle(state, event, payload, meta)
+  if event == "clap" then state.claps = state.claps + 1 end
+  return state
+end
+```
+
+`meta.visitor` is a stable per-browser id (one vote per reader),
+`meta.presence` the readers on the page. Helpers: `wraith.action`,
+`wraith.escape`, `wraith.format`, `wraith.split`, `wraith.json`. The sandbox
+removes `os`/`io`/`require` and cuts a call off after 250 ms. Elixir widgets
+implement `Wraith.Widgets.Widget` and are listed in `Wraith.Widgets.builtin_modules/0`.
+
+## The agent studio
+
+`/admin/studio`. Paste a Kiro API key (`ksk_…`, minted at app.kiro.dev; stored
+encrypted with `Wraith.Vault`, only ever sent to the studio VM) and wake the
+agent. It gets the `wraith` MCP server — `site_info`, `post_*`, `tag_*`,
+`widget_docs` / `widget_test` / `widget_save`, `settings_update` — over the
+bridge, so no endpoint of this app is exposed and no secret enters the VM.
+Tool calls, their input and output, and permission requests show up in the
+transcript; you approve or deny in place.
+
+**Offline (default):** with no MicroVM image configured the studio runs the
+scripted agent `Wraith.Kiro.ACP.Fake`. It still goes through the real tool
+path: `!widget clap` makes it read the docs, `widget_test`, then `widget_save`
+a working widget; `!post Hello` drafts a post; `!info` calls `site_info`;
+`use a tool` raises a permission request.
+
+**On AWS:** build the MicroVM image once (`microvm/build.sh`, same shim as
+shadow_corp: lifecycle hooks and `/bridge` on :8080, KAS on :8082, S3 journal)
+and set the four `WRAITH_MICROVM_*` / `WRAITH_JOURNAL_BUCKET` variables it
+prints. `Wraith.Kiro.Runtime.MicroVM` then starts a VM on first wake, suspends
+it when idle and terminates it after three hours without a word.
+
+## Storage layout
+
+One table, `pk`/`sk`, one GSI `gsi1` (`gsi1pk`/`gsi1sk`), on-demand. The
+whole layout is in `Wraith.Store.Keys`:
+
+| entity | pk | sk | gsi1 |
+|---|---|---|---|
+| site settings | `SITE` | `SETTINGS` | |
+| user | `USER#id` | `USER` | `USERS` / email |
+| post | `POST#id` | `POST` | `POSTS#status` / `sort_at#id` |
+| post by slug | `SLUG#slug` | `POST` | |
+| post revision | `POST#id` | `REV#at` | |
+| post in tag / by author | `TAG#slug`, `AUTHOR#id` | `POST#sort_at#id` | |
+| widget / version / instance state | `WIDGET#slug` / `WSTATE#slug#instance` | `WIDGET` / `VER#n` / `STATE` | `WIDGETS` |
+| studio session / transcript | `STUDIO` / `STUDIO#sid` | `SESSION#id` / `MSG#at#seq` | |
+
+Uniqueness (slugs, emails) is a conditional put in a `TransactWriteItems`;
+`Wraith.Store.update/3` is optimistic read-modify-write on `version`.
+
+## Tests
+
+```sh
+mix test                                              # 66 tests, in-memory store, fake agent
+WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test     # the same suite on DynamoDB Local
+mix compile --warnings-as-errors
+```
+
+## Deploy
+
+`Dockerfile` builds a release (`mix phx.gen.release --docker`). Needs
+`SECRET_KEY_BASE`, `PHX_HOST`, `WRAITH_STORE=dynamo`, `WRAITH_TABLE`,
+`AWS_REGION` and a task role allowed to read/write the table (and, for the
+studio, `lambda:*MicroVM*` plus the journal bucket). Run `mix wraith.table`
+once per environment.

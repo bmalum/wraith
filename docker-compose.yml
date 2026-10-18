@@ -1,0 +1,9 @@
+# Local DynamoDB for development (in-memory; data lives as long as the container):
+#   docker compose up -d
+#   DYNAMO_ENDPOINT=http://127.0.0.1:8000 WRAITH_STORE=dynamo mix wraith.table
+#   DYNAMO_ENDPOINT=http://127.0.0.1:8000 WRAITH_STORE=dynamo mix phx.server
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports: ["127.0.0.1:8000:8000"]

@@ -1,0 +1,179 @@
+defmodule Wraith.Accounts do
+  @moduledoc """
+  Who writes here. The first user is the owner (created at `/setup`);
+  owners add authors. Passwords are bcrypt; a login mints a random session
+  token whose SHA-256 is the key of a session item (60 days).
+
+  A user is a plain map: `id`, `email`, `name`, `slug`, `role`
+  (`"owner" | "author"`), `bio`, `password_hash`.
+  """
+  alias Wraith.Store
+  alias Wraith.Store.Keys
+
+  @session_days 60
+
+  # ---- users -----------------------------------------------------------------------
+
+  def get_user(id) when is_binary(id) do
+    {pk, sk} = Keys.user(id)
+
+    case Store.get(pk, sk) do
+      {:ok, u} -> u
+      :error -> nil
+    end
+  end
+
+  def get_user_by_email(email) when is_binary(email) do
+    {pk, sk} = Keys.user_email(email)
+
+    case Store.get(pk, sk) do
+      {:ok, %{"user_id" => id}} -> get_user(id)
+      :error -> nil
+    end
+  end
+
+  def get_user_by_slug(slug) do
+    Enum.find(list_users(), &(&1["slug"] == slug))
+  end
+
+  def list_users, do: Store.all(Keys.users_index(), index: :gsi1) |> Enum.map(&public/1)
+
+  def any_users?,
+    do: match?({:ok, %{items: [_ | _]}}, Store.query(Keys.users_index(), index: :gsi1, limit: 1))
+
+  @doc "Create a user. The email is unique (a transaction with the email item)."
+  @spec create_user(map()) :: {:ok, map()} | {:error, map()}
+  def create_user(attrs) do
+    attrs = stringify(attrs)
+    email = attrs["email"] |> to_string() |> String.trim() |> String.downcase()
+    name = attrs["name"] |> to_string() |> String.trim()
+    password = attrs["password"] |> to_string()
+
+    errors =
+      %{}
+      |> put_error(
+        "email",
+        not Regex.match?(~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/, email),
+        "is not an email"
+      )
+      |> put_error("name", name == "", "can't be blank")
+      |> put_error("password", String.length(password) < 10, "must be at least 10 characters")
+
+    if map_size(errors) > 0 do
+      {:error, errors}
+    else
+      id = Store.id()
+      {pk, sk} = Keys.user(id)
+      {epk, esk} = Keys.user_email(email)
+
+      user = %{
+        "pk" => pk,
+        "sk" => sk,
+        "gsi1pk" => Keys.users_index(),
+        "gsi1sk" => email,
+        "id" => id,
+        "email" => email,
+        "name" => name,
+        "slug" => Wraith.Slug.slugify(name),
+        "role" => attrs["role"] || "author",
+        "bio" => attrs["bio"] || "",
+        "password_hash" => Bcrypt.hash_pwd_salt(password)
+      }
+
+      case Store.transact([
+             {:put, user, condition: :not_exists},
+             {:put, %{"pk" => epk, "sk" => esk, "user_id" => id}, condition: :not_exists}
+           ]) do
+        :ok -> {:ok, Store.get(pk, sk) |> elem(1)}
+        {:error, e} when e in [:exists, :conflict] -> {:error, %{"email" => "is already taken"}}
+        {:error, e} -> {:error, %{"base" => inspect(e)}}
+      end
+    end
+  end
+
+  @doc "Create the owner and mark setup done. Refused once any user exists."
+  def setup_owner(attrs) do
+    if any_users?() do
+      {:error, %{"base" => "the site already has an owner"}}
+    else
+      with {:ok, user} <- create_user(Map.put(stringify(attrs), "role", "owner")) do
+        {:ok, _} = Wraith.Settings.mark_setup_done()
+        {:ok, user}
+      end
+    end
+  end
+
+  def update_profile(%{"id" => id}, attrs) do
+    attrs = stringify(attrs) |> Map.take(~w(name bio))
+    {pk, sk} = Keys.user(id)
+    Store.update(pk, sk, &Map.merge(&1, attrs))
+  end
+
+  # ---- passwords & sessions -----------------------------------------------------
+
+  def authenticate(email, password) when is_binary(email) and is_binary(password) do
+    case get_user_by_email(email) do
+      %{"password_hash" => hash} = user ->
+        if Bcrypt.verify_pass(password, hash), do: {:ok, user}, else: {:error, :invalid}
+
+      nil ->
+        Bcrypt.no_user_verify()
+        {:error, :invalid}
+    end
+  end
+
+  @doc "Mint a session token for the user; store its hash. Returns the raw token."
+  def create_session(%{"id" => user_id}) do
+    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+    {pk, sk} = Keys.session(hash(token))
+    now = Store.now()
+
+    :ok =
+      Store.put(%{
+        "pk" => pk,
+        "sk" => sk,
+        "gsi1pk" => Keys.sessions_index(user_id),
+        "gsi1sk" => now,
+        "user_id" => user_id,
+        "expires_at" =>
+          DateTime.utc_now() |> DateTime.add(@session_days, :day) |> DateTime.to_iso8601(),
+        "ttl" => System.system_time(:second) + @session_days * 86_400
+      })
+
+    token
+  end
+
+  @doc "The user behind a session token, or nil."
+  def user_by_session(token) when is_binary(token) do
+    {pk, sk} = Keys.session(hash(token))
+
+    with {:ok, %{"user_id" => id, "expires_at" => exp}} <- Store.get(pk, sk),
+         {:ok, exp, _} <- DateTime.from_iso8601(exp),
+         :gt <- DateTime.compare(exp, DateTime.utc_now()) do
+      get_user(id)
+    else
+      _ -> nil
+    end
+  end
+
+  def user_by_session(_), do: nil
+
+  def delete_session(token) when is_binary(token) do
+    {pk, sk} = Keys.session(hash(token))
+    Store.delete(pk, sk)
+  end
+
+  def delete_session(_), do: :ok
+
+  defp hash(token), do: :crypto.hash(:sha256, token) |> Base.url_encode64(padding: false)
+
+  # ---- helpers ----------------------------------------------------------------------
+
+  @doc "A user without the password hash (for templates and the agent)."
+  def public(user), do: Map.drop(user, ["password_hash", "pk", "sk", "gsi1pk", "gsi1sk"])
+
+  defp put_error(errors, _k, false, _msg), do: errors
+  defp put_error(errors, k, true, msg), do: Map.put(errors, k, msg)
+
+  defp stringify(attrs), do: Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+end
