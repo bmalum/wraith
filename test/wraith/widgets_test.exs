@@ -128,6 +128,26 @@ defmodule Wraith.WidgetsTest do
     assert {:error, _} = Widgets.render(w, "i", %{}, %{}, %{})
   end
 
+  test "embeds: youtube/vimeo players, bookmark cards, captions; text strips them" do
+    html =
+      Markdown.to_html(~s({{embed https://www.youtube.com/watch?v=dQw4w9WgXcQ "Never gonna"}}))
+
+    assert html =~ ~s(youtube-nocookie.com/embed/dQw4w9WgXcQ) and
+             html =~ "<figcaption>Never gonna</figcaption>" and html =~ "<iframe"
+
+    assert Markdown.to_html("{{embed https://youtu.be/abc123}}") =~ "embed/abc123"
+
+    assert Markdown.to_html("{{embed https://vimeo.com/76979871}}") =~
+             "player.vimeo.com/video/76979871"
+
+    assert Markdown.to_html("{{embed https://x.com/jack/status/20}}") =~ "View post on X"
+    # a generic URL becomes a bookmark card even when the page cannot be fetched
+    card = Markdown.to_html("{{embed https://nonexistent.invalid/page}}")
+    assert card =~ ~s(class="embed is-bookmark") and card =~ "nonexistent.invalid"
+    refute card =~ "<script"
+    assert Markdown.to_text("Hi\n\n{{embed https://youtu.be/x}}\n\nthere") == "Hi there"
+  end
+
   test "markdown segments and shortcode args" do
     md = """
     # Title

@@ -18,12 +18,18 @@ defmodule Wraith.Markdown do
   """
 
   @shortcode ~r/^[ \t]*\{\{\s*widget\s+([a-z0-9][a-z0-9-]*)((?:\s+[a-zA-Z_][\w-]*(?:=(?:"[^"]*"|'[^']*'|[^\s}]+))?)*)\s*\}\}[ \t]*$/m
+  @embed ~r/^[ \t]*\{\{\s*embed\s+(\S+)(?:\s+"([^"]*)")?\s*\}\}[ \t]*$/m
 
   @type segment :: {:html, String.t()} | {:widget, String.t(), map(), String.t()}
 
   @spec to_html(String.t()) :: String.t()
   def to_html(markdown) when is_binary(markdown) do
-    MDEx.to_html!(markdown,
+    markdown
+    |> String.replace(@embed, fn m ->
+      [_, url | rest] = Regex.run(@embed, m)
+      Wraith.Embed.html(url, List.first(rest))
+    end)
+    |> MDEx.to_html!(
       extension: [
         table: true,
         strikethrough: true,
@@ -51,6 +57,22 @@ defmodule Wraith.Markdown do
       ["id", "class", "style", "translate", "tabindex", "data-line"],
       &Enum.uniq(&1 ++ ["id", "class", "style", "translate", "tabindex", "data-line"])
     )
+    # iframes carry our own embeds (and staff-pasted players); no scripts get through either way
+    |> Keyword.put(:add_tags, ["iframe", "figure", "figcaption", "small"])
+    |> Keyword.put(:add_tag_attributes, %{
+      "iframe" => [
+        "src",
+        "title",
+        "allow",
+        "allowfullscreen",
+        "loading",
+        "referrerpolicy",
+        "width",
+        "height"
+      ],
+      "img" => ["loading"],
+      "a" => ["target"]
+    })
   end
 
   @doc "The headings (h2/h3) of a body as `[%{id, level, text}]` — the table of contents."
@@ -130,6 +152,7 @@ defmodule Wraith.Markdown do
     markdown
     |> to_string()
     |> String.replace(@shortcode, "")
+    |> String.replace(@embed, "")
     |> to_html()
     |> String.replace(~r/<[^>]+>/, " ")
     |> String.replace(~r/\s+/, " ")
