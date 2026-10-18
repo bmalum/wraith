@@ -64,6 +64,14 @@ defmodule WraithWeb.Admin.SettingsLive do
         do: %{"label" => p["title"], "url" => "/" <> p["slug"]}
   end
 
+  # secrets are stored encrypted; the form shows only a hint
+  defp secret_state(site, name) do
+    case site[name <> "_hint"] do
+      nil -> " — not set"
+      h -> " — set (#{h})"
+    end
+  end
+
   defp parse_nav(text) do
     text
     |> String.split("\n", trim: true)
@@ -152,6 +160,57 @@ defmodule WraithWeb.Admin.SettingsLive do
               type="checkbox"
               checked={@site["members_enabled"]}
               label="Let readers subscribe"
+            />
+            <.input
+              name="site[comments_enabled]"
+              type="checkbox"
+              checked={@site["comments_enabled"]}
+              label="Let members comment"
+            />
+            <h3 class="panel-sub">Paid memberships (Stripe)</h3>
+            <.input
+              name="site[stripe_secret_key]"
+              type="password"
+              value=""
+              label={"Secret key (sk_…)" <> secret_state(@site, "stripe_secret_key")}
+              placeholder="empty keeps it; type clear to remove"
+            />
+            <.input
+              name="site[stripe_webhook_secret]"
+              type="password"
+              value=""
+              label={"Webhook signing secret (whsec_…)" <> secret_state(@site, "stripe_webhook_secret")}
+              placeholder="empty keeps it; type clear to remove"
+            />
+            <.input
+              name="site[stripe_price_id]"
+              value={@site["stripe_price_id"]}
+              label="Recurring price id (price_…)"
+            />
+            <.input
+              name="site[paid_price_label]"
+              value={@site["paid_price_label"]}
+              label="Price as shown to readers"
+              placeholder="€5 / month"
+            />
+            <p class="form-help">
+              Secrets are stored encrypted. Point a Stripe webhook at <code>/webhooks/stripe</code>
+              for <code>checkout.session.completed</code>
+              and <code>customer.subscription.*</code>.
+            </p>
+            <h3 class="panel-sub">Code injection</h3>
+            <.input
+              name="site[code_injection_head]"
+              type="textarea"
+              value={@site["code_injection_head"]}
+              label="Site header (inside <head>)"
+              placeholder="<script>…</script> or <style>…</style>"
+            />
+            <.input
+              name="site[code_injection_foot]"
+              type="textarea"
+              value={@site["code_injection_foot"]}
+              label="Site footer (before </body>)"
             />
             <button type="submit" class="btn-accent">Save settings</button>
           </.form>

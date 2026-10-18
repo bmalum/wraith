@@ -21,12 +21,9 @@ defmodule Wraith.Billing do
   def api, do: Application.get_env(:wraith, :stripe_api, __MODULE__.API)
 
   def configured? do
-    s = Settings.get()
-
-    Enum.all?(
-      ~w(stripe_secret_key stripe_webhook_secret stripe_price_id),
-      &(s[&1] not in [nil, ""])
-    )
+    Settings.secret("stripe_secret_key") != nil and
+      Settings.secret("stripe_webhook_secret") != nil and
+      Settings.get()["stripe_price_id"] not in [nil, ""]
   end
 
   @doc "Where to send a member to pay."
@@ -52,7 +49,7 @@ defmodule Wraith.Billing do
           end
         end)
 
-      case api().post("/v1/checkout/sessions", params, s["stripe_secret_key"]) do
+      case api().post("/v1/checkout/sessions", params, Settings.secret("stripe_secret_key")) do
         {:ok, %{"url" => url}} -> {:ok, url}
         {:ok, other} -> {:error, "unexpected answer from Stripe: #{inspect(other)}"}
         {:error, why} -> {:error, to_string(why)}
@@ -64,7 +61,7 @@ defmodule Wraith.Billing do
 
   @doc "Verify and apply a webhook. Returns `{:ok, event_type} | {:error, reason}`."
   def handle_webhook(raw_body, signature_header) when is_binary(raw_body) do
-    secret = Settings.get()["stripe_webhook_secret"] || ""
+    secret = Settings.secret("stripe_webhook_secret") || ""
 
     with :ok <- verify_signature(raw_body, signature_header, secret),
          {:ok, event} <- Jason.decode(raw_body) do

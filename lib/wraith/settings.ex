@@ -20,7 +20,11 @@ defmodule Wraith.Settings do
     "setup_done" => false
   }
 
-  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled stripe_secret_key stripe_webhook_secret stripe_price_id paid_price_label redirects comments_enabled)
+  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled stripe_secret_key stripe_webhook_secret stripe_price_id paid_price_label redirects comments_enabled code_injection_head code_injection_foot)
+
+  # secrets are never stored in the clear: `<name>` in → `<name>_ciphertext` + `<name>_hint` at rest
+  @secrets ~w(stripe_secret_key stripe_webhook_secret)
+  def secret_fields, do: @secrets
 
   def defaults, do: @defaults
 
@@ -33,6 +37,25 @@ defmodule Wraith.Settings do
       :error -> Map.merge(@defaults, %{"pk" => pk, "sk" => sk})
     end
   end
+
+  @doc "A secret in the clear (for the code that needs it), or nil."
+  @spec secret(String.t()) :: String.t() | nil
+  def secret(name) when name in @secrets do
+    case get()[name <> "_ciphertext"] do
+      nil ->
+        nil
+
+      c ->
+        case Wraith.Vault.decrypt(c),
+          do: (
+            {:ok, v} -> v
+            :error -> nil
+          )
+    end
+  end
+
+  @doc "Is the secret set? (Its hint, e.g. `sk_…abcd`, for the UI.)"
+  def secret_hint(name) when name in @secrets, do: get()[name <> "_hint"]
 
   @doc "Save the editable fields; unknown keys are dropped, bad values refused."
   @spec update(map()) :: {:ok, map()} | {:error, map()}
@@ -92,12 +115,37 @@ defmodule Wraith.Settings do
 
   defp normalize(attrs) do
     attrs
-    |> Map.new(fn
-      {"posts_per_page", n} -> {"posts_per_page", to_int(n)}
-      {"members_enabled", v} -> {"members_enabled", v in [true, "true", "on"]}
-      pair -> pair
+    |> Enum.flat_map(fn
+      {"posts_per_page", n} ->
+        [{"posts_per_page", to_int(n)}]
+
+      {"members_enabled", v} ->
+        [{"members_enabled", v in [true, "true", "on"]}]
+
+      {"comments_enabled", v} ->
+        [{"comments_enabled", v in [true, "true", "on"]}]
+
+      # an empty secret leaves the stored one alone; "clear" removes it
+      {name, v} when name in @secrets and v in [nil, ""] ->
+        []
+
+      {name, "clear"} when name in @secrets ->
+        [{name <> "_ciphertext", nil}, {name <> "_hint", nil}]
+
+      {name, v} when name in @secrets ->
+        [
+          {name <> "_ciphertext", Wraith.Vault.encrypt(to_string(v))},
+          {name <> "_hint", hint(to_string(v))}
+        ]
+
+      pair ->
+        [pair]
     end)
+    |> Map.new()
   end
+
+  defp hint(v) when byte_size(v) > 8, do: String.slice(v, 0, 3) <> "…" <> String.slice(v, -4, 4)
+  defp hint(_v), do: "set"
 
   defp to_int(n) when is_integer(n), do: n
 

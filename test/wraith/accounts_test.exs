@@ -76,4 +76,24 @@ defmodule Wraith.AccountsTest do
     assert {:error, %{"posts_per_page" => _}} = Settings.update(%{posts_per_page: 0})
     assert {:error, %{"accent" => _}} = Settings.update(%{accent: "red"})
   end
+
+  test "secrets are encrypted at rest and never returned by get" do
+    {:ok, s} =
+      Settings.update(%{
+        stripe_secret_key: "sk_live_abcdefgh",
+        stripe_webhook_secret: "whsec_1234567890"
+      })
+
+    refute Map.has_key?(s, "stripe_secret_key")
+    assert s["stripe_secret_key_hint"] == "sk_…efgh"
+    assert s["stripe_secret_key_ciphertext"] =~ ~r/^[A-Z]{3}\./
+    refute Jason.encode!(Settings.get()) =~ "sk_live_abcdefgh"
+    assert Settings.secret("stripe_secret_key") == "sk_live_abcdefgh"
+    # an empty value keeps it, "clear" removes it
+    {:ok, _} = Settings.update(%{stripe_secret_key: ""})
+    assert Settings.secret("stripe_secret_key") == "sk_live_abcdefgh"
+    {:ok, _} = Settings.update(%{stripe_secret_key: "clear"})
+    assert Settings.secret("stripe_secret_key") == nil
+    assert Settings.secret_hint("stripe_secret_key") == nil
+  end
 end

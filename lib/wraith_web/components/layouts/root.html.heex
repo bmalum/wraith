@@ -47,8 +47,14 @@
     <style :if={assigns[:site] && assigns[:site]["accent"]}>
       :root { --accent: <%= @site["accent"] %>; }
     </style>
+    <%= if assigns[:site] && @site["code_injection_head"] not in [nil, ""] do %>
+      {Phoenix.HTML.raw(@site["code_injection_head"])}
+    <% end %>
   </head>
   <body>
     {@inner_content}
+    <%= if assigns[:site] && @site["code_injection_foot"] not in [nil, ""] do %>
+      {Phoenix.HTML.raw(@site["code_injection_foot"])}
+    <% end %>
   </body>
 </html>

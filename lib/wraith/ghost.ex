@@ -211,7 +211,7 @@ defmodule Wraith.Ghost do
           Enum.map(
             Settings.get()
             |> Map.drop(
-              ~w(pk sk version created_at updated_at kiro_key_ciphertext kiro_key_hint stripe_secret_key stripe_webhook_secret)
+              ~w(pk sk version created_at updated_at kiro_key_ciphertext kiro_key_hint stripe_secret_key stripe_webhook_secret stripe_secret_key_ciphertext stripe_webhook_secret_ciphertext stripe_secret_key_hint stripe_webhook_secret_hint)
             ),
             fn {k, v} -> %{"key" => k, "value" => v} end
           ),
