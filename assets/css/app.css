@@ -408,3 +408,5 @@ a { color: inherit; }
 .ink .comment-form textarea { background: oklch(20% 0.01 260); border-color: oklch(36% 0.01 260); color: inherit; }
 .nav-pages { border: 1px solid var(--rule); border-radius: 8px; padding: .5rem .9rem .75rem; display: flex; flex-direction: column; gap: .3rem; }
 .nav-page { display: flex; align-items: center; gap: .5rem; font-size: .9rem; }
+.new-key { border: 1px solid color-mix(in oklch, var(--accent) 40%, var(--rule)); background: color-mix(in oklch, var(--accent) 6%, var(--paper)); border-radius: 8px; padding: .75rem 1rem; display: flex; flex-direction: column; gap: .4rem; font-size: .9rem; }
+.new-key code { font-family: var(--mono); font-size: .8rem; word-break: break-all; }

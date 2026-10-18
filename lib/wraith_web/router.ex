@@ -50,6 +50,55 @@ defmodule WraithWeb.Router do
     get "/members/upgrade", MemberController, :upgrade
   end
 
+  # ---- the JSON APIs (Ghost-shaped) ------------------------------------------------
+
+  pipeline :content_api do
+    plug :accepts, ["json"]
+    plug WraithWeb.ApiAuth, :content
+  end
+
+  pipeline :admin_api do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug :fetch_current_user
+    plug WraithWeb.ApiAuth, :admin
+  end
+
+  scope "/api/content", WraithWeb.Api do
+    pipe_through :content_api
+    get "/posts", ContentController, :posts
+    get "/posts/:slug", ContentController, :post
+    get "/pages", ContentController, :pages
+    get "/pages/:slug", ContentController, :post
+    get "/tags", ContentController, :tags
+    get "/tags/:slug", ContentController, :tag
+    get "/authors", ContentController, :authors
+    get "/authors/:slug", ContentController, :author
+    get "/settings", ContentController, :settings
+    get "/members/count", ContentController, :members_count
+  end
+
+  scope "/api/admin", WraithWeb.Api do
+    pipe_through :admin_api
+    get "/posts", AdminController, :posts
+    post "/posts", AdminController, :create_post
+    get "/posts/:id", AdminController, :post
+    put "/posts/:id", AdminController, :update_post
+    delete "/posts/:id", AdminController, :delete_post
+    get "/tags", AdminController, :tags
+    put "/tags/:slug", AdminController, :upsert_tag
+    delete "/tags/:slug", AdminController, :delete_tag
+    get "/members", AdminController, :members
+    post "/members", AdminController, :create_member
+    get "/widgets", AdminController, :widgets
+    put "/widgets", AdminController, :upsert_widget
+    get "/settings", AdminController, :settings
+    put "/settings", AdminController, :update_settings
+    get "/users", AdminController, :users
+    get "/db", AdminController, :export
+    post "/db", AdminController, :import
+  end
+
   scope "/webhooks", WraithWeb do
     pipe_through :api
     post "/stripe", WebhookController, :stripe
@@ -104,6 +153,7 @@ defmodule WraithWeb.Router do
       live "/studio", StudioLive, :index
       live "/settings", SettingsLive, :index
       live "/profile", ProfileLive, :index
+      live "/integrations", IntegrationsLive, :index
     end
   end
 

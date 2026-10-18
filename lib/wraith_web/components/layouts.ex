@@ -62,6 +62,7 @@ defmodule WraithWeb.Layouts do
           <.rail_link to={~p"/admin/studio"} icon="hero-sparkles" active={@active == :studio}>Agent studio</.rail_link>
           <div class="admin-nav-sep">Site</div>
           <.rail_link to={~p"/admin/settings"} icon="hero-cog-6-tooth" active={@active == :settings}>Settings</.rail_link>
+          <.rail_link to={~p"/admin/integrations"} icon="hero-key" active={@active == :integrations}>Integrations</.rail_link>
         </nav>
         <div class="admin-rail-foot">
           <.link
