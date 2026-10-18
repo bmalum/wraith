@@ -239,9 +239,16 @@ defmodule WraithWeb.MembersTest do
              Wraith.Comments.create(post, m1, "nested", reply["id"])
 
     # m2 may not remove m1's comment; m1 may
-    render_click(element(v2, ~s(#comment-#{c["id"]} button[phx-click=comment-delete])))
-    assert Wraith.Comments.count(post["id"]) == 2
-    render_click(element(v1, ~s(#comment-#{c["id"]} button[phx-click=comment-delete])))
+    # (the reply's own Remove button sits inside the parent's div: pick the parent's actions row)
+    refute has_element?(
+             v2,
+             ~s(#comment-#{c["id"]} > .comment-actions button[phx-click=comment-delete])
+           )
+
+    render_click(
+      element(v1, ~s(#comment-#{c["id"]} > .comment-actions button[phx-click=comment-delete]))
+    )
+
     # a removed parent keeps the slot for its reply
     assert [%{comment: %{"body" => ""}, replies: [_]}] = Wraith.Comments.for_post(post["id"])
 

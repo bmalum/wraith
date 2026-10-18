@@ -92,10 +92,6 @@ defmodule WraithWeb.Site.PostLive do
   def handle_event("comment", _params, socket),
     do: {:noreply, put_flash(socket, :error, "Sign in to comment.")}
 
-  defp may_remove?(%{current_user: %{}}, _c), do: true
-  defp may_remove?(%{current_member: %{"id" => id}}, %{"member_id" => id}), do: true
-  defp may_remove?(_assigns, _c), do: false
-
   def handle_event("reply-to", %{"id" => id}, socket),
     do: {:noreply, assign(socket, reply_to: if(id == "", do: nil, else: id))}
 
@@ -108,6 +104,10 @@ defmodule WraithWeb.Site.PostLive do
       _ -> {:noreply, put_flash(socket, :error, "Not yours to remove.")}
     end
   end
+
+  defp may_remove?(%{current_user: %{}}, _c), do: true
+  defp may_remove?(%{current_member: %{"id" => id}}, %{"member_id" => id}), do: true
+  defp may_remove?(_assigns, _c), do: false
 
   @impl true
   def handle_info({:comments, _post_id}, socket),
