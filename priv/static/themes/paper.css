@@ -111,3 +111,11 @@
 .author-links { display: flex; gap: 1rem; flex-wrap: wrap; color: var(--ink-3); font-size: .9rem; margin: .75rem 0 0; }
 .author-links a { color: var(--ink-2); }
 .masthead-logo { height: 1.75rem; width: auto; display: block; }
+
+/* dark mode: follows the system, or the reader's choice (html[data-mode]) */
+@media (prefers-color-scheme: dark) {
+  html:not([data-mode="light"]) { --paper: oklch(17% 0.01 60); --paper-2: oklch(22% 0.01 60); --rule: oklch(30% 0.01 60); --ink: oklch(92% 0.01 90); --ink-2: oklch(72% 0.01 90); --ink-3: oklch(55% 0.01 90); }
+}
+html[data-mode="dark"] { --paper: oklch(17% 0.01 60); --paper-2: oklch(22% 0.01 60); --rule: oklch(30% 0.01 60); --ink: oklch(92% 0.01 90); --ink-2: oklch(72% 0.01 90); --ink-3: oklch(55% 0.01 90); }
+.mode-toggle { display: inline-flex; padding: .3rem; border-radius: 6px; color: var(--ink-2); border: 0; background: none; cursor: pointer; }
+.mode-toggle:hover { background: var(--paper-2); color: var(--ink); }

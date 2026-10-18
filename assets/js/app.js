@@ -81,6 +81,14 @@ document.addEventListener("keydown", (e) => {
   }
 })
 
+// light / dark: the choice lives in localStorage and is applied before paint by root.html.heex
+window.addEventListener("wraith:toggle-mode", () => {
+  const html = document.documentElement
+  const dark = html.dataset.mode === "dark" || (!html.dataset.mode && matchMedia("(prefers-color-scheme: dark)").matches)
+  html.dataset.mode = dark ? "light" : "dark"
+  localStorage.setItem("wraith:mode", html.dataset.mode)
+})
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

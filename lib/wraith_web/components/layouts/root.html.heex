@@ -56,6 +56,9 @@
     <link :if={assigns[:theme]} phx-track-static rel="stylesheet" href={@theme.info().css} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
+    <script>
+      try { const m = localStorage.getItem("wraith:mode"); if (m) document.documentElement.dataset.mode = m } catch (e) {}
+    </script>
     <style :if={assigns[:site] && assigns[:site]["accent"]}>
       :root { --accent: <%= @site["accent"] %>; }
     </style>
