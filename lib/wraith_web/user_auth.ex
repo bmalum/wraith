@@ -116,6 +116,20 @@ defmodule WraithWeb.UserAuth do
     end
   end
 
+  @doc "`on_mount {WraithWeb.UserAuth, {:can, :manage_settings}}` — the page needs this `Wraith.Policy` action."
+  def on_mount({:can, action}, _params, session, socket) do
+    socket = mount_current_user(socket, session)
+
+    if Wraith.Policy.can?(socket.assigns.current_user, action, nil) do
+      {:cont, socket}
+    else
+      {:halt,
+       socket
+       |> Phoenix.LiveView.put_flash(:error, "Your role does not allow that.")
+       |> Phoenix.LiveView.redirect(to: ~p"/admin")}
+    end
+  end
+
   def on_mount(:mount_visitor, _params, session, socket) do
     {:cont,
      socket

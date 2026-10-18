@@ -112,3 +112,4 @@
 .search-hit p { margin: 0 0 .5rem; color: var(--ink-2); line-height: 1.5; }
 .author-links { display: flex; gap: 1rem; flex-wrap: wrap; color: var(--ink-3); font-size: .9rem; margin: .75rem 0 0; }
 .author-links a { color: var(--ink-2); }
+.masthead-logo { height: 1.75rem; width: auto; display: block; }

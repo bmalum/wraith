@@ -207,6 +207,83 @@ defmodule WraithWeb.AdminTest do
     assert Wraith.Widgets.get("tenner")["rev"] == 1
   end
 
+  test "roles: contributors draft, editors publish anything, settings need admin", %{
+    conn: conn,
+    owner: owner
+  } do
+    {:ok, contributor} =
+      Wraith.Accounts.create_user(%{
+        email: "c@x.io",
+        name: "Contrib",
+        password: "a very long password",
+        role: "contributor"
+      })
+
+    {:ok, editor} =
+      Wraith.Accounts.create_user(%{
+        email: "e@x.io",
+        name: "Ed",
+        password: "a very long password",
+        role: "editor"
+      })
+
+    owners_post = post_fixture(owner, %{title: "Owner's"})
+
+    {:ok, draft} =
+      Wraith.Content.create_post(%{
+        title: "Contrib draft",
+        markdown: "x",
+        author_id: contributor["id"]
+      })
+
+    # contributor: own draft only, no publish button, settings redirect away
+    as_c = build_conn() |> log_in(contributor)
+    {:ok, _, html} = live(as_c, ~p"/admin/posts")
+    assert html =~ "Contrib draft" and not (html =~ "Owner&#39;s")
+    {:ok, view, html} = live(as_c, ~p"/admin/posts/#{draft["id"]}")
+    refute html =~ ">Publish</button>"
+    assert render_click(view, "publish", %{}) =~ "Contributors cannot publish"
+    assert_raise WraithWeb.Forbidden, fn -> live(as_c, ~p"/admin/posts/#{owners_post["id"]}") end
+    assert {:error, {:redirect, %{to: "/admin"}}} = live(as_c, ~p"/admin/settings")
+    refute html =~ "Integrations"
+
+    # editor: everything content, no settings
+    as_e = build_conn() |> log_in(editor)
+    {:ok, _, html} = live(as_e, ~p"/admin/posts")
+    assert html =~ "Contrib draft" and html =~ "Owner&#39;s"
+    {:ok, view, _} = live(as_e, ~p"/admin/posts/#{draft["id"]}")
+    render_click(view, "publish", %{})
+    assert Wraith.Content.get_post(draft["id"])["status"] == "published"
+    assert {:error, {:redirect, _}} = live(as_e, ~p"/admin/settings")
+    {:ok, _, _} = live(as_e, ~p"/admin/members")
+
+    # owner changes roles and removes staff
+    {:ok, view, html} = live(conn, ~p"/admin/settings")
+    assert html =~ "Staff"
+
+    view
+    |> form("#role-#{contributor["id"]}", %{user: contributor["id"], role: "author"})
+    |> render_change()
+
+    assert Wraith.Accounts.get_user(contributor["id"])["role"] == "author"
+    view |> element(~s(#staff-#{editor["id"]} button[phx-click=remove-staff])) |> render_click()
+    assert Wraith.Accounts.get_user(editor["id"]) == nil
+    assert {:error, _} = Wraith.Accounts.delete_user(owner)
+  end
+
+  test "bulk actions in the posts list", %{conn: conn, owner: owner} do
+    a = post_fixture(owner, %{title: "A"})
+    b = post_fixture(owner, %{title: "B"})
+    {:ok, view, _} = live(conn, ~p"/admin/posts")
+    render_click(view, "select", %{"id" => a["id"]})
+    render_click(view, "select", %{"id" => b["id"]})
+    view |> form("form[phx-submit=bulk]", %{action: "tag", tag: "bulk"}) |> render_submit()
+    assert Wraith.Content.get_post(a["id"])["tags"] == ["news", "bulk"]
+    render_click(view, "select-all", %{})
+    view |> form("form[phx-submit=bulk]", %{action: "unpublish", tag: ""}) |> render_submit()
+    assert Wraith.Content.get_post(b["id"])["status"] == "draft"
+  end
+
   test "redirects and the navigation page picker", %{conn: conn, owner: owner} do
     about = post_fixture(owner, %{title: "About us", type: "page"})
     {:ok, view, html} = live(conn, ~p"/admin/settings")

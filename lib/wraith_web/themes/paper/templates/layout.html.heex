@@ -1,7 +1,15 @@
 <div class="site">
   <header class="masthead">
     <div class="masthead-inner">
-      <a href="/" class="masthead-title">{@site["title"]}</a>
+      <a href="/" class="masthead-title">
+        <img
+          :if={@site["logo"] not in [nil, ""]}
+          src={@site["logo"]}
+          alt={@site["title"]}
+          class="masthead-logo"
+        />
+        <span :if={@site["logo"] in [nil, ""]}>{@site["title"]}</span>
+      </a>
       <nav class="masthead-nav" aria-label="Site">
         <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
         <a

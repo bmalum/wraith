@@ -20,7 +20,7 @@ defmodule Wraith.Settings do
     "setup_done" => false
   }
 
-  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled stripe_secret_key stripe_webhook_secret stripe_price_id paid_price_label redirects comments_enabled code_injection_head code_injection_foot)
+  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled stripe_secret_key stripe_webhook_secret stripe_price_id paid_price_label redirects comments_enabled code_injection_head code_injection_foot logo icon cover_image twitter facebook)
 
   # secrets are never stored in the clear: `<name>` in → `<name>_ciphertext` + `<name>_hint` at rest
   @secrets ~w(stripe_secret_key stripe_webhook_secret)

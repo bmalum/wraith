@@ -15,6 +15,10 @@ defmodule WraithWeb.Admin.EditorLive do
   def mount(%{"id" => id}, _session, socket) do
     post = Content.get_post(id) || raise(WraithWeb.NotFound, "no post #{id}")
 
+    unless Wraith.Policy.can?(socket.assigns.current_user, :edit_post, post) do
+      raise WraithWeb.Forbidden, "your role cannot edit this post"
+    end
+
     socket =
       socket
       |> assign(
@@ -109,9 +113,10 @@ defmodule WraithWeb.Admin.EditorLive do
   end
 
   def handle_event("publish", _params, socket) do
-    case Content.publish_and_send(socket.assigns.post) do
-      {:ok, post} -> {:noreply, socket |> assign(post: post) |> put_flash(:info, "Published.")}
-      {:error, errors} -> {:noreply, assign(socket, errors: errors)}
+    if not Wraith.Policy.can?(socket.assigns.current_user, :publish_post, socket.assigns.post) do
+      {:noreply, put_flash(socket, :error, "Contributors cannot publish; ask an editor.")}
+    else
+      publish(socket)
     end
   end
 
@@ -148,6 +153,9 @@ defmodule WraithWeb.Admin.EditorLive do
   end
 
   def handle_event("delete", _params, socket) do
+    unless Wraith.Policy.can?(socket.assigns.current_user, :delete_post, socket.assigns.post),
+      do: raise(WraithWeb.Forbidden, "cannot delete")
+
     :ok = Content.delete_post(socket.assigns.post)
     {:noreply, socket |> put_flash(:info, "Deleted.") |> push_navigate(to: ~p"/admin/posts")}
   end
@@ -167,6 +175,13 @@ defmodule WraithWeb.Admin.EditorLive do
   end
 
   def handle_event("widget", params, socket), do: {:noreply, widget_event(socket, params)}
+
+  defp publish(socket) do
+    case Content.publish_and_send(socket.assigns.post) do
+      {:ok, post} -> {:noreply, socket |> assign(post: post) |> put_flash(:info, "Published.")}
+      {:error, errors} -> {:noreply, assign(socket, errors: errors)}
+    end
+  end
 
   @impl true
   def handle_info({:widget, _, _, _} = msg, socket), do: {:noreply, widget_info(socket, msg)}
@@ -255,7 +270,10 @@ defmodule WraithWeb.Admin.EditorLive do
               class="size-4"
             /> Settings</button>
             <button
-              :if={@post["status"] != "published"}
+              :if={
+                @post["status"] != "published" and
+                  Wraith.Policy.can?(@current_user, :publish_post, @post)
+              }
               phx-click="publish"
               class="btn-accent"
               disabled={@title == ""}

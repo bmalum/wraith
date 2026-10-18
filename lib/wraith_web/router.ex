@@ -175,6 +175,14 @@ defmodule WraithWeb.Router do
       live "/posts", PostsLive, :index
       live "/posts/:id", EditorLive, :edit
       live "/pages", PostsLive, :pages
+      live "/profile", ProfileLive, :index
+    end
+
+    live_session :admin_content,
+      on_mount: [
+        {WraithWeb.UserAuth, :require_authenticated_user},
+        {WraithWeb.UserAuth, {:can, :manage_tags}}
+      ] do
       live "/tags", TagsLive, :index
       live "/members", MembersLive, :index
       live "/comments", CommentsLive, :index
@@ -182,8 +190,14 @@ defmodule WraithWeb.Router do
       live "/widgets/new", WidgetEditorLive, :new
       live "/widgets/:slug", WidgetEditorLive, :edit
       live "/studio", StudioLive, :index
+    end
+
+    live_session :admin_settings,
+      on_mount: [
+        {WraithWeb.UserAuth, :require_authenticated_user},
+        {WraithWeb.UserAuth, {:can, :manage_settings}}
+      ] do
       live "/settings", SettingsLive, :index
-      live "/profile", ProfileLive, :index
       live "/integrations", IntegrationsLive, :index
     end
   end

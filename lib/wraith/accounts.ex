@@ -75,7 +75,7 @@ defmodule Wraith.Accounts do
         "email" => email,
         "name" => name,
         "slug" => Slug.slugify(name),
-        "role" => attrs["role"] || "author",
+        "role" => if(attrs["role"] in Wraith.Policy.roles(), do: attrs["role"], else: "author"),
         "bio" => attrs["bio"] || "",
         "password_hash" => Bcrypt.hash_pwd_salt(password)
       }
@@ -114,6 +114,23 @@ defmodule Wraith.Accounts do
       u = Map.merge(u, attrs)
       if attrs["name"] in [nil, ""], do: u, else: Map.put(u, "slug", Slug.slugify(attrs["name"]))
     end)
+  end
+
+  @doc "Change a user's role (the caller's right to do so is the caller's business — `Wraith.Policy`)."
+  def set_role(%{"id" => id}, role) when role in ["admin", "editor", "author", "contributor"] do
+    {pk, sk} = Keys.user(id)
+    Store.update(pk, sk, &Map.put(&1, "role", role))
+  end
+
+  def set_role(_user, role), do: {:error, %{"role" => "#{role} is not a role you can assign"}}
+
+  @doc "Remove a staff member (never the owner). Their posts stay, attributed to them."
+  def delete_user(%{"role" => "owner"}), do: {:error, %{"base" => "the owner cannot be removed"}}
+
+  def delete_user(%{"id" => id, "email" => email}) do
+    {pk, sk} = Keys.user(id)
+    {epk, esk} = Keys.user_email(email)
+    Store.transact([{:delete, pk, sk}, {:delete, epk, esk}])
   end
 
   @doc "Change the password: the current one must match, the new one must be long enough."

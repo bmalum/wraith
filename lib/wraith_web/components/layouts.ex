@@ -50,19 +50,23 @@ defmodule WraithWeb.Layouts do
           <.rail_link to={~p"/admin"} icon="hero-squares-2x2" active={@active == :dashboard}>Dashboard</.rail_link>
           <.rail_link to={~p"/admin/posts"} icon="hero-document-text" active={@active == :posts}>Posts</.rail_link>
           <.rail_link to={~p"/admin/pages"} icon="hero-rectangle-stack" active={@active == :pages}>Pages</.rail_link>
-          <.rail_link to={~p"/admin/tags"} icon="hero-tag" active={@active == :tags}>Tags</.rail_link>
-          <.rail_link to={~p"/admin/members"} icon="hero-users" active={@active == :members}>Members</.rail_link>
-          <.rail_link
-            to={~p"/admin/comments"}
-            icon="hero-chat-bubble-left-right"
-            active={@active == :comments}
-          >Comments</.rail_link>
-          <div class="admin-nav-sep">Build</div>
-          <.rail_link to={~p"/admin/widgets"} icon="hero-cube" active={@active == :widgets}>Widgets</.rail_link>
-          <.rail_link to={~p"/admin/studio"} icon="hero-sparkles" active={@active == :studio}>Agent studio</.rail_link>
-          <div class="admin-nav-sep">Site</div>
-          <.rail_link to={~p"/admin/settings"} icon="hero-cog-6-tooth" active={@active == :settings}>Settings</.rail_link>
-          <.rail_link to={~p"/admin/integrations"} icon="hero-key" active={@active == :integrations}>Integrations</.rail_link>
+          <%= if Wraith.Policy.can?(@current_user, :manage_tags, nil) do %>
+            <.rail_link to={~p"/admin/tags"} icon="hero-tag" active={@active == :tags}>Tags</.rail_link>
+            <.rail_link to={~p"/admin/members"} icon="hero-users" active={@active == :members}>Members</.rail_link>
+            <.rail_link
+              to={~p"/admin/comments"}
+              icon="hero-chat-bubble-left-right"
+              active={@active == :comments}
+            >Comments</.rail_link>
+            <div class="admin-nav-sep">Build</div>
+            <.rail_link to={~p"/admin/widgets"} icon="hero-cube" active={@active == :widgets}>Widgets</.rail_link>
+            <.rail_link to={~p"/admin/studio"} icon="hero-sparkles" active={@active == :studio}>Agent studio</.rail_link>
+          <% end %>
+          <%= if Wraith.Policy.can?(@current_user, :manage_settings, nil) do %>
+            <div class="admin-nav-sep">Site</div>
+            <.rail_link to={~p"/admin/settings"} icon="hero-cog-6-tooth" active={@active == :settings}>Settings</.rail_link>
+            <.rail_link to={~p"/admin/integrations"} icon="hero-key" active={@active == :integrations}>Integrations</.rail_link>
+          <% end %>
         </nav>
         <div class="admin-rail-foot">
           <.link

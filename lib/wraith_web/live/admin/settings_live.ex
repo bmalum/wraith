@@ -45,7 +45,34 @@ defmodule WraithWeb.Admin.SettingsLive do
     end
   end
 
+  def handle_event("set-role", %{"user" => id, "role" => role}, socket) do
+    with true <- role in Wraith.Policy.assignable(socket.assigns.current_user),
+         %{} = u <- Accounts.get_user(id),
+         false <- u["role"] == "owner",
+         {:ok, _} <- Accounts.set_role(u, role) do
+      {:noreply, socket |> put_flash(:info, "#{u["name"]} is now #{role}.") |> load()}
+    else
+      _ -> {:noreply, put_flash(socket, :error, "Cannot change that role.")}
+    end
+  end
+
+  def handle_event("remove-staff", %{"id" => id}, socket) do
+    with true <- Wraith.Policy.can?(socket.assigns.current_user, :manage_staff, nil),
+         %{} = u <- Accounts.get_user(id),
+         :ok <- Accounts.delete_user(u) do
+      {:noreply, socket |> put_flash(:info, "#{u["name"]} removed.") |> load()}
+    else
+      {:error, %{"base" => why}} -> {:noreply, put_flash(socket, :error, why)}
+      _ -> {:noreply, put_flash(socket, :error, "Cannot remove that account.")}
+    end
+  end
+
   def handle_event("add-author", %{"user" => attrs}, socket) do
+    attrs =
+      if attrs["role"] in Wraith.Policy.assignable(socket.assigns.current_user),
+        do: attrs,
+        else: Map.put(attrs, "role", "author")
+
     case Accounts.create_user(attrs) do
       {:ok, _} ->
         {:noreply,
@@ -105,6 +132,21 @@ defmodule WraithWeb.Admin.SettingsLive do
               value={@site["description"]}
               label="Description"
             />
+            <.input
+              name="site[logo]"
+              value={@site["logo"]}
+              label="Logo URL"
+              placeholder="/uploads/… or https://"
+            />
+            <.input name="site[icon]" value={@site["icon"]} label="Icon / favicon URL" />
+            <.input name="site[cover_image]" value={@site["cover_image"]} label="Cover image URL" />
+            <.input
+              name="site[twitter]"
+              value={@site["twitter"]}
+              label="X / Twitter"
+              placeholder="@site"
+            />
+            <.input name="site[facebook]" value={@site["facebook"]} label="Facebook page" />
             <.input
               name="site[navigation]"
               type="textarea"
@@ -218,24 +260,53 @@ defmodule WraithWeb.Admin.SettingsLive do
 
         <section class="panel">
           <header class="panel-head">
-            <h2>Authors</h2>
+            <h2>Staff</h2>
           </header>
-          <ul class="row-list">
-            <li :for={a <- @authors} class="row">
+          <ul class="row-list" id="staff">
+            <li :for={a <- @authors} class="row" id={"staff-" <> a["id"]}>
               <div class="row-main">
                 <span class="row-title">{a["name"]} <span class="role-pill">{a["role"]}</span></span>
                 <span class="row-sub">{a["email"]} · /author/{a["slug"]}</span>
               </div>
+              <form
+                :if={a["role"] != "owner" and Wraith.Policy.assignable(@current_user) != []}
+                phx-change="set-role"
+                class="row-inline"
+                id={"role-" <> a["id"]}
+              >
+                <input type="hidden" name="user" value={a["id"]} />
+                <select name="role" class="select">
+                  <option
+                    :for={r <- Wraith.Policy.assignable(@current_user)}
+                    value={r}
+                    selected={a["role"] == r}
+                  >
+                    {r}
+                  </option>
+                </select>
+              </form>
+              <div
+                :if={a["role"] != "owner" and Wraith.Policy.can?(@current_user, :manage_staff, nil)}
+                class="row-actions"
+              >
+                <button
+                  phx-click="remove-staff"
+                  phx-value-id={a["id"]}
+                  data-confirm={"Remove #{a["name"]}? Their posts stay."}
+                  class="icon-btn is-danger"
+                  title="Remove"
+                ><.icon name="hero-trash" class="size-4" /></button>
+              </div>
             </li>
           </ul>
           <.form
-            :if={@current_user["role"] == "owner"}
+            :if={Wraith.Policy.can?(@current_user, :manage_staff, nil)}
             for={to_form(%{}, as: :user)}
             phx-submit="add-author"
             id="author-form"
             class="panel-form"
           >
-            <h3 class="panel-sub">Add an author</h3>
+            <h3 class="panel-sub">Invite staff</h3>
             <.input
               name="user[name]"
               value=""
@@ -250,13 +321,25 @@ defmodule WraithWeb.Admin.SettingsLive do
               errors={List.wrap(@author_errors["email"])}
             />
             <.input
+              name="user[role]"
+              type="select"
+              value="author"
+              label="Role"
+              options={
+                Enum.map(Wraith.Policy.assignable(@current_user), &{String.capitalize(&1), &1})
+              }
+            />
+            <.input
               name="user[password]"
               type="password"
               value=""
               label="Password"
               errors={List.wrap(@author_errors["password"])}
             />
-            <button type="submit" class="btn-ghost">Add author</button>
+            <p class="form-help">
+              Admin: everything. Editor: all posts, members, comments. Author: their own posts. Contributor: their own drafts, no publishing.
+            </p>
+            <button type="submit" class="btn-ghost">Add</button>
           </.form>
         </section>
       </div>
