@@ -21,7 +21,7 @@ defmodule Wraith.Application do
         WraithWeb.Presence
       ] ++
         store_children() ++
-        [{Task, &Wraith.Widgets.seed_builtins/0}] ++
+        [{Task, &Wraith.Widgets.seed_builtins/0}, Wraith.Search] ++
         runtime_children() ++
         [Wraith.Studio.Server] ++
         clock_children() ++

@@ -99,3 +99,14 @@
 .related-title { font-family: var(--serif); font-weight: 500; font-size: 1.4rem; margin: 0 0 1.5rem; }
 .feed.is-related { grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
 .author-avatar.is-img { object-fit: cover; }
+
+/* search */
+.masthead-icon { display: inline-flex; padding: .3rem; border-radius: 6px; color: var(--ink-2); }
+.masthead-icon:hover { background: var(--paper-2); color: var(--ink); }
+.search-form { margin-top: 1.25rem; max-width: 32rem; }
+.input.is-search { width: 100%; font-size: 1.1rem; padding: .7rem 1rem; border-radius: 10px; }
+.search-results { max-width: 42rem; }
+.search-hit { padding: 1.25rem 0; border-bottom: 1px solid var(--rule); }
+.search-hit h2 { font-family: var(--serif); font-weight: 500; font-size: 1.35rem; margin: 0 0 .35rem; }
+.search-hit h2 a { text-decoration: none; }
+.search-hit p { margin: 0 0 .5rem; color: var(--ink-2); line-height: 1.5; }

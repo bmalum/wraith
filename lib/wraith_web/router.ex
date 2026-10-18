@@ -41,6 +41,7 @@ defmodule WraithWeb.Router do
       live "/author/:slug", Site.AuthorLive, :show
       live "/subscribe", Site.SubscribeLive, :new
       live "/members", Site.MemberLive, :account
+      live "/search", Site.SearchLive, :index
     end
 
     get "/members/login/:token", MemberController, :login

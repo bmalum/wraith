@@ -4,6 +4,7 @@
     <nav class="ink-nav" aria-label="Site">
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
       <a :if={@site["members_enabled"]} href={~p"/subscribe"}>subscribe</a>
+      <a href={~p"/search"}>search</a>
       <a href={~p"/rss"}>rss</a>
       <a :if={@current_user} href={~p"/admin"} title="Admin">admin</a>
     </nav>

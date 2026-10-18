@@ -10,6 +10,7 @@ defmodule WraithWeb.Theme do
       templates/author.html.heex   # @author, @posts, @authors
       templates/subscribe.html.heex # @form, @done
       templates/member.html.heex   # @current_member (or nil), @form, @sent
+      templates/search.html.heex   # @q, @results ([%{post, score, snippet}]), @authors
 
   and its stylesheet at `priv/static/themes/<name>.css` (plain CSS, served
   as is; the root layout links it). Templates are HEEx compiled into the
@@ -32,6 +33,7 @@ defmodule WraithWeb.Theme do
   @callback author(map()) :: Phoenix.LiveView.Rendered.t()
   @callback subscribe(map()) :: Phoenix.LiveView.Rendered.t()
   @callback member(map()) :: Phoenix.LiveView.Rendered.t()
+  @callback search(map()) :: Phoenix.LiveView.Rendered.t()
 
   defmacro __using__(opts) do
     name = Keyword.fetch!(opts, :name)

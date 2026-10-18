@@ -139,6 +139,17 @@ defmodule WraithWeb.SiteTest do
       assert WraithWeb.Themes.names() == ["paper", "ink"]
     end
 
+    test "search page", %{conn: conn} do
+      :ok = Wraith.Search.rebuild()
+      {:ok, view, _} = live(conn, ~p"/search")
+      view |> form("#search-form", %{q: "hello"}) |> render_change()
+      assert_patch(view, ~p"/search?q=hello")
+      assert render(view) =~ "Hello World"
+      assert render(view) =~ "1 result"
+      {:ok, _, html} = live(conn, ~p"/search?q=zzzz")
+      assert html =~ "0 results"
+    end
+
     test "rss, json feed, sitemap", %{conn: conn, post: post} do
       body = conn |> get(~p"/rss") |> response(200)
       assert body =~ "<rss"
