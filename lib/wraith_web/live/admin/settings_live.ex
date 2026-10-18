@@ -11,16 +11,30 @@ defmodule WraithWeb.Admin.SettingsLive do
 
   defp load(socket) do
     site = Settings.get()
-    nav = site["navigation"] |> Enum.map_join("\n", &"#{&1["label"]} #{&1["url"]}")
-    assign(socket, site: site, nav_text: nav, authors: Accounts.list_users())
+    pages = Wraith.Content.list_posts("published", type: "page", limit: 100).posts
+    page_urls = Enum.map(pages, &("/" <> &1["slug"]))
+    # entries that point at a page show as ticks in the picker; the rest stay text
+    {picked, hand} = Enum.split_with(site["navigation"], &(&1["url"] in page_urls))
+    nav = Enum.map_join(hand, "\n", &"#{&1["label"]} #{&1["url"]}")
+
+    assign(socket,
+      site: site,
+      nav_text: nav,
+      pages: pages,
+      picked: Enum.map(picked, &String.trim_leading(&1["url"], "/")),
+      redirects_text: WraithWeb.Redirects.to_text(site["redirects"]),
+      authors: Accounts.list_users()
+    )
   end
 
   @impl true
   def handle_event("save", %{"site" => attrs}, socket) do
     attrs =
       attrs
-      |> Map.put("navigation", parse_nav(attrs["navigation"] || ""))
+      |> Map.put("navigation", parse_nav(attrs["navigation"] || "") ++ picked_pages(attrs))
+      |> Map.put("redirects", WraithWeb.Redirects.parse(attrs["redirects"] || ""))
       |> Map.put("members_enabled", attrs["members_enabled"] == "true")
+      |> Map.put("comments_enabled", attrs["comments_enabled"] == "true")
 
     case Settings.update(attrs) do
       {:ok, _} ->
@@ -40,6 +54,14 @@ defmodule WraithWeb.Admin.SettingsLive do
       {:error, errors} ->
         {:noreply, assign(socket, author_errors: errors)}
     end
+  end
+
+  # pages ticked in the picker become nav entries after the hand-written ones
+  defp picked_pages(attrs) do
+    for slug <- List.wrap(attrs["nav_pages"]),
+        slug != "",
+        p = Wraith.Content.get_post_by_slug(slug),
+        do: %{"label" => p["title"], "url" => "/" <> p["slug"]}
   end
 
   defp parse_nav(text) do
@@ -83,6 +105,30 @@ defmodule WraithWeb.Admin.SettingsLive do
               placeholder="Home /\nAbout /about"
             />
             <p class="form-help">One link per line: <code>Label /url</code>.</p>
+            <fieldset :if={@pages != []} class="nav-pages">
+              <legend class="drawer-label">Pages in the navigation</legend>
+              <label :for={p <- @pages} class="nav-page">
+                <input
+                  type="checkbox"
+                  name="site[nav_pages][]"
+                  value={p["slug"]}
+                  checked={p["slug"] in @picked}
+                  class="checkbox checkbox-sm"
+                /> {p["title"]} <span class="row-sub">/{p["slug"]}</span>
+              </label>
+            </fieldset>
+            <.input
+              name="site[redirects]"
+              type="textarea"
+              value={@redirects_text}
+              label="Redirects"
+              placeholder="/old-post /new-post\n/blog/* /* temporary"
+            />
+            <p class="form-help">
+              One per line: <code>/from /to</code>, optionally <code>temporary</code>
+              (302). <code>/old/*</code>
+              keeps the rest of the path.
+            </p>
             <.input name="site[footer]" value={@site["footer"]} label="Footer note" />
             <.input
               name="site[accent]"

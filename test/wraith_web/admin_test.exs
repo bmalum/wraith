@@ -207,6 +207,52 @@ defmodule WraithWeb.AdminTest do
     assert Wraith.Widgets.get("tenner")["rev"] == 1
   end
 
+  test "redirects and the navigation page picker", %{conn: conn, owner: owner} do
+    about = post_fixture(owner, %{title: "About us", type: "page"})
+    {:ok, view, html} = live(conn, ~p"/admin/settings")
+    assert html =~ "Pages in the navigation"
+
+    view
+    |> form("#site-form",
+      site: %{
+        title: "T",
+        description: "",
+        navigation: "Home /",
+        footer: "",
+        accent: "#112233",
+        posts_per_page: "10",
+        lang: "en",
+        redirects: "/old /#{about["slug"]}\n/blog/* /* temporary\n/gone /",
+        nav_pages: [about["slug"]]
+      }
+    )
+    |> render_submit()
+
+    site = Wraith.Settings.get()
+
+    assert site["navigation"] == [
+             %{"label" => "Home", "url" => "/"},
+             %{"label" => "About us", "url" => "/about-us"}
+           ]
+
+    assert [
+             %{"from" => "/old", "to" => "/about-us", "permanent" => true},
+             %{"from" => "/blog/*", "permanent" => false} | _
+           ] = site["redirects"]
+
+    conn = get(build_conn(), "/old")
+    assert conn.status == 301 and get_resp_header(conn, "location") == ["/about-us"]
+    conn = get(build_conn(), "/blog/hello-world")
+    assert conn.status == 302 and get_resp_header(conn, "location") == ["/hello-world"]
+    {:ok, _, html} = live(build_conn(), ~p"/")
+    assert html =~ ~s(href="/about-us">About us</a>)
+
+    # reopening shows the page ticked and keeps the hand-written line
+    {:ok, _, html} = live(conn |> recycle() |> log_in(owner), ~p"/admin/settings")
+    assert html =~ ~s(value="about-us" checked)
+    assert html =~ "Home /"
+  end
+
   test "profile: avatar, socials, password change", %{conn: conn, owner: owner} do
     File.rm_rf!(Wraith.Uploads.Local.root())
     {:ok, view, _} = live(conn, ~p"/admin/profile")

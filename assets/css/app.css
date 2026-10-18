@@ -406,3 +406,5 @@ a { color: inherit; }
 .ink .comments { border-color: oklch(30% 0.01 260); }
 .ink .comment { border-color: oklch(28% 0.01 260); }
 .ink .comment-form textarea { background: oklch(20% 0.01 260); border-color: oklch(36% 0.01 260); color: inherit; }
+.nav-pages { border: 1px solid var(--rule); border-radius: 8px; padding: .5rem .9rem .75rem; display: flex; flex-direction: column; gap: .3rem; }
+.nav-page { display: flex; align-items: center; gap: .5rem; font-size: .9rem; }

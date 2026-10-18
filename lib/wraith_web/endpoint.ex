@@ -54,5 +54,7 @@ defmodule WraithWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+  # settings-driven redirects, before the router sees the path
+  plug WraithWeb.Redirects
   plug WraithWeb.Router
 end
