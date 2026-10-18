@@ -1,0 +1,16 @@
+<article class="ink-post">
+  <p class="ink-muted">
+    <span :if={@post["published_at"]}>{String.slice(@post["published_at"], 0, 10)}</span>
+    <span :for={t <- @post["tags"] || []}><.link navigate={~p"/tag/#{t}"}>#{t}</.link></span>
+    <span :if={@author}>by
+    <.link navigate={~p"/author/#{@author["slug"]}"}>{@author["name"]}</.link></span>
+    <span :if={@post["status"] != "published"} class="ink-badge">{@post["status"]}</span>
+    <.link :if={@current_user} navigate={~p"/admin/posts/#{@post["id"]}"}>[edit]</.link>
+  </p>
+  <h1>{@post["title"]}</h1>
+  <img :if={@post["feature_image"]} src={@post["feature_image"]} alt="" class="ink-figure" />
+  <div :if={@locked} class="ink-lock">
+    <p>// members only — <.link navigate={~p"/subscribe"}>subscribe</.link> to read on</p>
+  </div>
+  <.body :if={not @locked} segments={@segments} widgets={@widgets} />
+</article>

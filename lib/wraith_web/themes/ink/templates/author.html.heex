@@ -1,0 +1,11 @@
+<section class="ink-intro">
+  <h1>@{@author["slug"]}</h1>
+  <p>{@author["name"]}<span :if={@author["bio"] not in [nil, ""]}> — {@author["bio"]}</span></p>
+  <p class="ink-muted">{length(@posts)} post(s)</p>
+</section>
+<ol class="ink-list">
+  <li :for={post <- @posts}>
+    <time datetime={post["published_at"]}>{String.slice(post["published_at"] || "", 0, 10)}</time>
+    <.link navigate={~p"/#{post["slug"]}"}>{post["title"]}</.link>
+  </li>
+</ol>

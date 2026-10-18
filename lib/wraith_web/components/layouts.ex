@@ -1,8 +1,8 @@
 defmodule WraithWeb.Layouts do
   @moduledoc """
-  Two layouts: `site/1` wraps every public page (masthead, navigation from
-  the settings, footer), `admin/1` wraps the admin (rail on the left).
-  Both take `flash`; `site` takes `site` (the settings map).
+  Two layouts: `site/1` wraps every public page in the current theme's
+  layout (`WraithWeb.Theme`), `admin/1` wraps the admin (rail on the left).
+  Both take `flash`; `site` takes `site` (the settings map) and `theme`.
   """
   use WraithWeb, :html
 
@@ -10,41 +10,16 @@ defmodule WraithWeb.Layouts do
 
   attr :flash, :map, required: true
   attr :site, :map, required: true
+  attr :theme, :atom, required: true, doc: "the theme module (`WraithWeb.Themes.current/0`)"
   attr :current_user, :map, default: nil
-  attr :wide, :boolean, default: false
   slot :inner_block, required: true
 
+  @doc "Every public page: the theme's layout around the page, then the flash."
   def site(assigns) do
     ~H"""
-    <div class="site">
-      <header class="masthead">
-        <div class="masthead-inner">
-          <a href="/" class="masthead-title">{@site["title"]}</a>
-          <nav class="masthead-nav" aria-label="Site">
-            <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
-            <a :if={@site["members_enabled"]} href={~p"/subscribe"} class="masthead-cta">Subscribe</a>
-            <a :if={@current_user} href={~p"/admin"} class="masthead-admin" title="Admin">
-              <.icon name="hero-pencil-square" class="size-4" />
-            </a>
-          </nav>
-        </div>
-      </header>
-
-      <main class={["site-main", @wide && "is-wide"]}>
-        {render_slot(@inner_block)}
-      </main>
-
-      <footer class="site-footer">
-        <div class="site-footer-inner">
-          <span>{@site["title"]} © {Date.utc_today().year}</span>
-          <span class="site-footer-links">
-            <a href={~p"/rss"}>RSS</a>
-            <span :if={@site["footer"] not in [nil, ""]}>{@site["footer"]}</span>
-            <span>Published with <a href="https://github.com/mkarrer/wraith">Wraith</a></span>
-          </span>
-        </div>
-      </footer>
-    </div>
+    <WraithWeb.SiteComponents.theme_layout theme={@theme} site={@site} current_user={@current_user}>
+      {render_slot(@inner_block)}
+    </WraithWeb.SiteComponents.theme_layout>
     <.flash_group flash={@flash} />
     """
   end

@@ -1,6 +1,7 @@
 defmodule WraithWeb.Site.SubscribeLive do
   @moduledoc "A reader signs up as a member."
   use WraithWeb, :live_view
+  alias WraithWeb.Themes
 
   alias Wraith.{Members, Settings}
 
@@ -9,6 +10,7 @@ defmodule WraithWeb.Site.SubscribeLive do
     {:ok,
      assign(socket,
        site: Settings.get(),
+       theme: Themes.current(),
        form: to_form(%{"email" => "", "name" => ""}),
        done: false,
        page_title: "Subscribe"
@@ -38,35 +40,27 @@ defmodule WraithWeb.Site.SubscribeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.site flash={@flash} site={@site} current_user={@current_user}>
-      <section class="lead is-small">
-        <h1 class="lead-title">Subscribe to {@site["title"]}</h1>
-        <p class="lead-desc">New posts in your inbox. No spam, leave whenever.</p>
-      </section>
-
-      <div :if={@done} class="subscribe-done" role="status">
-        <.icon name="hero-check-circle" class="size-6" />
-        <p>You're in. Thanks for reading.</p>
-      </div>
-
-      <.form
-        :if={not @done}
-        for={@form}
-        phx-submit="subscribe"
-        class="subscribe-form"
-        id="subscribe-form"
-      >
-        <.input field={@form[:name]} label="Name" placeholder="Optional" />
-        <.input
-          field={@form[:email]}
-          type="email"
-          label="Email"
-          required
-          placeholder="you@example.com"
-        />
-        <button class="btn-accent" type="submit">Subscribe</button>
-      </.form>
+    <Layouts.site flash={@flash} site={@site} theme={@theme} current_user={@current_user}>
+      <WraithWeb.SiteComponents.theme_page
+        theme={@theme}
+        page={:subscribe}
+        assigns={page_assigns(assigns)}
+      />
     </Layouts.site>
     """
   end
+
+  # what the theme's template sees: everything but LiveView's own bookkeeping
+  defp page_assigns(assigns),
+    do:
+      Map.drop(assigns, [
+        :flash,
+        :theme,
+        :socket,
+        :__changed__,
+        :live_action,
+        :streams,
+        :uploads,
+        :myself
+      ])
 end

@@ -111,6 +111,33 @@ defmodule WraithWeb.SiteTest do
       assert Wraith.Members.get_by_email("reader@x.io")
     end
 
+    test "themes: paper is the default, ink renders the same pages, unknown names are refused", %{
+      conn: conn,
+      post: post
+    } do
+      {:ok, _, html} = live(conn, ~p"/")
+      assert html =~ ~s(href="/themes/paper.css")
+      assert html =~ "masthead"
+
+      assert {:error, %{"theme" => _}} = Wraith.Settings.update(%{theme: "nope"})
+      {:ok, _} = Wraith.Settings.update(%{theme: "ink"})
+
+      {:ok, _, html} = live(conn, ~p"/")
+      assert html =~ ~s(href="/themes/ink.css")
+      assert html =~ "ink-list"
+      assert html =~ "Hello World"
+      {:ok, view, html} = live(conn, ~p"/#{post["slug"]}")
+      assert html =~ "ink-post"
+      assert html =~ ~s(data-widget="counter"), "widgets stay live in any theme"
+      view |> element(~s(#widget-claps button[phx-value-event="inc"])) |> render_click()
+      assert render(view) =~ ~s(<span class="w-counter-value">1</span>)
+      {:ok, _, html} = live(conn, ~p"/tag/news")
+      assert html =~ "#news"
+      {:ok, _, html} = live(conn, ~p"/subscribe")
+      assert html =~ "subscribe →"
+      assert WraithWeb.Themes.names() == ["paper", "ink"]
+    end
+
     test "rss, json feed, sitemap", %{conn: conn, post: post} do
       body = conn |> get(~p"/rss") |> response(200)
       assert body =~ "<rss"

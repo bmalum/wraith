@@ -19,6 +19,7 @@
       rel="stylesheet"
     />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <link :if={assigns[:theme]} phx-track-static rel="stylesheet" href={@theme.info().css} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <style :if={assigns[:site] && assigns[:site]["accent"]}>

@@ -1,8 +1,8 @@
 defmodule WraithWeb.Site.PostLive do
   @moduledoc "One post or page, with its widgets alive."
   use WraithWeb, :live_view
+  alias WraithWeb.Themes
   import WraithWeb.WidgetHost
-  import WraithWeb.SiteComponents
 
   alias Wraith.{Accounts, Content, Settings}
 
@@ -23,6 +23,7 @@ defmodule WraithWeb.Site.PostLive do
          socket
          |> assign(
            site: site,
+           theme: Themes.get(site["theme"]),
            post: post,
            author: author && Accounts.public(author),
            authors: if(author, do: %{author["id"] => author}, else: %{}),
@@ -71,49 +72,27 @@ defmodule WraithWeb.Site.PostLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.site flash={@flash} site={@site} current_user={@current_user}>
-      <article class="post">
-        <header class="post-head">
-          <div class="post-card-tags">
-            <.link :for={tag <- @post["tags"] || []} navigate={~p"/tag/#{tag}"}>{tag}</.link>
-            <span :if={@post["status"] != "published"} class="badge-draft">{@post["status"]} preview</span>
-          </div>
-          <h1 class="post-title">{@post["title"]}</h1>
-          <p :if={not @locked and @post["custom_excerpt"] not in [nil, ""]} class="post-excerpt">
-            {@post["custom_excerpt"]}
-          </p>
-          <.byline post={@post} authors={@authors} />
-          <div :if={@current_user} class="post-edit">
-            <.link navigate={~p"/admin/posts/#{@post["id"]}"}><.icon
-              name="hero-pencil"
-              class="size-3"
-            /> Edit</.link>
-          </div>
-        </header>
-
-        <figure :if={@post["feature_image"]} class="post-figure">
-          <img src={@post["feature_image"]} alt="" />
-        </figure>
-
-        <div :if={@locked} class="paywall">
-          <h3>This post is for members</h3>
-          <p>Sign up for free to keep reading.</p>
-          <.link navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
-        </div>
-
-        <.body :if={not @locked} segments={@segments} widgets={@widgets} />
-
-        <footer :if={@author} class="post-foot">
-          <div class="author-card">
-            <div class="author-avatar">{String.first(@author["name"])}</div>
-            <div>
-              <.link navigate={~p"/author/#{@author["slug"]}"} class="author-name">{@author["name"]}</.link>
-              <p :if={@author["bio"] not in [nil, ""]} class="author-bio">{@author["bio"]}</p>
-            </div>
-          </div>
-        </footer>
-      </article>
+    <Layouts.site flash={@flash} site={@site} theme={@theme} current_user={@current_user}>
+      <WraithWeb.SiteComponents.theme_page
+        theme={@theme}
+        page={:post}
+        assigns={page_assigns(assigns)}
+      />
     </Layouts.site>
     """
   end
+
+  # what the theme's template sees: everything but LiveView's own bookkeeping
+  defp page_assigns(assigns),
+    do:
+      Map.drop(assigns, [
+        :flash,
+        :theme,
+        :socket,
+        :__changed__,
+        :live_action,
+        :streams,
+        :uploads,
+        :myself
+      ])
 end

@@ -6,6 +6,26 @@ defmodule WraithWeb.SiteComponents do
 
   alias Wraith.Markdown
 
+  @doc "Render one of the theme's templates (`:index`, `:post`, …) with these assigns."
+  attr :theme, :atom, required: true
+  attr :page, :atom, required: true
+  attr :assigns, :map, required: true
+
+  def theme_page(%{theme: theme, page: page, assigns: page_assigns}) do
+    # a function component is a function: the theme's template, called with the page's assigns
+    apply(theme, page, [Map.put(page_assigns, :__changed__, nil)])
+  end
+
+  @doc "The theme's layout around the page."
+  attr :theme, :atom, required: true
+  attr :site, :map, required: true
+  attr :current_user, :map, default: nil
+  slot :inner_block, required: true
+
+  def theme_layout(%{theme: theme} = assigns) do
+    apply(theme, :layout, [Map.delete(assigns, :theme)])
+  end
+
   attr :post, :map, required: true
   attr :authors, :map, default: %{}
   attr :featured, :boolean, default: false

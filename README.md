@@ -22,6 +22,7 @@ widgets and runs the site with you.
 |---|---|
 | Posts & pages (draft / scheduled / published, slugs, tags, authors, revisions, members-only) | `Wraith.Content`, `Wraith.Members`, `Wraith.Settings`, `Wraith.Accounts` |
 | Public site: feed, post, tag, author, subscribe, RSS / JSON Feed / sitemap | `WraithWeb.Site.*`, `WraithWeb.FeedController` |
+| Themes: `paper` (editorial) and `ink` (dark terminal), switchable in Settings | `WraithWeb.Theme`, `WraithWeb.Themes`, `lib/wraith_web/themes/*`, `priv/static/themes/*.css` |
 | Admin: setup, login, dashboard, Markdown editor with live preview (widgets live too), posts, tags, members, settings | `WraithWeb.Admin.*` |
 | Widgets: behaviour, Lua sandbox, shared live state, built-ins (counter, poll, reactions, countdown, live visitors) | `Wraith.Widgets`, `Wraith.Widgets.Lua`, `priv/widgets/*.lua` |
 | Widget studio: write Lua, click the live preview, versions & rollback | `WraithWeb.Admin.WidgetEditorLive` |
@@ -99,6 +100,24 @@ end
 `wraith.escape`, `wraith.format`, `wraith.split`, `wraith.json`. The sandbox
 removes `os`/`io`/`require` and cuts a call off after 250 ms. Elixir widgets
 implement `Wraith.Widgets.Widget` and are listed in `Wraith.Widgets.builtin_modules/0`.
+
+## Themes
+
+The public site is a theme: a directory under `lib/wraith_web/themes/<name>/`
+with a module (`use WraithWeb.Theme, name: "<name>", label: …, description: …`)
+and six HEEx templates — `layout`, `index`, `post`, `tag`, `author`,
+`subscribe` — plus a plain stylesheet at `priv/static/themes/<name>.css`.
+Templates get the page's assigns (`@site`, `@posts`, `@post`, `@authors`,
+`@segments`/`@widgets`, …) and can use `WraithWeb.SiteComponents`
+(`post_card`, `byline`, `pager`, and `body`, which is what keeps widgets live
+in any theme). Tokens, the prose styles and the widget classes come from
+`app.css`, so a theme only has to style the page. Add the module to
+`WraithWeb.Themes.all/0` and it appears in Settings → Theme. Two ship:
+`paper` (the default) and `ink`.
+
+Themes are compiled into the release, by design: no template code is loaded
+at runtime. Ghost (Handlebars) theme compatibility would be a second theme
+kind on top of this contract; it is not there yet.
 
 ## The agent studio
 

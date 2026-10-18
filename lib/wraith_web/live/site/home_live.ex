@@ -1,7 +1,7 @@
 defmodule WraithWeb.Site.HomeLive do
   @moduledoc "The front page: the newest published posts, the first one large."
   use WraithWeb, :live_view
-  import WraithWeb.SiteComponents
+  alias WraithWeb.Themes
 
   alias Wraith.{Accounts, Content, Settings}
 
@@ -17,6 +17,7 @@ defmodule WraithWeb.Site.HomeLive do
       {:ok,
        assign(socket,
          site: site,
+         theme: Themes.get(site["theme"]),
          authors: authors(),
          page_title: nil,
          meta_description: site["description"]
@@ -53,31 +54,27 @@ defmodule WraithWeb.Site.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.site flash={@flash} site={@site} current_user={@current_user}>
-      <section :if={@page == 1} class="lead">
-        <h1 class="lead-title">{@site["title"]}</h1>
-        <p class="lead-desc">{@site["description"]}</p>
-      </section>
-
-      <div :if={@posts == []} class="empty">
-        <p>Nothing published yet.</p>
-        <p :if={@current_user}>
-          <.link navigate={~p"/admin/posts/new"}>Write the first post →</.link>
-        </p>
-      </div>
-
-      <section class="feed">
-        <%= for {post, i} <- Enum.with_index(@posts) do %>
-          <.post_card post={post} authors={@authors} featured={@page == 1 and i == 0} />
-        <% end %>
-      </section>
-
-      <.pager
-        page={@page}
-        has_next={@has_next}
-        path={fn n -> if n == 1, do: ~p"/", else: ~p"/page/#{n}" end}
+    <Layouts.site flash={@flash} site={@site} theme={@theme} current_user={@current_user}>
+      <WraithWeb.SiteComponents.theme_page
+        theme={@theme}
+        page={:index}
+        assigns={page_assigns(assigns)}
       />
     </Layouts.site>
     """
   end
+
+  # what the theme's template sees: everything but LiveView's own bookkeeping
+  defp page_assigns(assigns),
+    do:
+      Map.drop(assigns, [
+        :flash,
+        :theme,
+        :socket,
+        :__changed__,
+        :live_action,
+        :streams,
+        :uploads,
+        :myself
+      ])
 end

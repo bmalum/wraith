@@ -1,7 +1,7 @@
 defmodule WraithWeb.Site.AuthorLive do
   @moduledoc "An author and what they published."
   use WraithWeb, :live_view
-  import WraithWeb.SiteComponents
+  alias WraithWeb.Themes
 
   alias Wraith.{Accounts, Content, Settings}
 
@@ -14,6 +14,7 @@ defmodule WraithWeb.Site.AuthorLive do
     {:ok,
      assign(socket,
        site: site,
+       theme: Themes.get(site["theme"]),
        author: author,
        posts: posts,
        authors: %{author["id"] => author},
@@ -25,17 +26,27 @@ defmodule WraithWeb.Site.AuthorLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.site flash={@flash} site={@site} current_user={@current_user}>
-      <section class="lead is-small">
-        <div class="author-avatar is-large">{String.first(@author["name"])}</div>
-        <h1 class="lead-title">{@author["name"]}</h1>
-        <p :if={@author["bio"] not in [nil, ""]} class="lead-desc">{@author["bio"]}</p>
-        <p class="lead-count">{length(@posts)} {if length(@posts) == 1, do: "post", else: "posts"}</p>
-      </section>
-      <section class="feed">
-        <.post_card :for={post <- @posts} post={post} authors={@authors} />
-      </section>
+    <Layouts.site flash={@flash} site={@site} theme={@theme} current_user={@current_user}>
+      <WraithWeb.SiteComponents.theme_page
+        theme={@theme}
+        page={:author}
+        assigns={page_assigns(assigns)}
+      />
     </Layouts.site>
     """
   end
+
+  # what the theme's template sees: everything but LiveView's own bookkeeping
+  defp page_assigns(assigns),
+    do:
+      Map.drop(assigns, [
+        :flash,
+        :theme,
+        :socket,
+        :__changed__,
+        :live_action,
+        :streams,
+        :uploads,
+        :myself
+      ])
 end

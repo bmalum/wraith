@@ -1,0 +1,9 @@
+<section class="lead is-small">
+  <div class="author-avatar is-large">{String.first(@author["name"])}</div>
+  <h1 class="lead-title">{@author["name"]}</h1>
+  <p :if={@author["bio"] not in [nil, ""]} class="lead-desc">{@author["bio"]}</p>
+  <p class="lead-count">{length(@posts)} {if length(@posts) == 1, do: "post", else: "posts"}</p>
+</section>
+<section class="feed">
+  <.post_card :for={post <- @posts} post={post} authors={@authors} />
+</section>

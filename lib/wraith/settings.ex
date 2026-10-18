@@ -75,6 +75,11 @@ defmodule Wraith.Settings do
           _ -> Map.put(acc, "posts_per_page", "must be between 1 and 100")
         end
 
+      {"theme", t}, acc ->
+        if t in Application.get_env(:wraith, :themes, [t]),
+          do: acc,
+          else: Map.put(acc, "theme", "is not an installed theme")
+
       {"accent", a}, acc when is_binary(a) ->
         if Regex.match?(~r/^#[0-9a-fA-F]{6}$/, a),
           do: acc,

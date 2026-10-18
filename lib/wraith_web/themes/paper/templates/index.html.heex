@@ -1,0 +1,21 @@
+<section :if={@page == 1} class="lead">
+  <h1 class="lead-title">{@site["title"]}</h1>
+  <p class="lead-desc">{@site["description"]}</p>
+</section>
+
+<div :if={@posts == []} class="empty">
+  <p>Nothing published yet.</p>
+  <p :if={@current_user}><.link navigate={~p"/admin/posts/new"}>Write the first post →</.link></p>
+</div>
+
+<section class="feed">
+  <%= for {post, i} <- Enum.with_index(@posts) do %>
+    <.post_card post={post} authors={@authors} featured={@page == 1 and i == 0} />
+  <% end %>
+</section>
+
+<.pager
+  page={@page}
+  has_next={@has_next}
+  path={fn n -> if n == 1, do: ~p"/", else: ~p"/page/#{n}" end}
+/>
