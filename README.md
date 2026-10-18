@@ -22,9 +22,14 @@ widgets and runs the site with you.
 |---|---|
 | Posts & pages: draft / scheduled / published, slugs, tags, co-authors, revisions, table of contents, related posts, syntax highlighting (Lumis), canonical + OG/Twitter meta, public / members / paid visibility | `Wraith.Content`, `Wraith.Markdown`, `Wraith.Settings`, `Wraith.Accounts` |
 | Images: upload from the editor (feature image, inline at the cursor), avatars; local disk or S3 | `Wraith.Uploads`, `Wraith.Uploads.{Local,S3}` |
-| Members: subscribe, magic-link sign-in, account page, newsletter on/off, tiered paywall; Stripe Checkout for paid, verified webhook | `Wraith.Members`, `Wraith.Billing`, `WraithWeb.MemberAuth` |
+| Members: double opt-in subscribe, magic-link sign-in, account page, newsletter on/off, self-deletion, CSV export/import, tiered paywall with a public preview above `<!--members-only-->`; Stripe Checkout + customer portal, verified webhook | `Wraith.Members`, `Wraith.Billing`, `WraithWeb.MemberAuth` |
 | Mail: welcome, sign-in link, password reset, **publish & send** newsletters with per-member unsubscribe (Local mailbox in dev, SES in prod) | `Wraith.Newsletter`, `Wraith.Mailer`, `Wraith.Tokens` |
-| Comments: members comment and reply (one level), live for everyone on the page, moderation in the admin | `Wraith.Comments`, `WraithWeb.Admin.CommentsLive` |
+| Comments: members comment and reply (one level), reply notifications by mail, live for everyone on the page, moderation in the admin | `Wraith.Comments`, `WraithWeb.Admin.CommentsLive` |
+| Staff roles: owner, admin, editor, author, contributor — enforced in every screen and the rail; staff management in Settings | `Wraith.Policy` |
+| Embeds: `{{embed url "caption"}}` → YouTube/Vimeo players, X link cards, Open Graph bookmark cards | `Wraith.Embed` |
+| Publishing: send-on-publish, scheduled unpublish, test mail, word count, bulk actions, per-tag/author RSS, JSON-LD, per-post noindex | `Wraith.Content`, `Wraith.Newsletter` |
+| Analytics (daily views and unique readers per post, top posts, member growth) and an audit log, on the dashboard | `Wraith.Analytics`, `Wraith.Audit` |
+| Security: encrypted secrets, rate limiting, session expiry, widget HTML sanitiser, `/health` — see Security notes | `Wraith.RateLimit`, `Wraith.Janitor`, `Wraith.Vault` |
 | Search: in-memory inverted index over published posts, `/search` as you type | `Wraith.Search` |
 | Author profiles: avatar, bio, socials, password change, reset by mail | `WraithWeb.Admin.{ProfileLive,ResetLive}` |
 | Redirects (exact and `/old/*`), navigation picker for pages | `WraithWeb.Redirects`, Settings |
@@ -115,9 +120,13 @@ end
 ```
 
 `meta.visitor` is a stable per-browser id (one vote per reader),
-`meta.presence` the readers on the page. Helpers: `wraith.action`,
-`wraith.escape`, `wraith.format`, `wraith.split`, `wraith.json`. The sandbox
-removes `os`/`io`/`require` and cuts a call off after 250 ms. Elixir widgets
+`meta.presence` the readers on the page, `meta.private` this reader's own
+table (return it as `handle`'s second value). Helpers: `wraith.action`,
+`wraith.escape`, `wraith.format`, `wraith.split`, `wraith.json`,
+`wraith.now`, and `wraith.fetch(url)` for hosts the owner allowlists in
+Settings (cached 60 s). `tick = 30` at the top re-renders every 30 s. The
+sandbox removes `os`/`io`/`require`, cuts a call off after 250 ms, caps the
+shared state at 64 KB and sanitises the HTML a widget emits. Elixir widgets
 implement `Wraith.Widgets.Widget` and are listed in `Wraith.Widgets.builtin_modules/0`.
 
 ## Themes
@@ -213,7 +222,7 @@ Uniqueness (slugs, emails) is a conditional put inside a transaction
 ## Tests
 
 ```sh
-mix test                                              # 100 tests, in-memory store, fake agent, test mailer
+mix test                                              # 111 tests, in-memory store, fake agent, test mailer
 WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test     # the same suite on DynamoDB Local
 WRAITH_TEST_POSTGRES=postgres://postgres:postgres@127.0.0.1:5434/wraith_test mix test   # … on PostgreSQL
 mix compile --warnings-as-errors
