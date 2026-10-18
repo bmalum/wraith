@@ -163,6 +163,7 @@ defmodule WraithWeb.Router do
     scope "/dev" do
       pipe_through :browser
       live_dashboard "/dashboard", metrics: WraithWeb.Telemetry
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 

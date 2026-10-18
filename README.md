@@ -20,7 +20,15 @@ widgets and runs the site with you.
 
 | Area | Where |
 |---|---|
-| Posts & pages (draft / scheduled / published, slugs, tags, authors, revisions, members-only) | `Wraith.Content`, `Wraith.Members`, `Wraith.Settings`, `Wraith.Accounts` |
+| Posts & pages: draft / scheduled / published, slugs, tags, co-authors, revisions, table of contents, related posts, syntax highlighting (Lumis), canonical + OG/Twitter meta, public / members / paid visibility | `Wraith.Content`, `Wraith.Markdown`, `Wraith.Settings`, `Wraith.Accounts` |
+| Images: upload from the editor (feature image, inline at the cursor), avatars; local disk or S3 | `Wraith.Uploads`, `Wraith.Uploads.{Local,S3}` |
+| Members: subscribe, magic-link sign-in, account page, newsletter on/off, tiered paywall; Stripe Checkout for paid, verified webhook | `Wraith.Members`, `Wraith.Billing`, `WraithWeb.MemberAuth` |
+| Mail: welcome, sign-in link, password reset, **publish & send** newsletters with per-member unsubscribe (Local mailbox in dev, SES in prod) | `Wraith.Newsletter`, `Wraith.Mailer`, `Wraith.Tokens` |
+| Comments: members comment and reply (one level), live for everyone on the page, moderation in the admin | `Wraith.Comments`, `WraithWeb.Admin.CommentsLive` |
+| Search: in-memory inverted index over published posts, `/search` as you type | `Wraith.Search` |
+| Author profiles: avatar, bio, socials, password change, reset by mail | `WraithWeb.Admin.{ProfileLive,ResetLive}` |
+| Redirects (exact and `/old/*`), navigation picker for pages | `WraithWeb.Redirects`, Settings |
+| JSON APIs in Ghost's shape: Content API (read, `?key=`), Admin API (Bearer key or session), Ghost-compatible export and **import of a Ghost site** | `WraithWeb.Api.*`, `Wraith.ApiKeys`, `Wraith.Ghost` |
 | Public site: feed, post, tag, author, subscribe, RSS / JSON Feed / sitemap | `WraithWeb.Site.*`, `WraithWeb.FeedController` |
 | Themes: `paper` (editorial) and `ink` (dark terminal), switchable in Settings | `WraithWeb.Theme`, `WraithWeb.Themes`, `lib/wraith_web/themes/*`, `priv/static/themes/*.css` |
 | Admin: setup, login, dashboard, Markdown editor with live preview (widgets live too), posts, tags, members, settings | `WraithWeb.Admin.*` |
@@ -62,6 +70,16 @@ WRAITH_STORE=dsql DSQL_ENDPOINT=<cluster>.dsql.eu-central-1.on.aws AWS_PROFILE=�
 DSQL authenticates with an IAM token minted per connection (`dsql:DbConnectAdmin`,
 `Wraith.Store.SQL.Token`); the index is created `ASYNC`, a `40001` commit conflict
 is retried. All env vars are listed in `.env.example`; `config/runtime.exs` reads them.
+
+### Coming from Ghost
+
+Export your site in Ghost (Settings → Labs → Export) and upload the JSON at
+`/admin/integrations` (or `POST /api/admin/db`). Posts (HTML bodies turned into
+Markdown), pages, tags, authors (random passwords, reset by mail) and members
+come across; existing slugs and emails are skipped. The Content API at
+`/api/content/*` answers in Ghost's JSON shape, so front-ends written against
+Ghost's Content API need a key swap and little else — widgets appear as
+`<div class="wraith-widget" data-widget=… data-props=…>` placeholders.
 
 ### Writing
 
@@ -167,7 +185,7 @@ Uniqueness (slugs, emails) is a conditional put inside a transaction
 ## Tests
 
 ```sh
-mix test                                              # 66 tests, in-memory store, fake agent
+mix test                                              # 86 tests, in-memory store, fake agent, test mailer
 WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test     # the same suite on DynamoDB Local
 WRAITH_TEST_POSTGRES=postgres://postgres:postgres@127.0.0.1:5434/wraith_test mix test   # … on PostgreSQL
 mix compile --warnings-as-errors
