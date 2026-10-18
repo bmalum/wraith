@@ -24,7 +24,7 @@ defmodule Wraith.Content do
   @statuses ~w(draft scheduled published)
   @types ~w(post page)
   @visibilities ~w(public members paid)
-  @fields ~w(type title slug markdown custom_excerpt status visibility featured tags author_id authors published_at feature_image feature_image_alt canonical_url og_image meta_title meta_description show_toc)
+  @fields ~w(type title slug markdown custom_excerpt status visibility featured tags author_id authors published_at feature_image feature_image_alt canonical_url og_image meta_title meta_description show_toc noindex unpublish_at send_on_publish)
   @max_revisions 30
 
   @topic "content"
@@ -280,15 +280,45 @@ defmodule Wraith.Content do
 
   def delete_post(id) when is_binary(id), do: if(p = get_post(id), do: delete_post(p), else: :ok)
 
-  @doc "Scheduled posts whose time has come are published. Returns how many."
+  @doc """
+  Scheduled posts whose time has come are published (and mailed when
+  `send_on_publish`); published posts past their `unpublish_at` go back to
+  draft. Returns how many changed.
+  """
   def publish_due do
     now = Store.now()
 
-    list_posts("scheduled", limit: 100).posts
-    |> Enum.filter(&(&1["published_at"] && &1["published_at"] <= now))
-    |> Enum.map(&update_post(&1, %{"status" => "published"}))
-    |> Enum.count(&match?({:ok, _}, &1))
+    published =
+      list_posts("scheduled", limit: 100).posts
+      |> Enum.filter(&(&1["published_at"] && &1["published_at"] <= now))
+      |> Enum.map(fn p ->
+        with {:ok, p} <- update_post(p, %{"status" => "published"}) do
+          if p["send_on_publish"], do: Wraith.Newsletter.send_post(p)
+          {:ok, p}
+        end
+      end)
+      |> Enum.count(&match?({:ok, _}, &1))
+
+    unpublished =
+      list_posts("published", limit: 500).posts
+      |> Enum.filter(&(&1["unpublish_at"] && &1["unpublish_at"] <= now))
+      |> Enum.map(&update_post(&1, %{"status" => "draft", "unpublish_at" => nil}))
+      |> Enum.count(&match?({:ok, _}, &1))
+
+    published + unpublished
   end
+
+  @doc "Publish now; when the post asks for it, mail it too."
+  def publish_and_send(post) do
+    with {:ok, p} <- publish_post(post) do
+      if p["send_on_publish"], do: Wraith.Newsletter.send_post(p)
+      {:ok, p}
+    end
+  end
+
+  @doc "Words in the body, for the editor."
+  def word_count(markdown),
+    do: markdown |> Wraith.Markdown.to_text() |> String.split(~r/\s+/, trim: true) |> length()
 
   # the one save path: validate, derive, write post + slug + memberships + revision atomically
   defp save(previous, post) do
@@ -388,6 +418,9 @@ defmodule Wraith.Content do
     |> Map.put("tags", tags)
     |> Map.put("authors", authors)
     |> Map.put("show_toc", post["show_toc"] in [true, "true", "on"])
+    |> Map.put("noindex", post["noindex"] in [true, "true", "on"])
+    |> Map.put("send_on_publish", post["send_on_publish"] in [true, "true", "on"])
+    |> Map.update("unpublish_at", nil, &if(&1 in [nil, ""], do: nil, else: &1))
     |> Map.put("featured", post["featured"] in [true, "true", "on"])
     |> Map.put("title", to_string(post["title"]))
     |> Map.put("markdown", to_string(post["markdown"]))
@@ -467,9 +500,12 @@ defmodule Wraith.Content do
     id |> revisions() |> Enum.drop(@max_revisions) |> Enum.each(&Store.delete(&1["pk"], &1["sk"]))
   end
 
+  # the excerpt never reveals what is behind the paywall marker
   defp auto_excerpt(markdown) do
-    markdown
-    |> to_string()
+    markdown = to_string(markdown)
+
+    (Wraith.Markdown.public_preview(markdown) || markdown)
+    |> String.replace(~r/<!--.*?-->/s, "")
     |> String.replace(~r/\{\{.*?\}\}/s, "")
     |> String.replace(~r/[#>*_`\[\]()!-]/, "")
     |> String.split(~r/\s+/, trim: true)

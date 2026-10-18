@@ -133,9 +133,22 @@ defmodule Wraith.Newsletter do
 
   def send_post(_post, _opts), do: {:error, :not_published}
 
+  @doc "Mail a post (any status) to one author as a test; nothing is recorded."
+  def send_test(post, %{"email" => email, "name" => name}) do
+    site = Settings.get()
+
+    mail(email, name, "[Test] " <> to_string(post["title"]), """
+    <p style="color:#777;font-size:.9em">#{esc(site["title"])} · test send</p>
+    <h1 style="font-size:1.8em;line-height:1.15;margin:.2em 0 .6em">#{esc(post["title"])}</h1>
+    #{body_html(post)}
+    """)
+    |> deliver()
+  end
+
   # widgets cannot live in mail: a pointer to the page instead
   defp body_html(post) do
     post["markdown"]
+    |> Markdown.strip_paywall()
     |> Markdown.segments(post["id"])
     |> Enum.map_join("\n", fn
       {:html, html} ->

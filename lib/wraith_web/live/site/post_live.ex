@@ -44,6 +44,8 @@ defmodule WraithWeb.Site.PostLive do
                do: Content.related(post),
                else: []
              ),
+           noindex: post["noindex"] == true,
+           json_ld: json_ld(post, author, url),
            meta: %{
              type: "article",
              title: post["meta_title"] || post["title"],
@@ -64,8 +66,41 @@ defmodule WraithWeb.Site.PostLive do
              not (socket.assigns.current_user != nil or
                     Wraith.Members.can_read?(socket.assigns[:current_member], post["visibility"]))
          )
-         |> mount_widgets(post["markdown"], post["id"], post)}
+         |> then(fn socket ->
+           body =
+             if socket.assigns.locked,
+               do: Markdown.public_preview(post["markdown"]) || "",
+               else: Markdown.strip_paywall(post["markdown"])
+
+           mount_widgets(socket, body, post["id"], post)
+         end)}
     end
+  end
+
+  defp json_ld(post, author, url) do
+    %{
+      "@context" => "https://schema.org",
+      "@type" => if(post["type"] == "page", do: "WebPage", else: "BlogPosting"),
+      "headline" => post["title"],
+      "description" => post["meta_description"] || post["custom_excerpt"] || post["excerpt"],
+      "url" => url,
+      "datePublished" => post["published_at"],
+      "dateModified" => post["updated_at"],
+      "image" => post["og_image"] || post["feature_image"],
+      "keywords" => Enum.join(post["tags"] || [], ", "),
+      "author" =>
+        author &&
+          %{
+            "@type" => "Person",
+            "name" => author["name"],
+            "url" => url(~p"/author/#{author["slug"]}")
+          },
+      "publisher" => %{"@type" => "Organization", "name" => Settings.get()["title"]},
+      "isAccessibleForFree" => post["visibility"] == "public"
+    }
+    |> Enum.reject(fn {_, v} -> is_nil(v) or v == "" end)
+    |> Map.new()
+    |> Jason.encode!()
   end
 
   # a signed-in author may read a draft at its URL

@@ -167,13 +167,39 @@ defmodule WraithWeb.SiteTest do
       assert html =~ "0 results"
     end
 
-    test "rss, json feed, sitemap", %{conn: conn, post: post} do
+    test "post page carries json-ld, and noindex when asked", %{
+      conn: conn,
+      post: post,
+      owner: owner
+    } do
+      {:ok, _, html} = live(conn, ~p"/#{post["slug"]}")
+      assert html =~ ~s(type="application/ld+json")
+      assert html =~ "BlogPosting" and html =~ "Hello World"
+      refute html =~ ~s(name="robots" content="noindex")
+      {:ok, _} = Wraith.Content.update_post(post, %{noindex: true})
+      {:ok, _, html} = live(conn, ~p"/#{post["slug"]}")
+      assert html =~ ~s(name="robots" content="noindex")
+      _ = owner
+    end
+
+    test "rss, json feed, sitemap", %{conn: conn, post: post, owner: owner} do
+      other = post_fixture(owner, %{title: "Other topic", tags: "misc"})
+      body = conn |> get(~p"/tag/news/rss") |> response(200)
+      assert body =~ "Hello World" and body =~ "· News" and not (body =~ "Other topic")
+      body = conn |> get(~p"/author/#{owner["slug"]}/rss") |> response(200)
+      assert body =~ "Hello World" and body =~ "Other topic"
+      _ = other
       body = conn |> get(~p"/rss") |> response(200)
       assert body =~ "<rss"
       assert body =~ "Hello World"
       assert body =~ "Interactive counter"
       body = conn |> get(~p"/feed.json") |> response(200)
-      assert Jason.decode!(body)["items"] |> hd() |> Map.get("title") == "Hello World"
+
+      assert Jason.decode!(body)["items"] |> Enum.map(& &1["title"]) |> Enum.sort() == [
+               "Hello World",
+               "Other topic"
+             ]
+
       body = conn |> get(~p"/sitemap.xml") |> response(200)
       assert body =~ post["slug"]
     end

@@ -32,6 +32,12 @@
       <meta :if={@meta[:description]} name="twitter:description" content={@meta[:description]} />
       <meta :if={@meta[:image]} name="twitter:image" content={@meta[:image]} />
     <% end %>
+    <meta :if={assigns[:noindex]} name="robots" content="noindex" />
+    <%= if assigns[:json_ld] do %>
+      <script type="application/ld+json">
+        <%= Phoenix.HTML.raw(@json_ld) %>
+      </script>
+    <% end %>
     <link rel="alternate" type="application/rss+xml" title="RSS" href={~p"/rss"} />
     <link rel="alternate" type="application/feed+json" title="JSON Feed" href={~p"/feed.json"} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

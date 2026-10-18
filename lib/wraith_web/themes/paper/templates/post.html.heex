@@ -19,6 +19,7 @@
     <img src={@post["feature_image"]} alt="" />
   </figure>
 
+  <.body :if={@locked and @segments != []} segments={@segments} widgets={@widgets} />
   <div :if={@locked} class="paywall">
     <h3>
       {if @post["visibility"] == "paid",

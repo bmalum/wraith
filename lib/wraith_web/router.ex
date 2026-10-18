@@ -128,6 +128,8 @@ defmodule WraithWeb.Router do
   scope "/", WraithWeb do
     pipe_through :feed
     get "/rss", FeedController, :rss
+    get "/tag/:tag/rss", FeedController, :rss
+    get "/author/:author/rss", FeedController, :rss
     get "/feed.json", FeedController, :json
     get "/sitemap.xml", FeedController, :sitemap
   end

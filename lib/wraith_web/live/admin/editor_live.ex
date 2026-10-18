@@ -102,8 +102,14 @@ defmodule WraithWeb.Admin.EditorLive do
     {:noreply, save(socket, attrs)}
   end
 
+  def handle_event("test-send", _params, socket) do
+    me = socket.assigns.current_user
+    Wraith.Newsletter.send_test(socket.assigns.post, me)
+    {:noreply, put_flash(socket, :info, "Test mail sent to #{me["email"]}.")}
+  end
+
   def handle_event("publish", _params, socket) do
-    case Content.publish_post(socket.assigns.post) do
+    case Content.publish_and_send(socket.assigns.post) do
       {:ok, post} -> {:noreply, socket |> assign(post: post) |> put_flash(:info, "Published.")}
       {:error, errors} -> {:noreply, assign(socket, errors: errors)}
     end
@@ -169,6 +175,15 @@ defmodule WraithWeb.Admin.EditorLive do
     do: {:noreply, widget_info(socket, msg)}
 
   defp save(socket, attrs) do
+    attrs =
+      case attrs do
+        %{"unpublish_at" => v} when is_binary(v) and v != "" and byte_size(v) == 16 ->
+          Map.put(attrs, "unpublish_at", v <> ":00Z")
+
+        _ ->
+          attrs
+      end
+
     case Content.update_post(socket.assigns.post, attrs) do
       {:ok, post} ->
         socket
@@ -218,6 +233,8 @@ defmodule WraithWeb.Admin.EditorLive do
           <span class="editor-status">
             <span class={["status-pill", "is-" <> @post["status"]]}>{@post["status"]}</span>
             <span :if={@saved_at} class="editor-saved">Saved</span>
+            <span class="row-sub">{Content.word_count(@markdown)} words</span>
+            <span class="row-sub">{Content.word_count(@markdown)} words</span>
             <span :if={@errors["slug"]} class="editor-err">slug {@errors["slug"]}</span>
           </span>
           <div class="editor-actions">
@@ -244,6 +261,11 @@ defmodule WraithWeb.Admin.EditorLive do
               disabled={@title == ""}
             >Publish</button>
             <button :if={@post["status"] == "published"} phx-click="unpublish" class="btn-ghost">Unpublish</button>
+            <button
+              phx-click="test-send"
+              class="btn-ghost"
+              title="Mail this post to yourself as a test"
+            ><.icon name="hero-paper-airplane" class="size-4" /> Test mail</button>
             <button
               :if={@post["status"] == "published" and is_nil(@sent)}
               phx-click="send-newsletter"
@@ -279,6 +301,20 @@ defmodule WraithWeb.Admin.EditorLive do
             >{@markdown}</textarea>
 
             <div class="editor-palette">
+              <button
+                type="button"
+                phx-click="insert"
+                phx-value-snippet="<!--members-only-->"
+                class="chip"
+                title="Everything below this line is for members only; above it is the public preview"
+              ><.icon name="hero-lock-closed" class="size-3" /> Paywall</button>
+              <button
+                type="button"
+                phx-click="insert"
+                phx-value-snippet="<!--members-only-->"
+                class="chip"
+                title="Everything below this line is for members only; above it is the public preview"
+              ><.icon name="hero-lock-closed" class="size-3" /> Paywall</button>
               <span class="editor-palette-label"><.icon name="hero-cube" class="size-3" /> Widgets</span>
               <button
                 :for={w <- @widget_defs}
@@ -394,13 +430,66 @@ defmodule WraithWeb.Admin.EditorLive do
                 type="select"
                 value={@post["visibility"]}
                 label="Visibility"
-                options={[{"Public", "public"}, {"Members only", "members"}]}
+                options={[
+                  {"Public", "public"},
+                  {"Members only", "members"},
+                  {"Paid members only", "paid"}
+                ]}
               />
               <.input
                 name="post[featured]"
                 type="checkbox"
                 checked={@post["featured"]}
                 label="Featured"
+              />
+              <.input
+                name="post[feature_image_alt]"
+                value={@post["feature_image_alt"]}
+                label="Feature image alt text"
+              />
+              <.input
+                name="post[authors]"
+                type="select"
+                multiple
+                value={@post["authors"] || []}
+                label="Authors"
+                options={Enum.map(@all_authors, &{&1["name"], &1["id"]})}
+              />
+              <.input
+                name="post[show_toc]"
+                type="checkbox"
+                checked={@post["show_toc"]}
+                label="Show table of contents"
+              />
+              <.input
+                name="post[send_on_publish]"
+                type="checkbox"
+                checked={@post["send_on_publish"]}
+                label="Email to members when published"
+              />
+              <.input
+                name="post[noindex]"
+                type="checkbox"
+                checked={@post["noindex"]}
+                label="Hide from search engines (noindex)"
+              />
+              <.input
+                name="post[unpublish_at]"
+                type="datetime-local"
+                value={local(@post["unpublish_at"])}
+                label="Unpublish at (UTC)"
+              />
+              <.input
+                name="post[canonical_url]"
+                value={@post["canonical_url"]}
+                label="Canonical URL"
+                placeholder="If first published elsewhere"
+              />
+              <.input
+                name="post[og_image]"
+                value={@post["og_image"]}
+                label="Social image URL"
+                placeholder="Defaults to the feature image"
               />
               <.input name="post[meta_title]" value={@post["meta_title"]} label="Meta title" />
               <.input

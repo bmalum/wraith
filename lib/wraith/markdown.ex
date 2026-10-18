@@ -74,6 +74,25 @@ defmodule Wraith.Markdown do
 
   def toc(_), do: []
 
+  @paywall ~r/^[ \t]*<!--\s*members-only\s*-->[ \t]*$/m
+
+  @doc """
+  The free part of a body: everything above `<!--members-only-->` (Ghost's
+  public preview), or `nil` when there is no marker.
+  """
+  def public_preview(markdown) when is_binary(markdown) do
+    case Regex.split(@paywall, markdown, parts: 2) do
+      [free, _rest] -> free
+      _ -> nil
+    end
+  end
+
+  def public_preview(_), do: nil
+
+  @doc "The body without the paywall marker (what a reader with access sees)."
+  def strip_paywall(markdown) when is_binary(markdown), do: String.replace(markdown, @paywall, "")
+  def strip_paywall(other), do: other
+
   @doc "Split a post body into HTML and widget segments; `scope` seeds unnamed instance ids."
   @spec segments(String.t(), String.t()) :: [segment()]
   def segments(markdown, scope \\ "page") when is_binary(markdown) do

@@ -3,9 +3,30 @@ defmodule WraithWeb.FeedController do
 
   alias Wraith.{Accounts, Content, Markdown, Settings}
 
-  def rss(conn, _params) do
+  def rss(conn, params) do
     site = Settings.get()
-    posts = Content.list_posts("published", limit: 20, type: "post").posts
+
+    {posts, title} =
+      cond do
+        tag = params["tag"] ->
+          t = Content.get_tag(tag) || %{"name" => tag}
+          {Content.posts_tagged(tag, limit: 20).posts, "#{site["title"]} · #{t["name"]}"}
+
+        slug = params["author"] ->
+          case Accounts.get_user_by_slug(slug) do
+            nil ->
+              {[], site["title"]}
+
+            u ->
+              {Content.posts_by_author(u["id"], limit: 20).posts,
+               "#{site["title"]} · #{u["name"]}"}
+          end
+
+        true ->
+          {Content.list_posts("published", limit: 20, type: "post").posts, site["title"]}
+      end
+
+    site = Map.put(site, "title", title)
     authors = Accounts.list_users() |> Map.new(&{&1["id"], &1})
     base = url(~p"/")
 

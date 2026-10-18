@@ -267,4 +267,45 @@ defmodule WraithWeb.MembersTest do
     assert Wraith.Comments.for_post(post["id"]) |> hd() |> Map.get(:replies) == []
     refute render(anon) =~ "Second."
   end
+
+  test "public preview above the paywall; members see everything", %{conn: conn, owner: owner} do
+    post =
+      post_fixture(owner, %{
+        title: "Teaser",
+        visibility: "members",
+        markdown: "Free intro.\n\n<!--members-only-->\n\nThe secret part."
+      })
+
+    {:ok, _, html} = live(conn, ~p"/#{post["slug"]}")
+    assert html =~ "Free intro." and html =~ "for members"
+    refute html =~ "The secret part."
+    {:ok, m} = Members.create(%{email: "p@x.io"})
+    {:ok, _, html} = live(log_in_member(conn, m), ~p"/#{post["slug"]}")
+    assert html =~ "Free intro." and html =~ "The secret part."
+    refute html =~ "members-only", "the marker never renders"
+  end
+
+  test "send-on-publish, scheduled unpublish, test mail, word count", %{owner: owner} do
+    {:ok, _} = Members.create(%{email: "s@x.io"})
+
+    {:ok, p} =
+      Content.create_post(%{
+        title: "Auto",
+        markdown: "one two three",
+        author_id: owner["id"],
+        send_on_publish: true,
+        unpublish_at: "2000-01-01T00:00:00Z"
+      })
+
+    assert Content.word_count(p["markdown"]) == 3
+    {:ok, p} = Content.publish_and_send(p)
+    assert p["status"] == "published"
+    assert_email_sent(subject: "Auto")
+    # the clock pulls it back because unpublish_at has passed
+    assert Content.publish_due() == 1
+    assert Content.get_post(p["id"])["status"] == "draft"
+
+    Newsletter.send_test(p, owner)
+    assert_email_sent(subject: "[Test] Auto", to: {owner["name"], owner["email"]})
+  end
 end
