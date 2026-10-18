@@ -7,7 +7,7 @@ defmodule Wraith.Accounts do
   A user is a plain map: `id`, `email`, `name`, `slug`, `role`
   (`"owner" | "author"`), `bio`, `password_hash`.
   """
-  alias Wraith.Store
+  alias Wraith.{Slug, Store}
   alias Wraith.Store.Keys
 
   @session_days 60
@@ -74,7 +74,7 @@ defmodule Wraith.Accounts do
         "id" => id,
         "email" => email,
         "name" => name,
-        "slug" => Wraith.Slug.slugify(name),
+        "slug" => Slug.slugify(name),
         "role" => attrs["role"] || "author",
         "bio" => attrs["bio"] || "",
         "password_hash" => Bcrypt.hash_pwd_salt(password)
@@ -103,11 +103,62 @@ defmodule Wraith.Accounts do
     end
   end
 
+  @doc "Name, bio, avatar URL, website and social handles."
   def update_profile(%{"id" => id}, attrs) do
-    attrs = stringify(attrs) |> Map.take(~w(name bio))
+    attrs =
+      stringify(attrs) |> Map.take(~w(name bio avatar website twitter github mastodon location))
+
     {pk, sk} = Keys.user(id)
-    Store.update(pk, sk, &Map.merge(&1, attrs))
+
+    Store.update(pk, sk, fn u ->
+      u = Map.merge(u, attrs)
+      if attrs["name"] in [nil, ""], do: u, else: Map.put(u, "slug", Slug.slugify(attrs["name"]))
+    end)
   end
+
+  @doc "Change the password: the current one must match, the new one must be long enough."
+  def change_password(%{"id" => id} = user, current, new) do
+    cond do
+      not Bcrypt.verify_pass(to_string(current), user["password_hash"]) ->
+        {:error, %{"current_password" => "is wrong"}}
+
+      String.length(to_string(new)) < 10 ->
+        {:error, %{"password" => "must be at least 10 characters"}}
+
+      true ->
+        {pk, sk} = Keys.user(id)
+        Store.update(pk, sk, &Map.put(&1, "password_hash", Bcrypt.hash_pwd_salt(new)))
+    end
+  end
+
+  @doc "Set a new password from a reset link (`Wraith.Tokens` `:password_reset`)."
+  def reset_password(token, new) do
+    with {:ok, id} <- Wraith.Tokens.verify(:password_reset, token),
+         %{} = user <- get_user(id) || {:error, :invalid},
+         true <-
+           String.length(to_string(new)) >= 10 ||
+             {:error, %{"password" => "must be at least 10 characters"}} do
+      {pk, sk} = Keys.user(user["id"])
+      Store.update(pk, sk, &Map.put(&1, "password_hash", Bcrypt.hash_pwd_salt(new)))
+    else
+      {:error, %{} = errors} -> {:error, errors}
+      {:error, :expired} -> {:error, %{"token" => "has expired"}}
+      _ -> {:error, %{"token" => "is not valid"}}
+    end
+  end
+
+  @doc "Mail a reset link if the address belongs to an author. Always :ok (no enumeration)."
+  def request_password_reset(email) do
+    case get_user_by_email(to_string(email)) do
+      %{} = user -> Wraith.Newsletter.send_password_reset(user)
+      nil -> :ok
+    end
+
+    :ok
+  end
+
+  @social ~w(website twitter github mastodon)
+  def social_fields, do: @social
 
   # ---- passwords & sessions -----------------------------------------------------
 

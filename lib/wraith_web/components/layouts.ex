@@ -64,7 +64,11 @@ defmodule WraithWeb.Layouts do
           <.rail_link to={~p"/admin/settings"} icon="hero-cog-6-tooth" active={@active == :settings}>Settings</.rail_link>
         </nav>
         <div class="admin-rail-foot">
-          <span class="admin-user" title={@current_user["email"]}>{@current_user["name"]}</span>
+          <.link
+            navigate={~p"/admin/profile"}
+            class={["admin-user", @active == :profile && "is-active"]}
+            title="Your profile"
+          >{@current_user["name"]}</.link>
           <a href={~p"/admin/logout"} class="admin-signout" title="Sign out">
             <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" />
           </a>

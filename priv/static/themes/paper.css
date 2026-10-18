@@ -110,3 +110,5 @@
 .search-hit h2 { font-family: var(--serif); font-weight: 500; font-size: 1.35rem; margin: 0 0 .35rem; }
 .search-hit h2 a { text-decoration: none; }
 .search-hit p { margin: 0 0 .5rem; color: var(--ink-2); line-height: 1.5; }
+.author-links { display: flex; gap: 1rem; flex-wrap: wrap; color: var(--ink-3); font-size: .9rem; margin: .75rem 0 0; }
+.author-links a { color: var(--ink-2); }

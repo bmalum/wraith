@@ -70,6 +70,8 @@ defmodule WraithWeb.Router do
     live_session :auth, on_mount: [{WraithWeb.UserAuth, :mount_current_user}] do
       live "/setup", SetupLive, :new
       live "/login", LoginLive, :new
+      live "/forgot", ResetLive, :forgot
+      live "/reset/:token", ResetLive, :reset
     end
 
     post "/login", SessionController, :create
@@ -101,6 +103,7 @@ defmodule WraithWeb.Router do
       live "/widgets/:slug", WidgetEditorLive, :edit
       live "/studio", StudioLive, :index
       live "/settings", SettingsLive, :index
+      live "/profile", ProfileLive, :index
     end
   end
 

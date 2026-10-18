@@ -31,7 +31,9 @@ defmodule WraithWeb.Admin.LoginLive do
         />
         <button type="submit" class="btn-accent is-wide">Sign in</button>
       </.form>
-      <p class="plain-foot"><a href="/">← Back to the site</a></p>
+      <p class="plain-foot">
+        <a href={~p"/admin/forgot"}>Forgot your password?</a> · <a href="/">Back to the site</a>
+      </p>
     </Layouts.plain>
     """
   end

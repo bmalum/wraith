@@ -207,6 +207,85 @@ defmodule WraithWeb.AdminTest do
     assert Wraith.Widgets.get("tenner")["rev"] == 1
   end
 
+  test "profile: avatar, socials, password change", %{conn: conn, owner: owner} do
+    File.rm_rf!(Wraith.Uploads.Local.root())
+    {:ok, view, _} = live(conn, ~p"/admin/profile")
+
+    view
+    |> form("#profile-form",
+      user: %{
+        name: "Ada L.",
+        bio: "Engines.",
+        website: "https://ada.example",
+        twitter: "@ada",
+        github: "ada",
+        mastodon: "",
+        location: "London"
+      }
+    )
+    |> render_submit()
+
+    u = Wraith.Accounts.get_user(owner["id"])
+    assert u["twitter"] == "@ada" and u["slug"] == "ada-l"
+
+    av =
+      file_input(view, "#avatar-form", :avatar, [
+        %{name: "me.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+      ])
+
+    render_upload(av, "me.png")
+    assert "/uploads/" <> _ = Wraith.Accounts.get_user(owner["id"])["avatar"]
+
+    {:ok, _, html} = live(build_conn(), ~p"/author/ada-l")
+
+    assert html =~ "https://x.com/ada" and html =~ "London" and
+             html =~ ~s(class="author-avatar is-large is-img")
+
+    view
+    |> form("#password-form", %{current_password: "wrong", password: "a brand new password"})
+    |> render_submit()
+
+    assert render(view) =~ "is wrong"
+
+    view
+    |> form("#password-form", %{
+      current_password: "a very long password",
+      password: "a brand new password"
+    })
+    |> render_submit()
+
+    assert {:ok, _} = Wraith.Accounts.authenticate(owner["email"], "a brand new password")
+  end
+
+  test "password reset by mail", %{owner: owner} do
+    import Swoosh.TestAssertions
+    set_swoosh_global()
+    {:ok, view, _} = live(build_conn(), ~p"/admin/forgot")
+    view |> form("#forgot-form", user: %{email: owner["email"]}) |> render_submit()
+    assert render(view) =~ "reset link is on its way"
+
+    assert_email_sent(fn email ->
+      assert email.subject =~ "Reset your"
+      [_, token] = Regex.run(~r{/admin/reset/([\w\-\.]+)}, email.html_body)
+      {:ok, v, _} = live(build_conn(), ~p"/admin/reset/#{token}")
+      v |> form("#reset-form", user: %{password: "short"}) |> render_submit()
+      assert render(v) =~ "at least 10"
+      v |> form("#reset-form", user: %{password: "reset to this one"}) |> render_submit()
+      assert render(v) =~ "Done."
+      assert {:ok, _} = Wraith.Accounts.authenticate(owner["email"], "reset to this one")
+      true
+    end)
+
+    {:ok, v, _} = live(build_conn(), ~p"/admin/reset/not-a-token")
+    v |> form("#reset-form", user: %{password: "reset to this one"}) |> render_submit()
+    assert render(v) =~ "is not valid"
+
+    # unknown address: same answer, no mail
+    {:ok, view, _} = live(build_conn(), ~p"/admin/forgot")
+    view |> form("#forgot-form", user: %{email: "nobody@x.io"}) |> render_submit()
+    refute_email_sent()
+  end
+
   test "studio: key, wake, prompt, tool calls stream into the console", %{conn: conn} do
     :ok = Wraith.Studio.shutdown()
     {:ok, view, html} = live(conn, ~p"/admin/studio")

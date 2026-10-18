@@ -206,7 +206,10 @@ a { color: inherit; }
 .rail-link:hover { background: oklch(26% 0.014 60); color: white; }
 .rail-link.is-active { background: oklch(30% 0.02 60); color: white; }
 .admin-rail-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .5rem .6rem; border-top: 1px solid oklch(28% 0.014 60); font-size: .85rem; }
-.admin-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; text-decoration: none; }
+.admin-user:hover, .admin-user.is-active { color: white; }
+.avatar-row { display: flex; align-items: center; gap: 1rem; }
+.panel-form.is-flush { padding: 0; }
 .admin-signout { color: oklch(65% 0.01 60); display: inline-flex; }
 .admin-signout:hover { color: white; }
 
