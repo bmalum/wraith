@@ -65,6 +65,40 @@ defmodule WraithWeb.AdminTest do
     assert post["slug"] == "custom-slug"
   end
 
+  test "editor: feature image and inline image uploads", %{conn: conn, owner: owner} do
+    File.rm_rf!(Wraith.Uploads.Local.root())
+    {:ok, p} = Wraith.Content.create_post(%{title: "Pics", author_id: owner["id"]})
+    {:ok, view, _} = live(conn, ~p"/admin/posts/#{p["id"]}")
+    view |> element("button", "Settings") |> render_click()
+
+    feature =
+      file_input(view, "#feature-upload-form", :feature, [
+        %{name: "cover.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+      ])
+
+    render_upload(feature, "cover.png")
+    post = Wraith.Content.get_post(p["id"])
+    assert "/uploads/" <> _ = post["feature_image"]
+    assert post["feature_image"] =~ "cover-"
+    assert render(view) =~ ~s(src="#{post["feature_image"]}")
+
+    inline =
+      file_input(view, "#inline-upload-form", :inline, [
+        %{name: "diagram.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+      ])
+
+    render_upload(inline, "diagram.png")
+    assert_push_event(view, "editor:insert", %{text: text})
+    assert text =~ ~r"!\[diagram\]\(/uploads/\d{4}/\d{2}/diagram-[0-9a-f]+\.png\)"
+
+    bad =
+      file_input(view, "#inline-upload-form", :inline, [
+        %{name: "x.exe", content: "x", type: "application/octet-stream"}
+      ])
+
+    assert {:error, [[_, :not_accepted]]} = render_upload(bad, "x.exe")
+  end
+
   test "editor: schedule", %{conn: conn, owner: owner} do
     {:ok, p} = Wraith.Content.create_post(%{title: "Later", author_id: owner["id"]})
     {:ok, view, _} = live(conn, ~p"/admin/posts/#{p["id"]}")

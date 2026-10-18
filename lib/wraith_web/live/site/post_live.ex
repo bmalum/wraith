@@ -29,9 +29,14 @@ defmodule WraithWeb.Site.PostLive do
            post: post,
            author: author && Accounts.public(author),
            authors: authors,
-           co_authors: (post["authors"] || []) |> Enum.map(&authors[&1]) |> Enum.reject(&is_nil/1),
+           co_authors:
+             (post["authors"] || []) |> Enum.map(&authors[&1]) |> Enum.reject(&is_nil/1),
            toc: if(post["show_toc"], do: Markdown.toc(post["markdown"]), else: []),
-           related: if(post["status"] == "published" and post["type"] == "post", do: Content.related(post), else: []),
+           related:
+             if(post["status"] == "published" and post["type"] == "post",
+               do: Content.related(post),
+               else: []
+             ),
            meta: %{
              type: "article",
              title: post["meta_title"] || post["title"],

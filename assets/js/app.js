@@ -33,6 +33,14 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const Editor = {
   mounted() {
     const area = this.el.querySelector("textarea")
+    this.handleEvent("editor:insert", ({text}) => {
+      if (!area) return
+      const s = area.selectionStart ?? area.value.length, e = area.selectionEnd ?? s
+      area.value = area.value.slice(0, s) + text + area.value.slice(e)
+      area.selectionStart = area.selectionEnd = s + text.length
+      area.dispatchEvent(new Event("input", {bubbles: true}))
+      area.focus()
+    })
     this.handleEvent("editor:set", ({markdown, source}) => {
       if (!area) return
       area.value = markdown ?? source ?? area.value

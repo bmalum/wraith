@@ -46,7 +46,11 @@ defmodule Wraith.Markdown do
   # `class`/`data-line`/`translate`/`tabindex` on pre/code/span, heading ids
   defp sanitize_options do
     MDEx.Document.default_sanitize_options()
-    |> Keyword.update(:generic_attributes, ["id", "class", "style", "translate", "tabindex", "data-line"], &Enum.uniq(&1 ++ ["id", "class", "style", "translate", "tabindex", "data-line"]))
+    |> Keyword.update(
+      :generic_attributes,
+      ["id", "class", "style", "translate", "tabindex", "data-line"],
+      &Enum.uniq(&1 ++ ["id", "class", "style", "translate", "tabindex", "data-line"])
+    )
   end
 
   @doc "The headings (h2/h3) of a body as `[%{id, level, text}]` — the table of contents."

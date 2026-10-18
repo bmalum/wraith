@@ -38,3 +38,7 @@ npm-debug.log
 
 # local env
 .env
+
+# uploaded files (dev)
+/priv/uploads/
+/tmp/

@@ -160,8 +160,17 @@ defmodule Wraith.ContentTest do
   end
 
   test "co-authors, related posts, toc, highlighting", %{owner: o} do
-    {:ok, co} = Accounts.create_user(%{email: "c@x.io", name: "Co Author", password: "another long pw"})
-    p = draft(o, %{authors: [co["id"]], tags: "a, b", markdown: "## One\n\ntext\n\n### Two\n\n```elixir\ndef x, do: 1\n```\n\n{{widget counter}}\n\n## Three"})
+    {:ok, co} =
+      Accounts.create_user(%{email: "c@x.io", name: "Co Author", password: "another long pw"})
+
+    p =
+      draft(o, %{
+        authors: [co["id"]],
+        tags: "a, b",
+        markdown:
+          "## One\n\ntext\n\n### Two\n\n```elixir\ndef x, do: 1\n```\n\n{{widget counter}}\n\n## Three"
+      })
+
     assert p["authors"] == [o["id"], co["id"]]
     {:ok, p} = Content.publish_post(p)
     assert [%{"id" => id}] = Content.posts_by_author(co["id"]).posts

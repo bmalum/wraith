@@ -19,6 +19,8 @@ defmodule WraithWeb do
 
   def static_paths, do: ~w(assets themes fonts images favicon.ico robots.txt)
 
+  # uploads are outside priv/static (their own volume); Plug.Static for them is in the endpoint
+
   def router do
     quote do
       use Phoenix.Router, helpers: false

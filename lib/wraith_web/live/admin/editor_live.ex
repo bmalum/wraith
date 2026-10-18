@@ -9,7 +9,7 @@ defmodule WraithWeb.Admin.EditorLive do
   import WraithWeb.WidgetHost
   import WraithWeb.SiteComponents, only: [body: 1]
 
-  alias Wraith.{Content, Markdown, Widgets}
+  alias Wraith.{Content, Markdown, Uploads, Widgets}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -29,8 +29,46 @@ defmodule WraithWeb.Admin.EditorLive do
         page_title: if(post["title"] == "", do: "New " <> post["type"], else: post["title"])
       )
       |> mount_widgets(post["markdown"], post["id"], post)
+      |> allow_upload(:feature,
+        accept: Uploads.accepted_extensions(),
+        max_entries: 1,
+        max_file_size: Uploads.max_bytes(),
+        auto_upload: true,
+        progress: &handle_progress/3
+      )
+      |> allow_upload(:inline,
+        accept: Uploads.accepted_extensions(),
+        max_entries: 5,
+        max_file_size: Uploads.max_bytes(),
+        auto_upload: true,
+        progress: &handle_progress/3
+      )
 
     {:ok, socket}
+  end
+
+  # auto_upload: as soon as an entry is fully in, store it and use the URL
+  defp handle_progress(kind, entry, socket) do
+    if entry.done? do
+      result =
+        consume_uploaded_entry(socket, entry, fn %{path: path} ->
+          {:ok, Uploads.store_file(path, entry.client_type, name: entry.client_name)}
+        end)
+
+      case {kind, result} do
+        {_, {:error, why}} ->
+          {:noreply, put_flash(socket, :error, "Upload failed: " <> why)}
+
+        {:feature, {:ok, url}} ->
+          {:noreply, save(socket, %{"feature_image" => url})}
+
+        {:inline, {:ok, url}} ->
+          alt = entry.client_name |> Path.rootname() |> String.replace(~r/[-_]+/, " ")
+          {:noreply, push_event(socket, "editor:insert", %{text: "\n![#{alt}](#{url})\n"})}
+      end
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -53,6 +91,11 @@ defmodule WraithWeb.Admin.EditorLive do
   end
 
   def handle_event("drawer", _params, socket), do: {:noreply, update(socket, :drawer, &(not &1))}
+
+  def handle_event("validate-upload", _params, socket), do: {:noreply, socket}
+
+  def handle_event("clear-feature", _params, socket),
+    do: {:noreply, save(socket, %{"feature_image" => nil})}
 
   def handle_event("meta", %{"post" => attrs}, socket) do
     {:noreply, save(socket, attrs)}
@@ -219,6 +262,23 @@ defmodule WraithWeb.Admin.EditorLive do
               >{w["name"]}</button>
             </div>
           </form>
+          <form
+            phx-change="validate-upload"
+            phx-submit="validate-upload"
+            id="inline-upload-form"
+            class="editor-upload"
+            phx-drop-target={@uploads.inline.ref}
+          >
+            <label
+              class="chip editor-upload-label"
+              title="Insert an image at the cursor (or drop one on the text)"
+            >
+              <.icon name="hero-photo" class="size-3" /> Image
+              <.live_file_input upload={@uploads.inline} class="sr-only" />
+            </label>
+            <span :for={e <- @uploads.inline.entries} class="row-sub">{e.client_name} {e.progress}%</span>
+            <span :for={{_ref, err} <- @uploads.inline.errors} class="editor-err">{upload_error(err)}</span>
+          </form>
 
           <section class="editor-preview" aria-label="Preview">
             <article class="post is-preview">
@@ -241,6 +301,36 @@ defmodule WraithWeb.Admin.EditorLive do
           </section>
 
           <aside :if={@drawer} class="editor-drawer">
+            <div class="drawer-feature">
+              <span class="drawer-label">Feature image</span>
+              <img
+                :if={@post["feature_image"]}
+                src={@post["feature_image"]}
+                alt=""
+                class="drawer-feature-img"
+              />
+              <form
+                phx-change="validate-upload"
+                phx-submit="validate-upload"
+                id="feature-upload-form"
+                phx-drop-target={@uploads.feature.ref}
+                class="drawer-row"
+              >
+                <label class="btn-ghost is-small"><.icon name="hero-arrow-up-tray" class="size-3" />
+                Upload <.live_file_input upload={@uploads.feature} class="sr-only" /></label>
+                <button
+                  :if={@post["feature_image"]}
+                  type="button"
+                  phx-click="clear-feature"
+                  class="btn-ghost is-small"
+                >Remove</button>
+                <span :for={e <- @uploads.feature.entries} class="row-sub">{e.progress}%</span>
+                <span :for={{_ref, err} <- @uploads.feature.errors} class="editor-err">{upload_error(
+                  err
+                )}</span>
+              </form>
+            </div>
+
             <.form
               for={to_form(@post, as: :post)}
               phx-change="meta"
@@ -269,7 +359,7 @@ defmodule WraithWeb.Admin.EditorLive do
               <.input
                 name="post[feature_image]"
                 value={@post["feature_image"]}
-                label="Feature image URL"
+                label="…or an image URL"
               />
               <.input
                 name="post[visibility]"
@@ -319,6 +409,11 @@ defmodule WraithWeb.Admin.EditorLive do
     </Layouts.admin>
     """
   end
+
+  defp upload_error(:too_large), do: "too large (#{div(Uploads.max_bytes(), 1024 * 1024)} MB max)"
+  defp upload_error(:not_accepted), do: "not an image"
+  defp upload_error(:too_many_files), do: "too many files"
+  defp upload_error(other), do: inspect(other)
 
   defp snippet(%{"slug" => slug, "props" => props}) do
     args =

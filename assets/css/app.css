@@ -278,6 +278,10 @@ a { color: inherit; }
 .editor-title::placeholder { color: var(--ink-3); }
 .editor-markdown { flex: 1; font-family: var(--mono); font-size: .92rem; line-height: 1.65; border: 0; background: none; outline: none; resize: none; padding: .5rem 0; color: var(--ink); min-height: 20rem; }
 .editor-markdown.is-code { font-size: .85rem; tab-size: 2; }
+.editor-upload { display: flex; gap: .6rem; align-items: center; padding: .5rem 2rem 1rem; }
+.editor-upload-label { cursor: pointer; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.drawer-feature-img { width: 100%; border-radius: 8px; margin: .4rem 0 .5rem; }
 .editor-palette, .editor-widget-list { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; padding-top: .75rem; border-top: 1px solid var(--rule); }
 .editor-palette-label { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); display: inline-flex; gap: .3rem; align-items: center; margin-right: .25rem; }
 .editor-preview { border-left: 1px solid var(--rule); overflow-y: auto; padding: 1.5rem 2rem 3rem; background: var(--paper); }

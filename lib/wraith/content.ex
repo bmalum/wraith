@@ -161,13 +161,19 @@ defmodule Wraith.Content do
     |> Enum.reject(&(&1["id"] == id))
     |> Enum.group_by(& &1["id"])
     |> Enum.map(fn {_id, [p | _] = dups} -> {length(dups), p} end)
-    |> Enum.sort_by(fn {shared, p} -> {-shared, p["published_at"] || ""} end, fn {a, pa}, {b, pb} -> {a, pa} <= {b, pb} end)
+    |> Enum.sort_by(fn {shared, p} -> {-shared, p["published_at"] || ""} end, fn {a, pa},
+                                                                                 {b, pb} ->
+      {a, pa} <= {b, pb}
+    end)
     |> Enum.map(&elem(&1, 1))
     |> then(fn list ->
       list = Enum.take(list, n)
       # fill up with the newest posts when tags are thin
       if length(list) < n do
-        extra = list_posts("published", limit: n + 5, type: "post").posts |> Enum.reject(&(&1["id"] == id or &1["id"] in Enum.map(list, fn p -> p["id"] end)))
+        extra =
+          list_posts("published", limit: n + 5, type: "post").posts
+          |> Enum.reject(&(&1["id"] == id or &1["id"] in Enum.map(list, fn p -> p["id"] end)))
+
         list ++ Enum.take(extra, n - length(list))
       else
         list
@@ -369,7 +375,11 @@ defmodule Wraith.Content do
 
     # co-authors: the primary author first, then the rest, no duplicates
     authors =
-      [post["author_id"] | List.wrap(post["authors"]) |> Enum.flat_map(&if(is_binary(&1), do: String.split(&1, ","), else: [&1]))]
+      [
+        post["author_id"]
+        | List.wrap(post["authors"])
+          |> Enum.flat_map(&if(is_binary(&1), do: String.split(&1, ","), else: [&1]))
+      ]
       |> Enum.map(&(&1 && String.trim(to_string(&1))))
       |> Enum.reject(&(&1 in [nil, ""]))
       |> Enum.uniq()

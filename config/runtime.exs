@@ -146,6 +146,23 @@ if config_env() != :test do
 
   if from = System.get_env("MAIL_FROM"), do: config(:wraith, mail_from: from)
 
+  # ---- uploads ---------------------------------------------------------------------
+  #   UPLOADS_BUCKET=my-bucket [UPLOADS_PREFIX=uploads] [UPLOADS_URL=https://cdn.example.com]
+  #   unset = local disk (UPLOADS_DIR, default priv/uploads), served at /uploads
+  case System.get_env("UPLOADS_BUCKET") do
+    nil ->
+      config :wraith, Wraith.Uploads,
+        adapter: Wraith.Uploads.Local,
+        root: System.get_env("UPLOADS_DIR")
+
+    bucket ->
+      config :wraith, Wraith.Uploads,
+        adapter: Wraith.Uploads.S3,
+        bucket: bucket,
+        prefix: System.get_env("UPLOADS_PREFIX", "uploads"),
+        public_url: System.get_env("UPLOADS_URL")
+  end
+
   if key = System.get_env("KIRO_API_KEY") do
     config :wraith, kiro_api_key: key
   end
