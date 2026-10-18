@@ -240,7 +240,7 @@ defmodule WraithWeb.Admin.SettingsLive do
               for <code>checkout.session.completed</code>
               and <code>customer.subscription.*</code>.
             </p>
-            <h3 class="panel-sub">Code injection</h3>
+
             <.input
               name="site[widget_fetch_hosts]"
               value={@site["widget_fetch_hosts"]}
@@ -250,6 +250,7 @@ defmodule WraithWeb.Admin.SettingsLive do
             <p class="form-help">
               Hosts a Lua widget may <code>wraith.fetch</code>. Empty = widgets cannot fetch.
             </p>
+            <h3 class="panel-sub">Code injection</h3>
             <.input
               name="site[code_injection_head]"
               type="textarea"

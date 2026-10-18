@@ -75,8 +75,6 @@
 .badge-draft { font-size: .7rem; padding: .15rem .5rem; border-radius: 999px; background: oklch(92% 0.1 80); color: oklch(35% 0.1 60); text-transform: none; letter-spacing: 0; }
 
 .author-card { display: flex; gap: 1rem; align-items: flex-start; }
-.author-avatar { width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--accent); color: white; display: grid; place-items: center; font-family: var(--serif); font-weight: 600; font-size: 1.2rem; flex: none; }
-.author-avatar.is-large { width: 4rem; height: 4rem; font-size: 1.8rem; margin-bottom: 1rem; }
 .author-name { font-weight: 600; text-decoration: none; }
 .author-bio { margin: .25rem 0 0; color: var(--ink-2); font-size: .95rem; }
 

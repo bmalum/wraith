@@ -250,7 +250,6 @@ defmodule WraithWeb.Admin.EditorLive do
             <span class={["status-pill", "is-" <> @post["status"]]}>{@post["status"]}</span>
             <span :if={@saved_at} class="editor-saved">Saved</span>
             <span class="row-sub">{Content.word_count(@markdown)} words</span>
-            <span class="row-sub">{Content.word_count(@markdown)} words</span>
             <span :if={@errors["slug"]} class="editor-err">slug {@errors["slug"]}</span>
           </span>
           <div class="editor-actions">
@@ -300,68 +299,70 @@ defmodule WraithWeb.Admin.EditorLive do
         </header>
 
         <div class={["editor-split", @drawer && "has-drawer"]}>
-          <form class="editor-write" phx-change="change" phx-debounce="400" id="editor-form">
-            <input
-              type="text"
-              name="title"
-              value={@title}
-              placeholder={"#{String.capitalize(@post["type"])} title"}
-              class="editor-title"
-              autocomplete="off"
-              phx-debounce="400"
-            />
-            <textarea
-              name="markdown"
-              id="editor-markdown"
-              class="editor-markdown"
-              placeholder="Write in Markdown. Drop a widget in with {{widget poll}} on its own line."
-              phx-debounce="400"
-              spellcheck="true"
-            >{@markdown}</textarea>
+          <div class="editor-write">
+            <form class="editor-write-form" phx-change="change" phx-debounce="400" id="editor-form">
+              <input
+                type="text"
+                name="title"
+                value={@title}
+                placeholder={"#{String.capitalize(@post["type"])} title"}
+                class="editor-title"
+                autocomplete="off"
+                phx-debounce="400"
+              />
+              <textarea
+                name="markdown"
+                id="editor-markdown"
+                class="editor-markdown"
+                placeholder="Write in Markdown. Drop a widget in with {{widget poll}} on its own line."
+                phx-debounce="400"
+                spellcheck="true"
+              >{@markdown}</textarea>
 
-            <div class="editor-palette">
-              <button
-                type="button"
-                phx-click="insert"
-                phx-value-snippet="<!--members-only-->"
-                class="chip"
-                title="Everything below this line is for members only; above it is the public preview"
-              ><.icon name="hero-lock-closed" class="size-3" /> Paywall</button>
-              <button
-                type="button"
-                phx-click="insert"
-                phx-value-snippet="<!--members-only-->"
-                class="chip"
-                title="Everything below this line is for members only; above it is the public preview"
-              ><.icon name="hero-lock-closed" class="size-3" /> Paywall</button>
-              <span class="editor-palette-label"><.icon name="hero-cube" class="size-3" /> Widgets</span>
-              <button
-                :for={w <- @widget_defs}
-                type="button"
-                phx-click="insert"
-                phx-value-snippet={snippet(w)}
-                class="chip"
-                title={w["description"]}
-              >{w["name"]}</button>
-            </div>
-          </form>
-          <form
-            phx-change="validate-upload"
-            phx-submit="validate-upload"
-            id="inline-upload-form"
-            class="editor-upload"
-            phx-drop-target={@uploads.inline.ref}
-          >
-            <label
-              class="chip editor-upload-label"
-              title="Insert an image at the cursor (or drop one on the text)"
+              <div class="editor-palette">
+                <button
+                  type="button"
+                  phx-click="insert"
+                  phx-value-snippet={~s({{embed https://www.youtube.com/watch?v= "Caption"}})}
+                  class="chip"
+                  title="Embed a YouTube/Vimeo video or any link as a card"
+                ><.icon name="hero-link" class="size-3" /> Embed</button>
+                <button
+                  type="button"
+                  phx-click="insert"
+                  phx-value-snippet="<!--members-only-->"
+                  class="chip"
+                  title="Everything below this line is for members only; above it is the public preview"
+                ><.icon name="hero-lock-closed" class="size-3" /> Paywall</button>
+                <span class="editor-palette-label"><.icon name="hero-cube" class="size-3" /> Widgets</span>
+                <button
+                  :for={w <- @widget_defs}
+                  type="button"
+                  phx-click="insert"
+                  phx-value-snippet={snippet(w)}
+                  class="chip"
+                  title={w["description"]}
+                >{w["name"]}</button>
+              </div>
+            </form>
+            <form
+              phx-change="validate-upload"
+              phx-submit="validate-upload"
+              id="inline-upload-form"
+              class="editor-upload"
+              phx-drop-target={@uploads.inline.ref}
             >
-              <.icon name="hero-photo" class="size-3" /> Image
-              <.live_file_input upload={@uploads.inline} class="sr-only" />
-            </label>
-            <span :for={e <- @uploads.inline.entries} class="row-sub">{e.client_name} {e.progress}%</span>
-            <span :for={{_ref, err} <- @uploads.inline.errors} class="editor-err">{upload_error(err)}</span>
-          </form>
+              <label
+                class="chip editor-upload-label"
+                title="Insert an image at the cursor (or drop one on the text)"
+              >
+                <.icon name="hero-photo" class="size-3" /> Image
+                <.live_file_input upload={@uploads.inline} class="sr-only" />
+              </label>
+              <span :for={e <- @uploads.inline.entries} class="row-sub">{e.client_name} {e.progress}%</span>
+              <span :for={{_ref, err} <- @uploads.inline.errors} class="editor-err">{upload_error(err)}</span>
+            </form>
+          </div>
 
           <section class="editor-preview" aria-label="Preview">
             <article class="post is-preview">
