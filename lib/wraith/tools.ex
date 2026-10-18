@@ -69,7 +69,18 @@ defmodule Wraith.Tools do
 
       true ->
         try do
-          do_call(ctx, name, args || %{})
+          result = do_call(ctx, name, args || %{})
+
+          unless read_only?(tool) or result["isError"],
+            do:
+              Wraith.Audit.log(
+                actor(ctx) || "agent",
+                name,
+                args["id"] || args["slug"] || args["email"],
+                %{"via" => ctx["via"] || "mcp"}
+              )
+
+          result
         rescue
           e -> MCP.error("#{name} failed: " <> Exception.message(e))
         end

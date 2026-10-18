@@ -19,6 +19,9 @@ defmodule Wraith.StoreCase do
 
   @doc "Empty the store: ETS directly, DynamoDB Local by deleting what the tests wrote."
   def reset do
+    # pending page views from an earlier test must not land in this one's store
+    if Process.whereis(Wraith.Analytics), do: Wraith.Analytics.flush()
+
     case Wraith.Store.impl() do
       Wraith.Store.Memory ->
         Wraith.Store.Memory.reset()

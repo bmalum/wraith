@@ -96,4 +96,25 @@ defmodule Wraith.AccountsTest do
     assert Settings.secret("stripe_secret_key") == nil
     assert Settings.secret_hint("stripe_secret_key") == nil
   end
+
+  test "analytics count views and uniques; audit logs actions" do
+    Wraith.Analytics.hit("post-1", "v1")
+    Wraith.Analytics.hit("post-1", "v1")
+    Wraith.Analytics.hit("post-1", "v2")
+    Wraith.Analytics.hit(nil, "v1")
+    :ok = Wraith.Analytics.flush()
+    [today] = Wraith.Analytics.series(1, "post-1")
+    assert today.views == 3 and today.uniques == 2
+    [site] = Wraith.Analytics.series(1)
+    assert site.views == 4 and site.uniques == 2
+    assert [{"post-1", 3}] = Wraith.Analytics.top_posts(1)
+
+    :ok = Wraith.Audit.log(%{"id" => "u1", "name" => "Ada"}, :post_publish, "hello")
+    :ok = Wraith.Audit.log("key:ci", "settings_update")
+
+    assert [
+             %{"actor" => "key:ci"},
+             %{"actor" => "Ada", "action" => "post_publish", "subject" => "hello"}
+           ] = Wraith.Audit.recent(5)
+  end
 end

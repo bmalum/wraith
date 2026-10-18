@@ -22,7 +22,7 @@ defmodule Wraith.Application do
         Wraith.RateLimit
       ] ++
         store_children() ++
-        [{Task, &Wraith.Widgets.seed_builtins/0}, Wraith.Search] ++
+        [{Task, &Wraith.Widgets.seed_builtins/0}, Wraith.Search, Wraith.Analytics] ++
         runtime_children() ++
         [Wraith.Studio.Server] ++
         clock_children() ++

@@ -12,7 +12,10 @@ defmodule WraithWeb.Site.HomeLive do
     if not site["setup_done"] and not Accounts.any_users?() do
       {:ok, push_navigate(socket, to: ~p"/admin/setup")}
     else
-      if connected?(socket), do: Content.subscribe()
+      if connected?(socket) do
+        Content.subscribe()
+        Wraith.Analytics.hit(nil, socket.assigns[:visitor])
+      end
 
       {:ok,
        assign(socket,

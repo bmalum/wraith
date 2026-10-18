@@ -157,6 +157,7 @@ defmodule WraithWeb.Admin.EditorLive do
       do: raise(WraithWeb.Forbidden, "cannot delete")
 
     :ok = Content.delete_post(socket.assigns.post)
+    Wraith.Audit.log(socket.assigns.current_user, "post_delete", socket.assigns.post["slug"])
     {:noreply, socket |> put_flash(:info, "Deleted.") |> push_navigate(to: ~p"/admin/posts")}
   end
 
@@ -178,8 +179,12 @@ defmodule WraithWeb.Admin.EditorLive do
 
   defp publish(socket) do
     case Content.publish_and_send(socket.assigns.post) do
-      {:ok, post} -> {:noreply, socket |> assign(post: post) |> put_flash(:info, "Published.")}
-      {:error, errors} -> {:noreply, assign(socket, errors: errors)}
+      {:ok, post} ->
+        Wraith.Audit.log(socket.assigns.current_user, "post_publish", post["slug"])
+        {:noreply, socket |> assign(post: post) |> put_flash(:info, "Published.")}
+
+      {:error, errors} ->
+        {:noreply, assign(socket, errors: errors)}
     end
   end
 

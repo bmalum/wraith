@@ -432,3 +432,5 @@ a { color: inherit; }
 .embed-figure { margin: 2rem 0; }
 .embed-figure figcaption, .prose-wraith figcaption { text-align: center; color: var(--ink-3); font-size: .85rem; margin-top: .5rem; }
 .bulk-bar { display: flex; align-items: center; gap: 1rem; padding: .5rem .25rem .75rem; flex-wrap: wrap; }
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 4rem; padding: 1rem 1.25rem 0; }
+.spark-bar { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0; opacity: .85; min-height: 2px; }

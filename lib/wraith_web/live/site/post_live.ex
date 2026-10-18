@@ -19,6 +19,7 @@ defmodule WraithWeb.Site.PostLive do
         if connected?(socket) do
           Content.subscribe()
           Comments.subscribe(post["id"])
+          Wraith.Analytics.hit(post["id"], socket.assigns[:visitor])
         end
 
         author = post["author_id"] && Accounts.get_user(post["author_id"])

@@ -7,7 +7,7 @@ defmodule Wraith.Studio.Tools do
   @behaviour Wraith.Kiro.MCP
 
   # the studio session is the context: writes are made as the user who opened it
-  defp ctx(session), do: %{"user_id" => session["user_id"], "scope" => "admin"}
+  defp ctx(session), do: %{"user_id" => session["user_id"], "scope" => "admin", "via" => "studio"}
 
   @impl true
   def server_info(session), do: Wraith.Tools.server_info(ctx(session))

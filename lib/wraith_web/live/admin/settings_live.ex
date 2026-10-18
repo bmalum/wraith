@@ -38,6 +38,10 @@ defmodule WraithWeb.Admin.SettingsLive do
 
     case Settings.update(attrs) do
       {:ok, _} ->
+        Wraith.Audit.log(socket.assigns.current_user, "settings_update", nil, %{
+          "keys" => attrs |> Map.keys() |> Enum.reject(&(&1 =~ "secret"))
+        })
+
         {:noreply, socket |> put_flash(:info, "Saved.") |> assign(errors: %{}) |> load()}
 
       {:error, errors} ->
