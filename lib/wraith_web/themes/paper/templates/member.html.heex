@@ -23,7 +23,19 @@
     <p :if={@current_member["status"] == "free" and @site["stripe_price_id"] not in [nil, ""]}>
       <a href={~p"/members/upgrade"} class="btn-accent">Upgrade to paid</a>
     </p>
+    <p :if={@current_member["stripe_customer_id"]}>
+      <a href={~p"/members/portal"} class="btn-ghost">Manage billing</a>
+    </p>
     <p><a href={~p"/members/logout"} class="btn-ghost">Sign out</a></p>
+    <form
+      action={~p"/members/delete"}
+      method="post"
+      class="account-danger"
+      data-confirm="Delete your account and every comment you wrote? This cannot be undone."
+    >
+      <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+      <button type="submit" class="btn-danger">Delete my account</button>
+    </form>
   </div>
 <% else %>
   <div :if={@sent} class="subscribe-done" role="status">

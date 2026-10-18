@@ -49,6 +49,8 @@ defmodule WraithWeb.Router do
     get "/members/unsubscribe/:token", MemberController, :unsubscribe
     get "/members/logout", MemberController, :logout
     get "/members/upgrade", MemberController, :upgrade
+    get "/members/portal", MemberController, :portal
+    post "/members/delete", MemberController, :delete_account
   end
 
   # ---- the JSON APIs (Ghost-shaped) ------------------------------------------------
@@ -92,7 +94,9 @@ defmodule WraithWeb.Router do
     put "/tags/:slug", AdminController, :upsert_tag
     delete "/tags/:slug", AdminController, :delete_tag
     get "/members", AdminController, :members
+    get "/members.csv", AdminController, :members_csv
     post "/members", AdminController, :create_member
+    post "/members/import", AdminController, :import_members
     get "/widgets", AdminController, :widgets
     put "/widgets", AdminController, :upsert_widget
     get "/settings", AdminController, :settings

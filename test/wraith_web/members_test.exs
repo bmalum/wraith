@@ -308,4 +308,56 @@ defmodule WraithWeb.MembersTest do
     Newsletter.send_test(p, owner)
     assert_email_sent(subject: "[Test] Auto", to: {owner["name"], owner["email"]})
   end
+
+  test "billing portal, reply notifications, csv, self-deletion", %{conn: conn, owner: owner} do
+    {:ok, _} =
+      Settings.update(%{
+        stripe_secret_key: "sk_test_1",
+        stripe_webhook_secret: "whsec_test",
+        stripe_price_id: "price_1",
+        comments_enabled: true
+      })
+
+    {:ok, m} = Members.create(%{email: "pay@x.io", name: "Payer"})
+
+    assert redirected_to(get(log_in_member(conn, m), ~p"/members/portal")) == ~p"/members",
+           "no customer yet"
+
+    {:ok, m} = Members.update(m, %{stripe_customer_id: "cus_9"})
+
+    assert redirected_to(get(log_in_member(conn, m), ~p"/members/portal")) ==
+             "https://checkout.stripe.test/session_fake"
+
+    assert_received {:stripe_post, "/v1/billing_portal/sessions", %{"customer" => "cus_9"}}
+
+    # a reply mails the parent's author
+    post = post_fixture(owner, %{title: "Thread"})
+    {:ok, other} = Members.create(%{email: "o@x.io", name: "Other"})
+    {:ok, c} = Wraith.Comments.create(post, m, "Parent")
+    {:ok, _} = Wraith.Comments.create(post, other, "Child", c["id"])
+
+    assert_email_sent(fn e ->
+      assert e.subject =~ "Other replied to your comment"
+      assert {"Payer", "pay@x.io"} in e.to
+      true
+    end)
+
+    {:ok, _} = Wraith.Comments.create(post, m, "Self reply", c["id"])
+    refute_email_sent()
+
+    csv = Members.to_csv()
+    assert csv =~ "email,name,status" and csv =~ "pay@x.io,Payer,free,true"
+    assert Members.from_csv("email,name,status\nnew@x.io,New,paid\npay@x.io,Dup,free") == 1
+    assert Members.get_by_email("new@x.io")["status"] == "paid"
+
+    # self-deletion takes the comments along
+    conn_m = log_in_member(conn, m)
+    conn_d = post(conn_m, ~p"/members/delete")
+    assert redirected_to(conn_d) == ~p"/"
+    assert Members.get_by_email("pay@x.io") == nil
+
+    refute Wraith.Comments.for_post(post["id"], include_hidden: true)
+           |> Enum.flat_map(&[&1.comment | &1.replies])
+           |> Enum.any?(&(&1["member_id"] == m["id"] and &1["body"] != ""))
+  end
 end

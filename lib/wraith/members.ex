@@ -127,6 +127,64 @@ defmodule Wraith.Members do
 
   def unsubscribe(%{} = member), do: update(member, %{subscribed: false})
 
+  @doc "Delete a member and everything of theirs: comments, sessions."
+  def erase(%{"id" => id} = member) do
+    for c <- Wraith.Comments.by_member(id), do: Wraith.Comments.delete(c)
+    delete(member)
+    :ok
+  end
+
+  @doc "Every member as CSV (email, name, status, subscribed, labels, created_at)."
+  def to_csv do
+    rows = list(limit: 100_000).members
+
+    header = "email,name,status,subscribed,labels,created_at\n"
+
+    header <>
+      Enum.map_join(rows, "\n", fn m ->
+        [
+          m["email"],
+          m["name"],
+          m["status"],
+          to_string(m["subscribed"]),
+          Enum.join(m["labels"] || [], ";"),
+          m["created_at"]
+        ]
+        |> Enum.map_join(",", &csv_cell/1)
+      end)
+  end
+
+  defp csv_cell(nil), do: ""
+
+  defp csv_cell(v) do
+    v = to_string(v)
+
+    if String.contains?(v, [",", "\"", "\n"]),
+      do: "\"" <> String.replace(v, "\"", "\"\"") <> "\"",
+      else: v
+  end
+
+  @doc "Members from CSV (header row with at least `email`; name, status, labels, subscribed optional). Existing emails are skipped."
+  def from_csv(csv) do
+    [header | rows] = csv |> String.split(~r/\r?\n/, trim: true)
+    cols = header |> String.split(",") |> Enum.map(&(&1 |> String.trim() |> String.downcase()))
+
+    rows
+    |> Enum.map(fn line ->
+      vals = String.split(line, ",")
+      attrs = cols |> Enum.zip(vals) |> Map.new(fn {k, v} -> {k, String.trim(v)} end)
+      attrs = Map.update(attrs, "labels", [], &String.split(&1, ";", trim: true))
+
+      attrs =
+        if Map.has_key?(attrs, "subscribed"),
+          do: Map.put(attrs, "subscribed", attrs["subscribed"] in ["true", "1", "yes"]),
+          else: attrs
+
+      create(Map.take(attrs, ~w(email name status labels subscribed note)))
+    end)
+    |> Enum.count(&match?({:ok, _}, &1))
+  end
+
   @doc "The confirmation link was opened: the member is now subscribed."
   def confirm(%{"id" => id} = member) do
     {pk, sk} = Keys.member(id)

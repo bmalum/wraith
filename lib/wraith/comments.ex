@@ -94,12 +94,24 @@ defmodule Wraith.Comments do
 
         :ok = Store.put(item)
         broadcast(post_id)
+        if parent_id, do: notify_parent(post, item, parent_id)
         {:ok, Store.get(pk, sk) |> elem(1)}
     end
   end
 
   def create(_post, _member, _body, _parent),
     do: {:error, "comments are only open on published posts"}
+
+  # the author of the parent comment hears about a reply by mail (not when replying to themselves)
+  defp notify_parent(post, reply, parent_id) do
+    with %{"member_id" => mid} <- get(post["id"], parent_id),
+         true <- mid != reply["member_id"],
+         %{} = parent_member <- Wraith.Members.get(mid) do
+      Wraith.Newsletter.send_reply_notice(parent_member, post, reply)
+    else
+      _ -> :ok
+    end
+  end
 
   defp parent_of(post_id, id), do: get(post_id, id) |> then(&(&1 && &1["parent_id"]))
 
@@ -129,6 +141,12 @@ defmodule Wraith.Comments do
 
     broadcast(post_id)
     :ok
+  end
+
+  @doc "Every comment a member wrote (any status)."
+  def by_member(member_id) do
+    (recent("published", 10_000) ++ recent("hidden", 10_000))
+    |> Enum.filter(&(&1["member_id"] == member_id))
   end
 
   @doc "Newest comments across the site, for moderation."

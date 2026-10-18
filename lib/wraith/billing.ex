@@ -59,6 +59,25 @@ defmodule Wraith.Billing do
     end
   end
 
+  @doc "A Stripe customer-portal session: the member manages card and subscription there."
+  def portal_url(%{"stripe_customer_id" => cid}, return_url) when is_binary(cid) do
+    if configured?() do
+      case api().post(
+             "/v1/billing_portal/sessions",
+             %{"customer" => cid, "return_url" => return_url},
+             Settings.secret("stripe_secret_key")
+           ) do
+        {:ok, %{"url" => url}} -> {:ok, url}
+        {:ok, other} -> {:error, "unexpected answer from Stripe: #{inspect(other)}"}
+        {:error, why} -> {:error, to_string(why)}
+      end
+    else
+      {:error, "Stripe is not configured"}
+    end
+  end
+
+  def portal_url(_member, _return_url), do: {:error, "no billing account yet"}
+
   @doc "Verify and apply a webhook. Returns `{:ok, event_type} | {:error, reason}`."
   def handle_webhook(raw_body, signature_header) when is_binary(raw_body) do
     secret = Settings.secret("stripe_webhook_secret") || ""

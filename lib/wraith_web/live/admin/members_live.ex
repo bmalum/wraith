@@ -43,6 +43,10 @@ defmodule WraithWeb.Admin.MembersLive do
       title={"Members (#{@count})"}
     >
       <:actions>
+        <a href={~p"/api/admin/members.csv"} class="btn-ghost" download><.icon
+          name="hero-arrow-down-tray"
+          class="size-4"
+        /> CSV</a>
         <form phx-submit="create" class="inline-form">
           <input type="text" name="name" placeholder="Name" class="input" autocomplete="off" />
           <input

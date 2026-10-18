@@ -77,6 +77,39 @@ defmodule WraithWeb.MemberController do
     end
   end
 
+  def portal(conn, _params) do
+    case conn.assigns[:current_member] do
+      nil ->
+        conn |> put_flash(:error, "Sign in first.") |> redirect(to: ~p"/members")
+
+      member ->
+        case Wraith.Billing.portal_url(member, url(~p"/members")) do
+          {:ok, url} ->
+            redirect(conn, external: url)
+
+          {:error, why} ->
+            conn
+            |> put_flash(:error, "Billing is not available: #{why}")
+            |> redirect(to: ~p"/members")
+        end
+    end
+  end
+
+  # GDPR: a member removes their own account and every comment they wrote
+  def delete_account(conn, _params) do
+    case conn.assigns[:current_member] do
+      nil ->
+        conn |> put_flash(:error, "Sign in first.") |> redirect(to: ~p"/members")
+
+      member ->
+        :ok = Members.erase(member)
+
+        conn
+        |> put_flash(:info, "Your account and comments are gone. Take care.")
+        |> MemberAuth.log_out_member()
+    end
+  end
+
   def logout(conn, _params),
     do: conn |> put_flash(:info, "Signed out.") |> MemberAuth.log_out_member()
 end

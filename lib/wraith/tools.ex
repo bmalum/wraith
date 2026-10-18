@@ -382,7 +382,19 @@ defmodule Wraith.Tools do
         },
         ["id"]
       ),
-      destructive("member_delete", "Remove a member.", %{"id" => str("id or email")}, ["id"]),
+      destructive(
+        "member_delete",
+        "Remove a member (and, with erase: true, their comments and sessions).",
+        %{"id" => str("id or email"), "erase" => bool("")},
+        ["id"]
+      ),
+      read("members_export_csv", "Every member as CSV.", %{}),
+      write(
+        "members_import_csv",
+        "Members from CSV (header: email,name,status,labels,subscribed). Existing emails are skipped.",
+        %{"csv" => str("")},
+        ["csv"]
+      ),
       write(
         "member_send_login_link",
         "Mail a member a sign-in link.",

@@ -133,6 +133,24 @@ defmodule Wraith.Newsletter do
 
   def send_post(_post, _opts), do: {:error, :not_published}
 
+  @doc "Someone replied to a member's comment."
+  def send_reply_notice(%{"email" => email} = member, post, reply) do
+    link = url("/" <> post["slug"] <> "#comment-" <> reply["id"])
+
+    mail(
+      email,
+      member["name"],
+      "#{reply["member_name"]} replied to your comment on “#{post["title"]}”",
+      """
+      <p><strong>#{esc(reply["member_name"])}</strong> replied to your comment on <a href="#{link}">#{esc(post["title"])}</a>:</p>
+      <blockquote style="border-left:3px solid #ddd;margin:0;padding:.2em 1em;color:#444">#{esc(reply["body"])}</blockquote>
+      <p><a href="#{link}">Read and reply →</a></p>
+      #{footer(member)}
+      """
+    )
+    |> deliver()
+  end
+
   @doc "Mail a post (any status) to one author as a test; nothing is recorded."
   def send_test(post, %{"email" => email, "name" => name}) do
     site = Settings.get()

@@ -102,6 +102,27 @@ defmodule WraithWeb.Api.AdminController do
           |> Enum.map(&Map.take(&1, ~w(id email name status labels note subscribed created_at)))
       })
 
+  def members_csv(conn, _params) do
+    conn
+    |> put_resp_content_type("text/csv")
+    |> put_resp_header(
+      "content-disposition",
+      ~s(attachment; filename="members-#{Date.utc_today()}.csv")
+    )
+    |> send_resp(200, Members.to_csv())
+  end
+
+  def import_members(conn, params) do
+    csv =
+      case params do
+        %{"file" => %Plug.Upload{path: path}} -> File.read!(path)
+        %{"csv" => csv} when is_binary(csv) -> csv
+        _ -> ""
+      end
+
+    json(conn, %{"imported" => Members.from_csv(csv)})
+  end
+
   def create_member(conn, params) do
     case Members.create(member_attrs(params)) do
       {:ok, m} ->
