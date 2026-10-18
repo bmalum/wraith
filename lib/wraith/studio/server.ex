@@ -42,21 +42,43 @@ defmodule Wraith.Studio.Server do
             error: nil,
             idle_timer: nil
 
-  def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+  # One studio per cluster: the name is registered with `:global`, so the second
+  # node to boot finds it taken and runs no server of its own (calls go to the
+  # owner over distribution). If the owning node dies, the next call on any
+  # node starts a fresh one there and reopens the conversation from the store.
+  @name {:global, __MODULE__}
 
-  def state, do: GenServer.call(__MODULE__, :state)
-  def wake(user), do: GenServer.call(__MODULE__, {:wake, user}, 120_000)
-  def prompt(text, user), do: GenServer.call(__MODULE__, {:prompt, text, user}, 10_000)
-  def cancel, do: GenServer.cast(__MODULE__, :cancel)
+  def start_link(opts \\ []) do
+    case GenServer.start_link(__MODULE__, opts, name: @name) do
+      {:error, {:already_started, _pid}} -> :ignore
+      other -> other
+    end
+  end
+
+  defp server do
+    case :global.whereis_name(__MODULE__) do
+      :undefined ->
+        case GenServer.start(__MODULE__, [], name: @name) do
+          {:ok, pid} -> pid
+          {:error, {:already_started, pid}} -> pid
+        end
+
+      pid ->
+        pid
+    end
+  end
+
+  def state, do: GenServer.call(server(), :state)
+  def wake(user), do: GenServer.call(server(), {:wake, user}, 120_000)
+  def prompt(text, user), do: GenServer.call(server(), {:prompt, text, user}, 10_000)
+  def cancel, do: GenServer.cast(server(), :cancel)
 
   def permit(tool_call_id, option_id),
-    do: GenServer.call(__MODULE__, {:permit, tool_call_id, option_id})
+    do: GenServer.call(server(), {:permit, tool_call_id, option_id})
 
-  def answer(tool_call_id, answer),
-    do: GenServer.call(__MODULE__, {:answer, tool_call_id, answer})
-
-  def new_session(user), do: GenServer.call(__MODULE__, {:new_session, user}, 120_000)
-  def shutdown, do: GenServer.call(__MODULE__, :shutdown, 60_000)
+  def answer(tool_call_id, answer), do: GenServer.call(server(), {:answer, tool_call_id, answer})
+  def new_session(user), do: GenServer.call(server(), {:new_session, user}, 120_000)
+  def shutdown, do: GenServer.call(server(), :shutdown, 60_000)
 
   defp acp, do: Application.get_env(:wraith, :acp_client, Wraith.Kiro.ACP.Fake)
 
