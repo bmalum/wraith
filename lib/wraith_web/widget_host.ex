@@ -55,6 +55,13 @@ defmodule WraithWeb.WidgetHost do
         {instance, %{widget: widget, slug: slug, props: props, state: state, html: nil}}
       end
 
+    # widgets with `tick = N` get re-rendered every N seconds while the page is open
+    if Phoenix.LiveView.connected?(socket) do
+      for {instance, %{widget: w}} <- widgets,
+          secs = Widgets.tick(w),
+          do: Process.send_after(self(), {:widget_tick, instance, secs}, secs * 1_000)
+    end
+
     socket
     |> assign(:segments, segments)
     |> assign(:presence, presence)

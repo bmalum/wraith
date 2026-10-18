@@ -19,6 +19,8 @@ defmodule Wraith.Widgets do
   alias Wraith.Widgets.Lua
 
   @kinds ~w(lua elixir)
+  # a handler that grows the shared state past this is refused
+  @max_state_bytes 64 * 1024
 
   @builtin_modules [
     Wraith.Widgets.Builtin.Countdown,
@@ -213,6 +215,9 @@ defmodule Wraith.Widgets do
   def render(widget, instance, props, state, meta) do
     meta = Map.merge(%{instance: instance, visitor: nil, presence: 0, post: nil}, meta)
 
+    meta =
+      Map.put_new_lazy(meta, :private, fn -> private(widget["slug"], instance, meta[:visitor]) end)
+
     case run(widget, :render, [state, props, meta_for(meta)], meta) do
       {:ok, html} when is_binary(html) -> {:ok, sanitize(html)}
       {:ok, other} -> {:error, "render returned #{inspect(other)}, not a string"}
@@ -227,6 +232,7 @@ defmodule Wraith.Widgets do
   """
   def dispatch(%{"slug" => slug} = widget, instance, props, event, payload, meta) do
     meta = Map.merge(%{instance: instance, visitor: nil, presence: 0, post: nil}, meta)
+    meta = Map.put(meta, :private, private(slug, instance, meta[:visitor]))
     {pk, sk} = Keys.widget_state(slug, instance)
     payload = if is_map(payload), do: payload, else: %{}
 
@@ -235,10 +241,25 @@ defmodule Wraith.Widgets do
         state = (current && current["state"]) || state(widget, instance, props)
 
         case run(widget, :handle, [state, event, payload, meta_for(meta)], meta) do
-          {:ok, %{} = next} -> %{"state" => next, "slug" => slug, "instance" => instance}
-          {:ok, {:error, why}} -> throw({:refused, why})
-          {:ok, other} -> throw({:refused, "handle returned #{inspect(other)}"})
-          {:error, why} -> throw({:refused, why})
+          {:ok, %{} = next} ->
+            checked(next, slug, instance)
+
+          {:ok, {%{} = next, priv}} ->
+            put_private(slug, instance, meta[:visitor], priv)
+            checked(next, slug, instance)
+
+          {:ok, [%{} = next, priv]} ->
+            put_private(slug, instance, meta[:visitor], priv)
+            checked(next, slug, instance)
+
+          {:ok, {:error, why}} ->
+            throw({:refused, why})
+
+          {:ok, other} ->
+            throw({:refused, "handle returned #{inspect(other)}"})
+
+          {:error, why} ->
+            throw({:refused, why})
         end
       end)
 
@@ -253,6 +274,44 @@ defmodule Wraith.Widgets do
   catch
     {:refused, why} -> {:error, to_string(why)}
   end
+
+  # the state item, refused when it has grown past the cap
+  defp checked(next, slug, instance) do
+    if byte_size(Jason.encode!(next)) > @max_state_bytes,
+      do: throw({:refused, "widget state would exceed #{div(@max_state_bytes, 1024)} KB"}),
+      else: %{"state" => next, "slug" => slug, "instance" => instance}
+  end
+
+  @doc "This visitor's private slice of an instance (a map; empty when none)."
+  def private(_slug, _instance, nil), do: %{}
+
+  def private(slug, instance, visitor) do
+    {pk, sk} = Keys.widget_state(slug, instance <> "#" <> visitor)
+
+    case Store.get(pk, sk) do
+      {:ok, %{"private" => p}} when is_map(p) -> p
+      _ -> %{}
+    end
+  end
+
+  defp put_private(_slug, _instance, nil, _priv), do: :ok
+
+  defp put_private(slug, instance, visitor, priv) when is_map(priv) do
+    {pk, sk} = Keys.widget_state(slug, instance <> "#" <> visitor)
+    Store.put(%{"pk" => pk, "sk" => sk, "private" => priv})
+  end
+
+  defp put_private(_slug, _instance, _visitor, _priv), do: :ok
+
+  @doc "The refresh interval a Lua widget asks for (`tick = N` in its chunk), in seconds, or nil."
+  def tick(%{"kind" => "lua", "source" => source}) do
+    case Regex.run(~r/^\s*tick\s*=\s*(\d+)/m, source) do
+      [_, n] -> max(String.to_integer(n), 5)
+      _ -> nil
+    end
+  end
+
+  def tick(_), do: nil
 
   def reset_state(slug, instance) do
     {pk, sk} = Keys.widget_state(slug, instance)

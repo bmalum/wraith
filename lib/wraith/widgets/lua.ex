@@ -21,6 +21,10 @@ defmodule Wraith.Widgets.Lua do
     * `wraith.json(t)` / `wraith.len(t)` / `wraith.keys(t)` — small table helpers
     * `wraith.split(s, sep)` — `"a|b"` → `{"a", "b"}` (luerl has no `gmatch`)
     * `wraith.format(n)` — `1234` → `"1,234"`
+    * `wraith.fetch(url)` — GET a URL (JSON decoded when the answer is JSON,
+      else the text); only hosts the owner allowlisted in Settings
+      (`widget_fetch_hosts`) and cached for 60 s; nil + an error string otherwise
+    * `wraith.now()` — unix seconds
   """
 
   @timeout_ms 250
@@ -39,10 +43,21 @@ defmodule Wraith.Widgets.Lua do
                    Enum.map(args, &to_lua/1),
                    st
                  ) do
-              {:ok, [result | _], _st} -> {:ok, from_lua(result)}
-              {:ok, [], _st} -> {:ok, nil}
-              {:lua_error, err, st} -> {:error, "lua error: " <> format_error(err, st)}
-              {:error, errs, _warns} -> {:error, "lua: " <> inspect(errs)}
+              # two values from `handle` are {state, private}
+              {:ok, [a, b | _], _st} when function == "handle" ->
+                {:ok, {from_lua(a), from_lua(b)}}
+
+              {:ok, [result | _], _st} ->
+                {:ok, from_lua(result)}
+
+              {:ok, [], _st} ->
+                {:ok, nil}
+
+              {:lua_error, err, st} ->
+                {:error, "lua error: " <> format_error(err, st)}
+
+              {:error, errs, _warns} ->
+                {:error, "lua: " <> inspect(errs)}
             end
           end
         rescue
@@ -123,6 +138,13 @@ defmodule Wraith.Widgets.Lua do
       "len" => fn [t | _], st -> {[t |> decode(st) |> size()], st} end,
       "keys" => fn [t | _], st -> encoded(t |> decode(st) |> keys(), st) end,
       "format" => fn [n | _], st -> {[format_number(n)], st} end,
+      "now" => fn _args, st -> {[System.system_time(:second)], st} end,
+      "fetch" => fn [url | _], st ->
+        case Wraith.Widgets.Fetch.get(to_string(url)) do
+          {:ok, body} -> encoded(body, st)
+          {:error, why} -> {[nil, why], st}
+        end
+      end,
       "split" => fn [s | rest], st ->
         sep =
           case rest,

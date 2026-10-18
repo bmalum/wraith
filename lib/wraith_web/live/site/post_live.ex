@@ -163,6 +163,7 @@ defmodule WraithWeb.Site.PostLive do
     do: {:noreply, assign(socket, comments: Comments.for_post(socket.assigns.post["id"]))}
 
   def handle_info({:widget, _, _, _} = msg, socket), do: {:noreply, widget_info(socket, msg)}
+  def handle_info({:widget_tick, _, _} = msg, socket), do: {:noreply, widget_info(socket, msg)}
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"} = msg, socket),
     do: {:noreply, widget_info(socket, msg)}

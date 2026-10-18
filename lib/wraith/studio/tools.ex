@@ -52,6 +52,13 @@ defmodule Wraith.Studio.Tools do
     needs; `wraith.escape(s)`; `wraith.format(n)` (1,234); `wraith.split("a|b", "|")` →
     a table (there is no string.gmatch); `wraith.json(t)`, `wraith.len(t)`, `wraith.keys(t)`.
 
+    More: `meta.private` is this reader's own table for the instance (return it as a
+    second value from `handle`: `return state, private`) — for "have I voted", drafts,
+    per-reader scores. `wraith.fetch(url)` GETs an allowlisted host (Settings → widget
+    fetch allowlist), JSON decoded, cached 60 s; `wraith.now()` is unix seconds. Put
+    `tick = 30` on its own line at the top to be re-rendered every 30 s (min 5).
+    State is capped at 64 KB of JSON.
+
     Rules: no `os`, `io`, `require`; 250 ms per call; state must be JSON-shaped
     (string keys, numbers, strings, booleans, nested tables). Output is wrapped in
     `<div class="widget">`; use these classes for a native look: `w-btn`,

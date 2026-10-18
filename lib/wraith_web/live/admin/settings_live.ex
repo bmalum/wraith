@@ -242,6 +242,15 @@ defmodule WraithWeb.Admin.SettingsLive do
             </p>
             <h3 class="panel-sub">Code injection</h3>
             <.input
+              name="site[widget_fetch_hosts]"
+              value={@site["widget_fetch_hosts"]}
+              label="Widget fetch allowlist"
+              placeholder="api.example.com, *.wikipedia.org"
+            />
+            <p class="form-help">
+              Hosts a Lua widget may <code>wraith.fetch</code>. Empty = widgets cannot fetch.
+            </p>
+            <.input
               name="site[code_injection_head]"
               type="textarea"
               value={@site["code_injection_head"]}

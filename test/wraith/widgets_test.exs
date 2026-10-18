@@ -162,6 +162,45 @@ defmodule Wraith.WidgetsTest do
     assert Markdown.reading_minutes("word") == 1
   end
 
+  test "private per-reader state, tick, fetch allowlist, state cap" do
+    src = """
+    tick = 10
+    function init(p) return { total = 0 } end
+    function render(s, p, m)
+      local mine = m.private.count or 0
+      return "total=" .. s.total .. " mine=" .. mine .. " t=" .. (wraith.now() > 0 and "ok" or "no")
+    end
+    function handle(s, e, p, m)
+      local priv = m.private
+      if e == "big" then s.blob = string.rep("x", 70000) return s end
+      priv.count = (priv.count or 0) + 1
+      s.total = s.total + 1
+      return s, priv
+    end
+    """
+
+    {:ok, w} = Widgets.save(%{slug: "priv", name: "Priv", source: src})
+    assert Widgets.tick(w) == 10
+    {:ok, _} = Widgets.dispatch(w, "i", %{}, "go", %{}, %{visitor: "a"})
+    {:ok, _} = Widgets.dispatch(w, "i", %{}, "go", %{}, %{visitor: "a"})
+    {:ok, s} = Widgets.dispatch(w, "i", %{}, "go", %{}, %{visitor: "b"})
+    assert s["total"] == 3
+    assert {:ok, "total=3 mine=2 t=ok"} = Widgets.render(w, "i", %{}, s, %{visitor: "a"})
+    assert {:ok, "total=3 mine=1 t=ok"} = Widgets.render(w, "i", %{}, s, %{visitor: "b"})
+    assert {:ok, "total=3 mine=0 t=ok"} = Widgets.render(w, "i", %{}, s, %{visitor: nil})
+    assert {:error, msg} = Widgets.dispatch(w, "i", %{}, "big", %{}, %{visitor: "a"})
+    assert msg =~ "64 KB"
+
+    assert {:error, msg} = Wraith.Widgets.Fetch.get("https://api.example.com/x")
+    assert msg =~ "allowlist"
+    assert {:error, "not an http(s) URL"} = Wraith.Widgets.Fetch.get("ftp://x")
+    {:ok, _} = Wraith.Settings.update(%{widget_fetch_hosts: "*.example.com"})
+
+    # allowed now; the request itself fails here (no network in tests) but is attempted, not refused
+    assert {:error, msg} = Wraith.Widgets.Fetch.get("https://api.example.com/x")
+    refute msg =~ "allowlist"
+  end
+
   test "widget html is sanitised: scripts and handlers go, phx/data/style stay" do
     html =
       ~S|<div class="w-x" style="color:red" onclick="x()"><button phx-click="widget" phx-value-event="go" data-n="1" aria-label="go">go</button><script>alert(1)</script><img src="x" onerror="alert(1)"><a href="javascript:alert(1)">l</a></div>|
