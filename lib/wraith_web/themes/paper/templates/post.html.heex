@@ -54,5 +54,13 @@
       </div>
     </div>
   </footer>
+  <.comments
+    :if={not @locked}
+    enabled={@comments_enabled}
+    comments={@comments}
+    current_member={@current_member}
+    current_user={@current_user}
+    reply_to={@reply_to}
+  />
 </article>
 <.related posts={@related} authors={@authors} />

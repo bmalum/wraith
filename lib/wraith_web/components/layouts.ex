@@ -52,6 +52,11 @@ defmodule WraithWeb.Layouts do
           <.rail_link to={~p"/admin/pages"} icon="hero-rectangle-stack" active={@active == :pages}>Pages</.rail_link>
           <.rail_link to={~p"/admin/tags"} icon="hero-tag" active={@active == :tags}>Tags</.rail_link>
           <.rail_link to={~p"/admin/members"} icon="hero-users" active={@active == :members}>Members</.rail_link>
+          <.rail_link
+            to={~p"/admin/comments"}
+            icon="hero-chat-bubble-left-right"
+            active={@active == :comments}
+          >Comments</.rail_link>
           <div class="admin-nav-sep">Build</div>
           <.rail_link to={~p"/admin/widgets"} icon="hero-cube" active={@active == :widgets}>Widgets</.rail_link>
           <.rail_link to={~p"/admin/studio"} icon="hero-sparkles" active={@active == :studio}>Agent studio</.rail_link>

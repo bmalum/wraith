@@ -18,6 +18,14 @@
   </div>
   <.toc :if={not @locked} toc={@toc} />
   <.body :if={not @locked} segments={@segments} widgets={@widgets} />
+  <.comments
+    :if={not @locked}
+    enabled={@comments_enabled}
+    comments={@comments}
+    current_member={@current_member}
+    current_user={@current_user}
+    reply_to={@reply_to}
+  />
 </article>
 <section :if={@related != []} class="ink-intro">
   <p class="ink-muted">// read next</p>

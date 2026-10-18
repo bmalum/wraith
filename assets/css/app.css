@@ -374,3 +374,32 @@ a { color: inherit; }
 .composer textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 20%, transparent); }
 .composer textarea:disabled { background: var(--paper-2); color: var(--ink-3); }
 .composer .btn-accent { height: 2.75rem; width: 2.75rem; justify-content: center; padding: 0; border-radius: 12px; }
+
+/* =====================================================================
+   Comments
+   ===================================================================== */
+.comments { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: .95rem; }
+.comments-title { font-family: var(--serif); font-weight: 500; font-size: 1.3rem; margin: 0 0 1.25rem; }
+.comment { padding: .9rem 0; border-bottom: 1px solid var(--rule); }
+.comment.is-reply { border-bottom: 0; padding: .6rem 0 0; }
+.comment-replies { margin: .5rem 0 0 2.5rem; padding-left: 1rem; border-left: 2px solid var(--rule); }
+.comment-head { display: flex; align-items: center; gap: .6rem; margin-bottom: .35rem; }
+.comment-avatar { width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 600; font-size: .8rem; }
+.comment-author { font-weight: 600; }
+.comment-time { color: var(--ink-3); font-size: .8rem; }
+.comment-text { margin: 0 0 .35rem; white-space: pre-wrap; line-height: 1.5; }
+.comment-text.is-removed { color: var(--ink-3); font-style: italic; }
+.comment-actions { display: flex; gap: 1rem; }
+.link-btn { font: inherit; font-size: .8rem; border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 0; }
+.link-btn:hover { color: var(--accent); }
+.link-btn.is-danger:hover { color: oklch(45% 0.2 25); }
+.comment-form { margin-top: 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+.comment-form.is-reply { margin: .5rem 0 0 2.5rem; }
+.comment-form textarea { font: inherit; font-size: .95rem; padding: .6rem .8rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); resize: vertical; }
+.comment-form textarea:focus { outline: none; border-color: var(--accent); }
+.comment-form-actions { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.comments-signin { color: var(--ink-3); margin-top: 1rem; }
+.comments-signin a { color: var(--accent); }
+.ink .comments { border-color: oklch(30% 0.01 260); }
+.ink .comment { border-color: oklch(28% 0.01 260); }
+.ink .comment-form textarea { background: oklch(20% 0.01 260); border-color: oklch(36% 0.01 260); color: inherit; }

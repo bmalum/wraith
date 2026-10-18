@@ -99,6 +99,111 @@ defmodule WraithWeb.SiteComponents do
     """
   end
 
+  @doc """
+  Comments under a post. `@comments` is `Wraith.Comments.for_post/1`'s tree;
+  `@current_member` decides whether the form shows. Events: `comment`
+  (`body`, optional `parent_id`), `comment-delete` (`id`), `reply-to` (`id`).
+  """
+  attr :comments, :list, required: true
+  attr :current_member, :map, default: nil
+  attr :current_user, :map, default: nil
+  attr :reply_to, :string, default: nil
+  attr :enabled, :boolean, default: true
+
+  def comments(assigns) do
+    ~H"""
+    <section :if={@enabled} class="comments" id="comments">
+      <h2 class="comments-title">
+        {case length(@comments),
+          do: (
+            0 -> "Comments"
+            1 -> "1 comment"
+            n -> "#{n} comments"
+          )}
+      </h2>
+
+      <div
+        :for={%{comment: c, replies: replies} <- @comments}
+        class="comment"
+        id={"comment-" <> c["id"]}
+      >
+        <.comment_body c={c} current_member={@current_member} current_user={@current_user} />
+        <div :if={replies != []} class="comment-replies">
+          <div :for={r <- replies} class="comment is-reply" id={"comment-" <> r["id"]}>
+            <.comment_body
+              c={r}
+              current_member={@current_member}
+              current_user={@current_user}
+              reply={false}
+            />
+          </div>
+        </div>
+        <form
+          :if={@reply_to == c["id"] and @current_member}
+          phx-submit="comment"
+          class="comment-form is-reply"
+          id={"reply-form-" <> c["id"]}
+        >
+          <input type="hidden" name="parent_id" value={c["id"]} />
+          <textarea name="body" rows="2" placeholder={"Reply to " <> c["member_name"]} required></textarea>
+          <div class="comment-form-actions">
+            <button type="button" phx-click="reply-to" phx-value-id="" class="btn-ghost is-small">Cancel</button>
+            <button type="submit" class="btn-accent is-small">Reply</button>
+          </div>
+        </form>
+      </div>
+
+      <form :if={@current_member} phx-submit="comment" class="comment-form" id="comment-form">
+        <textarea name="body" rows="3" placeholder="Join the conversation" required></textarea>
+        <div class="comment-form-actions">
+          <span class="row-sub">Commenting as {@current_member["name"] || @current_member["email"]}</span>
+          <button type="submit" class="btn-accent is-small">Comment</button>
+        </div>
+      </form>
+      <p :if={is_nil(@current_member)} class="comments-signin">
+        <.link navigate={~p"/members"}>Sign in</.link> to join the conversation.
+      </p>
+    </section>
+    """
+  end
+
+  attr :c, :map, required: true
+  attr :current_member, :map, default: nil
+  attr :current_user, :map, default: nil
+  attr :reply, :boolean, default: true
+
+  defp comment_body(assigns) do
+    mine =
+      assigns.current_member != nil and assigns.current_member["id"] == assigns.c["member_id"]
+
+    assigns = assign(assigns, :can_remove, mine or assigns.current_user != nil)
+
+    ~H"""
+    <div class="comment-head">
+      <span class="comment-avatar">{String.first(@c["member_name"] || "?")}</span>
+      <span class="comment-author">{@c["member_name"]}</span>
+      <time class="comment-time" datetime={@c["created_at"]}>{date(@c["created_at"])}</time>
+    </div>
+    <p :if={@c["body"] != ""} class="comment-text">{@c["body"]}</p>
+    <p :if={@c["body"] == ""} class="comment-text is-removed">[removed]</p>
+    <div class="comment-actions">
+      <button
+        :if={@reply and @current_member}
+        phx-click="reply-to"
+        phx-value-id={@c["id"]}
+        class="link-btn"
+      >Reply</button>
+      <button
+        :if={@can_remove}
+        phx-click="comment-delete"
+        phx-value-id={@c["id"]}
+        data-confirm="Remove this comment?"
+        class="link-btn is-danger"
+      >Remove</button>
+    </div>
+    """
+  end
+
   @doc "The rendered post body: HTML segments raw, widget segments live."
   attr :segments, :list, required: true
   attr :widgets, :map, required: true

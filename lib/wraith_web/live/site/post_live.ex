@@ -4,7 +4,7 @@ defmodule WraithWeb.Site.PostLive do
   alias WraithWeb.Themes
   import WraithWeb.WidgetHost
 
-  alias Wraith.{Accounts, Content, Markdown, Settings}
+  alias Wraith.{Accounts, Comments, Content, Markdown, Settings}
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -16,7 +16,11 @@ defmodule WraithWeb.Site.PostLive do
         raise WraithWeb.NotFound, "no post at /#{slug}"
 
       post ->
-        if connected?(socket), do: Content.subscribe()
+        if connected?(socket) do
+          Content.subscribe()
+          Comments.subscribe(post["id"])
+        end
+
         author = post["author_id"] && Accounts.get_user(post["author_id"])
         authors = Accounts.list_users() |> Map.new(&{&1["id"], &1})
         url = url(~p"/#{post["slug"]}")
@@ -32,6 +36,9 @@ defmodule WraithWeb.Site.PostLive do
            co_authors:
              (post["authors"] || []) |> Enum.map(&authors[&1]) |> Enum.reject(&is_nil/1),
            toc: if(post["show_toc"], do: Markdown.toc(post["markdown"]), else: []),
+           comments: Comments.for_post(post["id"]),
+           comments_enabled: Comments.enabled?() and post["status"] == "published",
+           reply_to: nil,
            related:
              if(post["status"] == "published" and post["type"] == "post",
                do: Content.related(post),
@@ -69,7 +76,43 @@ defmodule WraithWeb.Site.PostLive do
   @impl true
   def handle_event("widget", params, socket), do: {:noreply, widget_event(socket, params)}
 
+  def handle_event(
+        "comment",
+        %{"body" => body} = params,
+        %{assigns: %{current_member: %{} = member}} = socket
+      ) do
+    parent = if params["parent_id"] in [nil, ""], do: nil, else: params["parent_id"]
+
+    case Comments.create(socket.assigns.post, member, body, parent) do
+      {:ok, _} -> {:noreply, assign(socket, reply_to: nil)}
+      {:error, why} -> {:noreply, put_flash(socket, :error, why)}
+    end
+  end
+
+  def handle_event("comment", _params, socket),
+    do: {:noreply, put_flash(socket, :error, "Sign in to comment.")}
+
+  defp may_remove?(%{current_user: %{}}, _c), do: true
+  defp may_remove?(%{current_member: %{"id" => id}}, %{"member_id" => id}), do: true
+  defp may_remove?(_assigns, _c), do: false
+
+  def handle_event("reply-to", %{"id" => id}, socket),
+    do: {:noreply, assign(socket, reply_to: if(id == "", do: nil, else: id))}
+
+  def handle_event("comment-delete", %{"id" => id}, socket) do
+    with %{} = c <- Comments.get(socket.assigns.post["id"], id),
+         true <- may_remove?(socket.assigns, c) do
+      :ok = Comments.delete(c)
+      {:noreply, socket}
+    else
+      _ -> {:noreply, put_flash(socket, :error, "Not yours to remove.")}
+    end
+  end
+
   @impl true
+  def handle_info({:comments, _post_id}, socket),
+    do: {:noreply, assign(socket, comments: Comments.for_post(socket.assigns.post["id"]))}
+
   def handle_info({:widget, _, _, _} = msg, socket), do: {:noreply, widget_info(socket, msg)}
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"} = msg, socket),

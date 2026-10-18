@@ -94,6 +94,7 @@ defmodule WraithWeb.Router do
       live "/pages", PostsLive, :pages
       live "/tags", TagsLive, :index
       live "/members", MembersLive, :index
+      live "/comments", CommentsLive, :index
       live "/widgets", WidgetsLive, :index
       live "/widgets/new", WidgetEditorLive, :new
       live "/widgets/:slug", WidgetEditorLive, :edit

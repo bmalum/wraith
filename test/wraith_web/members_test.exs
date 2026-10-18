@@ -205,4 +205,51 @@ defmodule WraithWeb.MembersTest do
     |> Plug.Conn.put_session(:member_token, token)
     |> Plug.Conn.put_session(:visitor, "v-" <> member["id"])
   end
+
+  test "comments: members comment and reply, live for other readers, moderation", %{
+    conn: conn,
+    owner: owner
+  } do
+    {:ok, _} = Settings.update(%{comments_enabled: true})
+    post = post_fixture(owner, %{title: "Talk"})
+    {:ok, m1} = Members.create(%{email: "one@x.io", name: "One"})
+    {:ok, m2} = Members.create(%{email: "two@x.io", name: "Two"})
+
+    {:ok, anon, html} = live(conn, ~p"/#{post["slug"]}")
+    assert html =~ "Sign in</a> to join the conversation"
+
+    {:ok, v1, _} = live(log_in_member(conn, m1), ~p"/#{post["slug"]}")
+    v1 |> form("#comment-form", %{body: "First!"}) |> render_submit()
+    assert render(v1) =~ "First!"
+    assert render(anon) =~ "First!", "other readers see it live"
+    [%{comment: c}] = Wraith.Comments.for_post(post["id"])
+
+    {:ok, v2, _} = live(log_in_member(conn, m2), ~p"/#{post["slug"]}")
+    v2 |> element(~s(#comment-#{c["id"]} button[phx-click=reply-to])) |> render_click()
+
+    v2
+    |> form("#reply-form-#{c["id"]}", %{body: "Second.", parent_id: c["id"]})
+    |> render_submit()
+
+    assert render(anon) =~ "Second."
+    assert Wraith.Comments.count(post["id"]) == 2
+    [%{replies: [reply]}] = Wraith.Comments.for_post(post["id"])
+
+    assert {:error, "replies go one level deep"} =
+             Wraith.Comments.create(post, m1, "nested", reply["id"])
+
+    # m2 may not remove m1's comment; m1 may
+    render_click(element(v2, ~s(#comment-#{c["id"]} button[phx-click=comment-delete])))
+    assert Wraith.Comments.count(post["id"]) == 2
+    render_click(element(v1, ~s(#comment-#{c["id"]} button[phx-click=comment-delete])))
+    # a removed parent keeps the slot for its reply
+    assert [%{comment: %{"body" => ""}, replies: [_]}] = Wraith.Comments.for_post(post["id"])
+
+    # moderation
+    {:ok, admin, html} = live(log_in(conn, owner), ~p"/admin/comments")
+    assert html =~ "Second."
+    admin |> element(~s(#comment-#{reply["id"]} button[phx-click=hide])) |> render_click()
+    assert Wraith.Comments.for_post(post["id"]) |> hd() |> Map.get(:replies) == []
+    refute render(anon) =~ "Second."
+  end
 end
