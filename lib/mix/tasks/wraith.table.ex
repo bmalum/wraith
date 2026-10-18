@@ -1,11 +1,14 @@
 defmodule Mix.Tasks.Wraith.Table do
-  @shortdoc "Create the DynamoDB single table (idempotent)"
+  @shortdoc "Create the single table for the configured store (idempotent)"
   @moduledoc """
-  Creates the `wraith` table (keys `pk`/`sk`, GSI `gsi1` on `gsi1pk`/`gsi1sk`,
-  on-demand capacity) unless it exists.
+  Creates the one table every item lives in, for whichever store
+  `WRAITH_STORE` names: DynamoDB (keys `pk`/`sk`, GSI `gsi1`, on-demand),
+  PostgreSQL or Aurora DSQL (`items` with its index).
 
       WRAITH_STORE=dynamo WRAITH_TABLE=wraith AWS_PROFILE=me mix wraith.table
-      DYNAMO_ENDPOINT=http://localhost:8000 mix wraith.table      # DynamoDB Local
+      DYNAMO_ENDPOINT=http://127.0.0.1:8000 WRAITH_STORE=dynamo mix wraith.table
+      WRAITH_STORE=postgres DATABASE_URL=postgres://postgres:postgres@127.0.0.1/wraith mix wraith.table
+      WRAITH_STORE=dsql DSQL_ENDPOINT=<cluster>.dsql.eu-central-1.on.aws AWS_PROFILE=me mix wraith.table
   """
   use Mix.Task
 
@@ -14,10 +17,24 @@ defmodule Mix.Tasks.Wraith.Table do
     Mix.Task.run("app.config")
     {:ok, _} = Application.ensure_all_started(:ex_aws)
     {:ok, _} = Application.ensure_all_started(:req)
+    {:ok, _} = Application.ensure_all_started(:postgrex)
 
-    case Wraith.Store.Dynamo.ensure_table!() do
-      :created -> Mix.shell().info("created table #{Wraith.Store.Dynamo.table()}")
-      :exists -> Mix.shell().info("table #{Wraith.Store.Dynamo.table()} already exists")
+    {store, table} =
+      case Wraith.Store.impl() do
+        Wraith.Store.SQL ->
+          {:ok, _} = Wraith.Store.SQL.start_link()
+          {Wraith.Store.SQL, Wraith.Store.SQL.table()}
+
+        Wraith.Store.Memory ->
+          Mix.raise("WRAITH_STORE=memory has no table to create")
+
+        _ ->
+          {Wraith.Store.Dynamo, Wraith.Store.Dynamo.table()}
+      end
+
+    case store.ensure_table!() do
+      :created -> Mix.shell().info("created table #{table} (#{inspect(store)})")
+      :exists -> Mix.shell().info("table #{table} already exists (#{inspect(store)})")
     end
   end
 end

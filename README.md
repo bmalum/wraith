@@ -2,12 +2,12 @@
 
 A Ghost-style publishing platform in Elixir/Phoenix — with **live widgets**
 (tiny shared-state mini-apps readers interact with in real time), a **Lua
-widget studio**, one **DynamoDB table** for everything, and an **agent
-studio**: a Kiro agent on a Lambda MicroVM that writes posts, scripts
+widget studio**, **one table** for everything (DynamoDB, PostgreSQL or
+Aurora DSQL), and an **agent studio**: a Kiro agent on a Lambda MicroVM that writes posts, scripts
 widgets and runs the site with you.
 
 ```
- reader ──LiveView──▶ Phoenix ──▶ Wraith.Store ──▶ DynamoDB (one table, one GSI)
+ reader ──LiveView──▶ Phoenix ──▶ Wraith.Store ──▶ DynamoDB | PostgreSQL | Aurora DSQL (one table)
                          │
                          ├─ Wraith.Widgets ── luerl sandbox (Lua) / Elixir modules
                          │                     state per instance, PubSub fan-out
@@ -27,7 +27,7 @@ widgets and runs the site with you.
 | Widget studio: write Lua, click the live preview, versions & rollback | `WraithWeb.Admin.WidgetEditorLive` |
 | Agent studio: Kiro on a MicroVM, transcript streaming, tool calls, permission prompts | `Wraith.Studio`, `Wraith.Studio.Server`, `Wraith.Studio.Tools`, `WraithWeb.Admin.StudioLive` |
 | Kiro runtime (ported from shadow_corp): MicroVM API, ACP client, bridge, MCP | `Wraith.Kiro.*`, `microvm/` |
-| Storage: one table, Memory and DynamoDB adapters | `Wraith.Store`, `Wraith.Store.Keys` |
+| Storage: one table; Memory, DynamoDB and SQL (PostgreSQL / Aurora DSQL) adapters | `Wraith.Store`, `Wraith.Store.Keys`, `Wraith.Store.{Memory,Dynamo,SQL}` |
 
 ## Run it
 
@@ -47,7 +47,20 @@ mix phx.server
 ```
 
 Against AWS: `WRAITH_STORE=dynamo AWS_PROFILE=… AWS_REGION=… mix wraith.table`.
-All env vars are listed in `.env.example`; `config/runtime.exs` reads them.
+
+PostgreSQL or Aurora DSQL instead — same one-table layout, same `mix wraith.table`:
+
+```sh
+docker compose up -d postgres
+WRAITH_STORE=postgres DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5434/wraith mix wraith.table
+WRAITH_STORE=postgres DATABASE_URL=… mix phx.server
+
+WRAITH_STORE=dsql DSQL_ENDPOINT=<cluster>.dsql.eu-central-1.on.aws AWS_PROFILE=… mix wraith.table
+```
+
+DSQL authenticates with an IAM token minted per connection (`dsql:DbConnectAdmin`,
+`Wraith.Store.SQL.Token`); the index is created `ASYNC`, a `40001` commit conflict
+is retried. All env vars are listed in `.env.example`; `config/runtime.exs` reads them.
 
 ### Writing
 
@@ -111,8 +124,11 @@ it when idle and terminates it after three hours without a word.
 
 ## Storage layout
 
-One table, `pk`/`sk`, one GSI `gsi1` (`gsi1pk`/`gsi1sk`), on-demand. The
-whole layout is in `Wraith.Store.Keys`:
+One table, `pk`/`sk`, one index on `gsi1pk`/`gsi1sk` — a DynamoDB table with
+a GSI, or a SQL table `items(pk, sk, gsi1pk, gsi1sk, version, data)` with the
+item as JSON in `data`. `Wraith.Store` is a small key-value interface
+(`get/put/delete/query/transact/batch_get/update`), so the adapters are thin and
+the whole suite runs against each of them. The layout is in `Wraith.Store.Keys`:
 
 | entity | pk | sk | gsi1 |
 |---|---|---|---|
@@ -125,7 +141,8 @@ whole layout is in `Wraith.Store.Keys`:
 | widget / version / instance state | `WIDGET#slug` / `WSTATE#slug#instance` | `WIDGET` / `VER#n` / `STATE` | `WIDGETS` |
 | studio session / transcript | `STUDIO` / `STUDIO#sid` | `SESSION#id` / `MSG#at#seq` | |
 
-Uniqueness (slugs, emails) is a conditional put in a `TransactWriteItems`;
+Uniqueness (slugs, emails) is a conditional put inside a transaction
+(`TransactWriteItems` / `INSERT … ON CONFLICT DO NOTHING` with a row-count check);
 `Wraith.Store.update/3` is optimistic read-modify-write on `version`.
 
 ## Tests
@@ -133,13 +150,15 @@ Uniqueness (slugs, emails) is a conditional put in a `TransactWriteItems`;
 ```sh
 mix test                                              # 66 tests, in-memory store, fake agent
 WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test     # the same suite on DynamoDB Local
+WRAITH_TEST_POSTGRES=postgres://postgres:postgres@127.0.0.1:5434/wraith_test mix test   # … on PostgreSQL
 mix compile --warnings-as-errors
 ```
 
 ## Deploy
 
 `Dockerfile` builds a release (`mix phx.gen.release --docker`). Needs
-`SECRET_KEY_BASE`, `PHX_HOST`, `WRAITH_STORE=dynamo`, `WRAITH_TABLE`,
+`SECRET_KEY_BASE`, `PHX_HOST`, a store (`WRAITH_STORE=dynamo` + `WRAITH_TABLE`,
+`WRAITH_STORE=postgres` + `DATABASE_URL`, or `WRAITH_STORE=dsql` + `DSQL_ENDPOINT`),
 `AWS_REGION` and a task role allowed to read/write the table (and, for the
 studio, `lambda:*MicroVM*` plus the journal bucket). Run `mix wraith.table`
 once per environment.

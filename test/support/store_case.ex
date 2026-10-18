@@ -23,6 +23,9 @@ defmodule Wraith.StoreCase do
       Wraith.Store.Memory ->
         Wraith.Store.Memory.reset()
 
+      Wraith.Store.SQL ->
+        Postgrex.query!(Wraith.Store.SQL.Pool, "DELETE FROM #{Wraith.Store.SQL.table()}", [])
+
       Wraith.Store.Dynamo ->
         {:ok, %{"Items" => items}} =
           ExAws.Dynamo.scan(Wraith.Store.Dynamo.table(), projection_expression: "pk, sk")

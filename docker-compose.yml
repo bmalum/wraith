@@ -7,3 +7,8 @@ services:
     image: amazon/dynamodb-local:latest
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
     ports: ["127.0.0.1:8000:8000"]
+  # PostgreSQL for WRAITH_STORE=postgres (DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5434/wraith)
+  postgres:
+    image: postgres:17-alpine
+    environment: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: wraith }
+    ports: ["127.0.0.1:5434:5432"]

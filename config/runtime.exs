@@ -27,11 +27,24 @@ config :wraith, WraithWeb.Endpoint,
 #
 #   WRAITH_STORE=memory            in-process ETS (dev default, nothing persists)
 #   WRAITH_STORE=dynamo            DynamoDB single table (deployed default)
-#   WRAITH_TABLE=wraith            table name
+#   WRAITH_STORE=postgres          PostgreSQL, one table — DATABASE_URL=postgres://u:p@host/db
+#   WRAITH_STORE=dsql              Aurora DSQL — DSQL_ENDPOINT=<cluster>.dsql.<region>.on.aws (IAM auth)
+#   WRAITH_TABLE=wraith            table name (DynamoDB) / items (SQL)
 #   DYNAMO_ENDPOINT=http://localhost:8000   DynamoDB Local
 #   AWS_REGION / AWS_PROFILE       the usual credential chain (ex_aws)
-# Tests run on the in-memory store; `WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test test/wraith/store_test.exs`
-# points them at DynamoDB Local instead (the one place the real adapter is exercised).
+# Tests run on the in-memory store. `WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test`
+# runs the suite on DynamoDB Local, `WRAITH_TEST_POSTGRES=postgres://postgres:postgres@127.0.0.1:5432/wraith_test`
+# on PostgreSQL — the places the real adapters are exercised.
+if config_env() == :test and System.get_env("WRAITH_TEST_POSTGRES") do
+  config :wraith, store: Wraith.Store.SQL
+
+  config :wraith, Wraith.Store.SQL,
+    dialect: :postgres,
+    url: System.get_env("WRAITH_TEST_POSTGRES"),
+    table: "items",
+    pool_size: 5
+end
+
 if config_env() == :test and System.get_env("WRAITH_TEST_DYNAMO") do
   config :wraith, store: Wraith.Store.Dynamo
   config :wraith, Wraith.Store.Dynamo, table: System.get_env("WRAITH_TABLE", "wraith")
@@ -47,16 +60,43 @@ if config_env() == :test and System.get_env("WRAITH_TEST_DYNAMO") do
 end
 
 if config_env() != :test do
+  region = System.get_env("AWS_REGION", "eu-central-1")
+
   store =
     case System.get_env("WRAITH_STORE", if(config_env() == :dev, do: "memory", else: "dynamo")) do
       "memory" -> Wraith.Store.Memory
+      "postgres" -> Wraith.Store.SQL
+      "dsql" -> Wraith.Store.SQL
       _ -> Wraith.Store.Dynamo
     end
 
   config :wraith, store: store
   config :wraith, Wraith.Store.Dynamo, table: System.get_env("WRAITH_TABLE", "wraith")
 
-  region = System.get_env("AWS_REGION", "eu-central-1")
+  case System.get_env("WRAITH_STORE") do
+    "postgres" ->
+      config :wraith, Wraith.Store.SQL,
+        dialect: :postgres,
+        url: System.get_env("DATABASE_URL") || raise("WRAITH_STORE=postgres needs DATABASE_URL"),
+        table: System.get_env("WRAITH_TABLE", "items"),
+        ssl: System.get_env("DATABASE_SSL") in ["true", "1"],
+        pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+
+    "dsql" ->
+      config :wraith, Wraith.Store.SQL,
+        dialect: :dsql,
+        hostname:
+          System.get_env("DSQL_ENDPOINT") || raise("WRAITH_STORE=dsql needs DSQL_ENDPOINT"),
+        username: System.get_env("DSQL_USER", "admin"),
+        database: "postgres",
+        region: region,
+        table: System.get_env("WRAITH_TABLE", "items"),
+        pool_size: String.to_integer(System.get_env("POOL_SIZE", "10"))
+
+    _ ->
+      :ok
+  end
+
   config :ex_aws, region: region
 
   if profile = System.get_env("AWS_PROFILE") do

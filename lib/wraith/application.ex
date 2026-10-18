@@ -29,9 +29,13 @@ defmodule Wraith.Application do
     Supervisor.start_link(children, opts)
   end
 
-  # the ETS store is a process; DynamoDB is not
+  # the ETS store is a process, so is the SQL pool; DynamoDB is not
   defp store_children do
-    if Wraith.Store.impl() == Wraith.Store.Memory, do: [Wraith.Store.Memory], else: []
+    case Wraith.Store.impl() do
+      Wraith.Store.Memory -> [Wraith.Store.Memory]
+      Wraith.Store.SQL -> [Wraith.Store.SQL]
+      _ -> []
+    end
   end
 
   defp clock_children do

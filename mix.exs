@@ -80,7 +80,9 @@ defmodule Wraith.MixProject do
       # ACP (JSON-RPC over WebSocket) to Kiro Agent Servers
       {:mint_web_socket, "~> 1.0"},
       # owner password
-      {:bcrypt_elixir, "~> 3.3"}
+      {:bcrypt_elixir, "~> 3.3"},
+      # the SQL store adapter (PostgreSQL and Aurora DSQL)
+      {:postgrex, "~> 0.22"}
     ]
   end
 
