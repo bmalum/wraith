@@ -2,7 +2,7 @@
   {@site["description"]}
 </p>
 <div :if={@posts == []} class="t-empty">
-  <p>Nothing published yet.</p>
+  <p>{gettext("Nothing published yet.")}</p>
 </div>
 <ul class="l-min-list">
   <li :for={post <- @posts}>

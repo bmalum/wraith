@@ -27,6 +27,30 @@ defmodule Wraith.Uploads.S3 do
     :ok
   end
 
+  @impl true
+  def list(opts) do
+    prefix = (cfg()[:prefix] || "uploads") <> "/"
+    max = Keyword.get(opts, :limit, 60) * 4
+
+    case ExAws.S3.list_objects_v2(Keyword.fetch!(cfg(), :bucket), prefix: prefix, max_keys: max)
+         |> ExAws.request() do
+      {:ok, %{body: %{contents: contents}}} ->
+        for %{key: object, size: size, last_modified: modified} <- contents do
+          key = String.replace_prefix(object, prefix, "")
+
+          %{
+            key: key,
+            url: url(object),
+            size: String.to_integer(to_string(size)),
+            modified: modified
+          }
+        end
+
+      _ ->
+        []
+    end
+  end
+
   defp object(key), do: (cfg()[:prefix] || "uploads") <> "/" <> key
 
   defp url(object) do

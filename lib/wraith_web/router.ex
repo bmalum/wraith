@@ -26,6 +26,7 @@ defmodule WraithWeb.Router do
 
   pipeline :public_cache do
     plug WraithWeb.PublicCache
+    plug WraithWeb.Locale
   end
 
   # ---- the public site -----------------------------------------------------------
@@ -35,6 +36,7 @@ defmodule WraithWeb.Router do
 
     live_session :site,
       on_mount: [
+        {WraithWeb.Locale, :put_locale},
         {WraithWeb.UserAuth, :mount_current_user},
         {WraithWeb.UserAuth, :mount_visitor},
         {WraithWeb.MemberAuth, :mount_current_member}
@@ -222,6 +224,7 @@ defmodule WraithWeb.Router do
 
     live_session :post,
       on_mount: [
+        {WraithWeb.Locale, :put_locale},
         {WraithWeb.UserAuth, :mount_current_user},
         {WraithWeb.UserAuth, :mount_visitor},
         {WraithWeb.MemberAuth, :mount_current_member}

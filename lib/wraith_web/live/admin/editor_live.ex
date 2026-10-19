@@ -29,6 +29,7 @@ defmodule WraithWeb.Admin.EditorLive do
         drawer: false,
         saved_at: nil,
         preview_url: nil,
+        library: nil,
         widget_defs: Widgets.list_enabled(),
         sent: Wraith.Newsletter.send_record(post),
         all_authors: Wraith.Accounts.list_users(),
@@ -117,6 +118,31 @@ defmodule WraithWeb.Admin.EditorLive do
 
   def handle_event("hide-preview", _params, socket),
     do: {:noreply, assign(socket, preview_url: nil)}
+
+  # the image library: reuse something already uploaded
+  def handle_event("library", _params, %{assigns: %{library: nil}} = socket),
+    do: {:noreply, assign(socket, library: Uploads.list())}
+
+  def handle_event("library", _params, socket), do: {:noreply, assign(socket, library: nil)}
+
+  def handle_event("library-insert", %{"url" => url}, socket) do
+    alt = url |> Path.basename() |> Path.rootname() |> String.replace(~r/[-_]+/, " ")
+
+    {:noreply,
+     socket
+     |> assign(library: nil)
+     |> push_event("editor:insert", %{text: "\n![#{alt}](#{url})\n"})}
+  end
+
+  def handle_event("library-feature", %{"url" => url}, socket) do
+    attrs = %{
+      "feature_image" => url,
+      "feature_image_width" => nil,
+      "feature_image_height" => nil
+    }
+
+    {:noreply, socket |> assign(library: nil) |> save(attrs)}
+  end
 
   def handle_event("validate-upload", _params, socket), do: {:noreply, socket}
 
@@ -426,9 +452,60 @@ defmodule WraithWeb.Admin.EditorLive do
               <span :for={e <- @uploads.inline.entries} class="row-sub">{e.client_name} {e.progress}%</span>
               <span :for={{_ref, err} <- @uploads.inline.errors} class="editor-err">{upload_error(err)}</span>
             </form>
+            <button
+              type="button"
+              phx-click="library"
+              class={["chip", @library && "is-active"]}
+              aria-expanded={to_string(@library != nil)}
+              title="Reuse an image you've already uploaded"
+            ><.icon name="hero-rectangle-stack" class="size-3" /> Library</button>
           </div>
 
-          <section class="editor-preview" aria-label="Preview">
+          <section
+            :if={@library}
+            class="editor-library"
+            id="editor-library"
+            aria-label="Image library"
+          >
+            <header class="editor-library-head">
+              <span class="editor-palette-label">{length(@library)} uploaded images</span>
+              <button type="button" class="icon-btn" phx-click="library" aria-label="Close library"><.icon
+                name="hero-x-mark"
+                class="size-4"
+              /></button>
+            </header>
+            <p :if={@library == []} class="panel-empty">
+              Nothing uploaded yet — add an image with the Image button or the feature image picker.
+            </p>
+            <div class="editor-library-grid">
+              <figure :for={img <- @library} class="editor-library-item">
+                <img src={img.url} alt="" loading="lazy" />
+                <figcaption>
+                  <span class="row-sub" title={img.key}>{Path.basename(img.key)}</span>
+                  <span class="editor-library-actions">
+                    <button
+                      type="button"
+                      class="btn-ghost is-small"
+                      phx-click="library-insert"
+                      phx-value-url={img.url}
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-ghost is-small"
+                      phx-click="library-feature"
+                      phx-value-url={img.url}
+                    >
+                      Feature
+                    </button>
+                  </span>
+                </figcaption>
+              </figure>
+            </div>
+          </section>
+
+          <section :if={is_nil(@library)} class="editor-preview" aria-label="Preview">
             <article class="post is-preview">
               <h1 class="post-title">{if @title == "", do: "Untitled", else: @title}</h1>
               <.body segments={@segments} widgets={@widgets} />

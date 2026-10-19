@@ -11,9 +11,14 @@
         <span :if={@site["logo"] in [nil, ""]}>{@site["title"]}</span>
       </a>
       <.nav_toggle />
-      <nav class="masthead-nav t-nav" id="site-nav" aria-label="Site">
+      <nav class="masthead-nav t-nav" id="site-nav" aria-label={gettext("Site")}>
         <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
-        <a href={~p"/search"} class="masthead-icon" title="Search" aria-label="Search"><.icon
+        <a
+          href={~p"/search"}
+          class="masthead-icon"
+          title={gettext("Search")}
+          aria-label={gettext("Search")}
+        ><.icon
           name="hero-magnifying-glass"
           class="size-4"
         /></a>
@@ -22,9 +27,11 @@
           :if={@site["members_enabled"] and is_nil(assigns[:current_member])}
           href={~p"/subscribe"}
           class="masthead-cta"
-        >Subscribe</a>
-        <a :if={assigns[:current_member]} href={~p"/members"} class="masthead-cta">Account</a>
-        <a :if={@current_user} href={~p"/admin"} class="masthead-icon" title="Admin"><.icon
+        >{gettext("Subscribe")}</a>
+        <a :if={assigns[:current_member]} href={~p"/members"} class="masthead-cta">{gettext(
+          "Account"
+        )}</a>
+        <a :if={@current_user} href={~p"/admin"} class="masthead-icon" title={gettext("Admin")}><.icon
           name="hero-pencil-square"
           class="size-4"
         /></a>

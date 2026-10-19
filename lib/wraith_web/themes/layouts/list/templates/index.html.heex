@@ -2,7 +2,7 @@
   <h1 class="t-title l-list-h">{@site["title"]}</h1>
   <p class="t-lede">{@site["description"]}</p>
 </section>
-<p :if={@posts == []} class="t-muted">// nothing published yet</p>
+<p :if={@posts == []} class="t-muted">// {gettext("nothing published yet")}</p>
 <ol class="l-list-rows">
   <li :for={post <- @posts}>
     <time datetime={post["published_at"]}>{String.slice(post["published_at"] || "", 0, 10)}</time>

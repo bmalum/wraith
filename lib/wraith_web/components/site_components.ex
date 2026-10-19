@@ -1,6 +1,7 @@
 defmodule WraithWeb.SiteComponents do
   @moduledoc "The public site's pieces: post cards, the rendered body with live widgets, bylines."
   use Phoenix.Component
+  use Gettext, backend: WraithWeb.Gettext
   use WraithWeb, :verified_routes
   import WraithWeb.CoreComponents, only: [icon: 1]
 
@@ -106,7 +107,7 @@ defmodule WraithWeb.SiteComponents do
       ]}</.link>
       <time :if={@post["published_at"]} datetime={@post["published_at"]}>{date(@post["published_at"])}</time>
       <span class="byline-sep" aria-hidden="true">·</span>
-      <span>{Markdown.reading_minutes(@post["markdown"])} min read</span>
+      <span>{gettext("%{n} min read", n: Markdown.reading_minutes(@post["markdown"]))}</span>
     </div>
     """
   end
@@ -120,22 +121,24 @@ defmodule WraithWeb.SiteComponents do
     <div class="paywall">
       <h3>
         {if @post["visibility"] == "paid",
-          do: "This post is for paid members",
-          else: "This post is for members"}
+          do: gettext("This post is for paid members"),
+          else: gettext("This post is for members")}
       </h3>
       <p>
         {if @post["visibility"] == "paid",
-          do: "Upgrade to keep reading.",
-          else: "Sign up for free to keep reading."}
+          do: gettext("Upgrade to keep reading."),
+          else: gettext("Sign up for free to keep reading.")}
       </p>
       <.link
         :if={@post["visibility"] == "paid" and @current_member}
         navigate={~p"/members"}
         class="btn-accent"
-      >Upgrade</.link>
-      <.link :if={is_nil(@current_member)} navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
+      >{gettext("Upgrade")}</.link>
+      <.link :if={is_nil(@current_member)} navigate={~p"/subscribe"} class="btn-accent">
+        {gettext("Subscribe")}
+      </.link>
       <p :if={is_nil(@current_member)} class="form-help">
-        Already a member? <.link navigate={~p"/members"}>Sign in</.link>
+        {gettext("Already a member?")} <.link navigate={~p"/members"}>{gettext("Sign in")}</.link>
       </p>
     </div>
     """
@@ -147,7 +150,7 @@ defmodule WraithWeb.SiteComponents do
   def toc(assigns) do
     ~H"""
     <nav :if={@toc != []} class="toc" aria-label="Contents">
-      <span class="toc-title">Contents</span>
+      <span class="toc-title">{gettext("Contents")}</span>
       <ol>
         <li :for={h <- @toc} class={"is-h#{h["level"]}"}><a href={"#" <> h["id"]}>{h["text"]}</a></li>
       </ol>
@@ -162,7 +165,7 @@ defmodule WraithWeb.SiteComponents do
   def related(assigns) do
     ~H"""
     <aside :if={@posts != []} class="related" aria-label="Read next">
-      <h2 class="related-title">Read next</h2>
+      <h2 class="related-title">{gettext("Read next")}</h2>
       <div class="feed is-related">
         <.post_card :for={p <- @posts} post={p} authors={@authors} />
       </div>
@@ -187,9 +190,8 @@ defmodule WraithWeb.SiteComponents do
       <h2 class="comments-title">
         {case length(@comments),
           do: (
-            0 -> "Comments"
-            1 -> "1 comment"
-            n -> "#{n} comments"
+            0 -> gettext("Comments")
+            n -> ngettext("%{count} comment", "%{count} comments", n)
           )}
       </h2>
 
@@ -216,23 +218,36 @@ defmodule WraithWeb.SiteComponents do
           id={"reply-form-" <> c["id"]}
         >
           <input type="hidden" name="parent_id" value={c["id"]} />
-          <textarea name="body" rows="2" placeholder={"Reply to " <> c["member_name"]} required></textarea>
+          <textarea
+            name="body"
+            rows="2"
+            placeholder={gettext("Reply to %{name}", name: c["member_name"])}
+            required
+          ></textarea>
           <div class="comment-form-actions">
-            <button type="button" phx-click="reply-to" phx-value-id="" class="btn-ghost is-small">Cancel</button>
-            <button type="submit" class="btn-accent is-small">Reply</button>
+            <button type="button" phx-click="reply-to" phx-value-id="" class="btn-ghost is-small">{gettext(
+              "Cancel"
+            )}</button>
+            <button type="submit" class="btn-accent is-small">{gettext("Reply")}</button>
           </div>
         </form>
       </div>
 
       <form :if={@current_member} phx-submit="comment" class="comment-form" id="comment-form">
-        <textarea name="body" rows="3" placeholder="Join the conversation" required></textarea>
+        <textarea name="body" rows="3" placeholder={gettext("Join the conversation")} required></textarea>
         <div class="comment-form-actions">
-          <span class="row-sub">Commenting as {@current_member["name"] || @current_member["email"]}</span>
-          <button type="submit" class="btn-accent is-small">Comment</button>
+          <span class="row-sub">
+            {gettext("Commenting as %{name}",
+              name: @current_member["name"] || @current_member["email"]
+            )}
+          </span>
+          <button type="submit" class="btn-accent is-small">{gettext("Comment")}</button>
         </div>
       </form>
       <p :if={is_nil(@current_member)} class="comments-signin">
-        <.link navigate={~p"/members"}>Sign in</.link> to join the conversation.
+        <.link navigate={~p"/members"}>{gettext("Sign in")}</.link> {gettext(
+          "to join the conversation."
+        )}
       </p>
     </section>
     """
@@ -263,14 +278,14 @@ defmodule WraithWeb.SiteComponents do
         phx-click="reply-to"
         phx-value-id={@c["id"]}
         class="link-btn"
-      >Reply</button>
+      >{gettext("Reply")}</button>
       <button
         :if={@can_remove}
         phx-click="comment-delete"
         phx-value-id={@c["id"]}
-        data-confirm="Remove this comment?"
+        data-confirm={gettext("Remove this comment?")}
         class="link-btn is-danger"
-      >Remove</button>
+      >{gettext("Remove")}</button>
     </div>
     """
   end
@@ -327,9 +342,9 @@ defmodule WraithWeb.SiteComponents do
   def pager(assigns) do
     ~H"""
     <nav :if={@page > 1 or @has_next} class="pager" aria-label="Pages">
-      <.link :if={@page > 1} navigate={@path.(@page - 1)} class="pager-link">← Newer</.link>
-      <span class="pager-page">Page {@page}</span>
-      <.link :if={@has_next} navigate={@path.(@page + 1)} class="pager-link">Older →</.link>
+      <.link :if={@page > 1} navigate={@path.(@page - 1)} class="pager-link">{gettext("← Newer")}</.link>
+      <span class="pager-page">{gettext("Page %{n}", n: @page)}</span>
+      <.link :if={@has_next} navigate={@path.(@page + 1)} class="pager-link">{gettext("Older →")}</.link>
     </nav>
     """
   end

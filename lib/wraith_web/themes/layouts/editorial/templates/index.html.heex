@@ -3,8 +3,10 @@
   <p class="t-lede">{@site["description"]}</p>
 </section>
 <div :if={@posts == []} class="t-empty">
-  <p>Nothing published yet.</p>
-  <p :if={@current_user}><.link navigate={~p"/admin/posts/new"}>Write the first post →</.link></p>
+  <p>{gettext("Nothing published yet.")}</p>
+  <p :if={@current_user}>
+    <.link navigate={~p"/admin/posts/new"}>{gettext("Write the first post →")}</.link>
+  </p>
 </div>
 <section class="feed">
   <%= for {post, i} <- Enum.with_index(@posts) do %>

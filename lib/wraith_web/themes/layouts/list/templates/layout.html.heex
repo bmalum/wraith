@@ -2,13 +2,15 @@
   <header class="l-list-head">
     <a href="/" class="l-list-brand">~/{Wraith.Slug.slugify(@site["title"])}</a>
     <.nav_toggle />
-    <nav class="l-list-nav t-nav" id="site-nav" aria-label="Site">
+    <nav class="l-list-nav t-nav" id="site-nav" aria-label={gettext("Site")}>
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
-      <a href={~p"/search"}>search</a>
-      <a :if={@site["members_enabled"] and is_nil(assigns[:current_member])} href={~p"/subscribe"}>subscribe</a>
-      <a :if={assigns[:current_member]} href={~p"/members"}>account</a>
-      <a href={~p"/rss"}>rss</a>
-      <a :if={@current_user} href={~p"/admin"}>admin</a>
+      <a href={~p"/search"}>{gettext("search")}</a>
+      <a :if={@site["members_enabled"] and is_nil(assigns[:current_member])} href={~p"/subscribe"}>{gettext(
+        "subscribe"
+      )}</a>
+      <a :if={assigns[:current_member]} href={~p"/members"}>{gettext("account")}</a>
+      <a href={~p"/rss"}>{gettext("rss")}</a>
+      <a :if={@current_user} href={~p"/admin"}>{gettext("admin")}</a>
       <.mode_toggle />
     </nav>
   </header>

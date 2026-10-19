@@ -497,6 +497,11 @@ defmodule Wraith.Tools do
       ),
 
       # uploads
+      read(
+        "uploads_list",
+        "The image library: uploaded originals, newest first, with URLs to reuse in posts.",
+        %{"limit" => %{"type" => "integer", "description" => "default 60"}}
+      ),
       write(
         "upload_from_url",
         "Fetch an image from a URL into the site's uploads; returns the hosted URL to use in posts.",
@@ -1069,6 +1074,11 @@ defmodule Wraith.Tools do
   end
 
   # ---- uploads -------------------------------------------------------------------------
+
+  defp do_call(_ctx, "uploads_list", a) do
+    limit = if is_integer(a["limit"]) and a["limit"] > 0, do: min(a["limit"], 500), else: 60
+    json(%{images: Uploads.list(limit: limit)})
+  end
 
   defp do_call(_ctx, "upload_from_url", %{"url" => url} = a) do
     case Req.get(url, receive_timeout: 20_000, max_redirects: 3, decode_body: false) do

@@ -26,6 +26,36 @@ defmodule Wraith.Uploads do
 
   @callback put(String.t(), binary(), String.t()) :: {:ok, String.t()} | {:error, term()}
   @callback delete(String.t()) :: :ok | {:error, term()}
+  @callback list(keyword()) :: [
+              %{
+                key: String.t(),
+                url: String.t(),
+                size: non_neg_integer(),
+                modified: String.t() | nil
+              }
+            ]
+
+  @variant ~r/\.w\d+\.webp$/
+
+  @doc "Is this key a generated variant (not an original)?"
+  def variant_key?(key), do: Regex.match?(@variant, key)
+
+  @doc """
+  The image library: uploaded originals (never the resized variants), newest
+  first. `limit:` (default 60).
+  """
+  def list(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 60)
+
+    impl().list(opts)
+    |> Enum.reject(&variant_key?(&1.key))
+    |> Enum.filter(&image_key?(&1.key))
+    |> Enum.sort_by(&{&1.modified, &1.key}, :desc)
+    |> Enum.take(limit)
+  end
+
+  defp image_key?(key),
+    do: (key |> Path.extname() |> String.downcase()) in ~w(.jpg .jpeg .png .gif .webp .avif .svg)
 
   def accepted_types, do: Map.keys(@types)
   def accepted_extensions, do: @types |> Map.values() |> Enum.map(&("." <> &1)) |> Enum.uniq()

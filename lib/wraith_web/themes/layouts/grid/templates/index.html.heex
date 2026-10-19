@@ -2,7 +2,7 @@
   {@site["description"]}
 </p>
 <div :if={@posts == []} class="t-empty">
-  <p>Nothing published yet.</p>
+  <p>{gettext("Nothing published yet.")}</p>
 </div>
 <section class="l-grid-cards">
   <article :for={post <- @posts} class="l-grid-card">

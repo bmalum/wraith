@@ -1,0 +1,503 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/wraith_web/components/site_components.ex:194
+#, elixir-autogen, elixir-format
+msgid "%{count} comment"
+msgid_plural "%{count} comments"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/wraith_web/themes/shared.ex:156
+#, elixir-autogen, elixir-format
+msgid "%{count} post"
+msgid_plural "%{count} posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/wraith_web/themes/shared.ex:155
+#, elixir-autogen, elixir-format
+msgid "%{count} result"
+msgid_plural "%{count} results"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/wraith_web/components/site_components.ex:110
+#, elixir-autogen, elixir-format
+msgid "%{n} min read"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/magazine/templates/index.html.heex:48
+#, elixir-autogen, elixir-format
+msgid "About"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/editorial/templates/layout.html.heex:26
+#: lib/wraith_web/themes/layouts/grid/templates/layout.html.heex:22
+#: lib/wraith_web/themes/layouts/journal/templates/layout.html.heex:10
+#: lib/wraith_web/themes/layouts/magazine/templates/layout.html.heex:11
+#: lib/wraith_web/themes/layouts/minimal/templates/layout.html.heex:9
+#, elixir-autogen, elixir-format
+msgid "Account"
+msgstr ""
+
+#: lib/wraith_web/components/core_components.ex:375
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/editorial/templates/layout.html.heex:27
+#: lib/wraith_web/themes/layouts/grid/templates/layout.html.heex:23
+#: lib/wraith_web/themes/layouts/journal/templates/layout.html.heex:11
+#: lib/wraith_web/themes/layouts/magazine/templates/layout.html.heex:12
+#: lib/wraith_web/themes/layouts/minimal/templates/layout.html.heex:10
+#, elixir-autogen, elixir-format
+msgid "Admin"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:141
+#, elixir-autogen, elixir-format
+msgid "Already a member?"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/editorial/editorial.ex:3
+#: lib/wraith_web/themes/layouts/grid/grid.ex:3
+#: lib/wraith_web/themes/layouts/journal/journal.ex:3
+#: lib/wraith_web/themes/layouts/list/list.ex:3
+#: lib/wraith_web/themes/layouts/magazine/magazine.ex:3
+#: lib/wraith_web/themes/layouts/minimal/minimal.ex:3
+#, elixir-autogen, elixir-format
+msgid "Author"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:223
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:235
+#, elixir-autogen, elixir-format
+msgid "Comment"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:233
+#, elixir-autogen, elixir-format
+msgid "Commenting as %{name}"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:193
+#, elixir-autogen, elixir-format
+msgid "Comments"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:153
+#, elixir-autogen, elixir-format
+msgid "Contents"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/journal/templates/index.html.heex:14
+#, elixir-autogen, elixir-format
+msgid "Continue reading →"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:84
+#, elixir-autogen, elixir-format
+msgid "Delete my account"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:80
+#, elixir-autogen, elixir-format
+msgid "Delete your account and every comment you wrote? This cannot be undone."
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/journal/templates/post.html.heex:11
+#: lib/wraith_web/themes/layouts/minimal/templates/post.html.heex:6
+#, elixir-autogen, elixir-format
+msgid "Edit"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:30
+#: lib/wraith_web/themes/shared.ex:53
+#: lib/wraith_web/themes/shared.ex:102
+#, elixir-autogen, elixir-format
+msgid "Email"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:90
+#, elixir-autogen, elixir-format
+msgid "If that address is a member, a sign-in link is on its way."
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:230
+#, elixir-autogen, elixir-format
+msgid "Join the conversation"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:217
+#, elixir-autogen, elixir-format
+msgid "Light / dark"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:72
+#, elixir-autogen, elixir-format
+msgid "Manage billing"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:46
+#, elixir-autogen, elixir-format
+msgid "Members sign in with a link sent by mail — no password to remember."
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:199
+#, elixir-autogen, elixir-format
+msgid "Menu"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/magazine/templates/post.html.heex:43
+#, elixir-autogen, elixir-format
+msgid "More by %{name} →"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:26
+#, elixir-autogen, elixir-format
+msgid "Name"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/magazine/templates/index.html.heex:53
+#, elixir-autogen, elixir-format
+msgid "New posts by mail, free."
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:19
+#, elixir-autogen, elixir-format
+msgid "New posts in your inbox. No spam, leave whenever."
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:57
+#, elixir-autogen, elixir-format
+msgid "Newsletter"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:109
+#, elixir-autogen, elixir-format
+msgid "Not a member yet?"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/editorial/templates/index.html.heex:6
+#: lib/wraith_web/themes/layouts/grid/templates/index.html.heex:5
+#: lib/wraith_web/themes/layouts/journal/templates/index.html.heex:2
+#: lib/wraith_web/themes/layouts/magazine/templates/index.html.heex:2
+#: lib/wraith_web/themes/layouts/minimal/templates/index.html.heex:5
+#, elixir-autogen, elixir-format
+msgid "Nothing published yet."
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:59
+#, elixir-autogen, elixir-format
+msgid "Off"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:336
+#, elixir-autogen, elixir-format
+msgid "Older →"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:59
+#, elixir-autogen, elixir-format
+msgid "On"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:26
+#, elixir-autogen, elixir-format
+msgid "Optional"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:335
+#, elixir-autogen, elixir-format
+msgid "Page %{n}"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:55
+#, elixir-autogen, elixir-format
+msgid "Plan"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:232
+#, elixir-autogen, elixir-format
+msgid "Published with"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:168
+#: lib/wraith_web/themes/layouts/magazine/templates/post.html.heex:46
+#: lib/wraith_web/themes/layouts/minimal/templates/post.html.heex:25
+#, elixir-autogen, elixir-format
+msgid "Read next"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:277
+#, elixir-autogen, elixir-format
+msgid "Remove"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:275
+#, elixir-autogen, elixir-format
+msgid "Remove this comment?"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:224
+#: lib/wraith_web/components/site_components.ex:270
+#, elixir-autogen, elixir-format
+msgid "Reply"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:221
+#, elixir-autogen, elixir-format
+msgid "Reply to %{name}"
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:86
+#: lib/wraith_web/themes/layouts/editorial/editorial.ex:3
+#: lib/wraith_web/themes/layouts/editorial/editorial.ex:3
+#: lib/wraith_web/themes/layouts/editorial/templates/layout.html.heex:16
+#: lib/wraith_web/themes/layouts/editorial/templates/layout.html.heex:16
+#: lib/wraith_web/themes/layouts/grid/grid.ex:3
+#: lib/wraith_web/themes/layouts/grid/grid.ex:3
+#: lib/wraith_web/themes/layouts/grid/templates/layout.html.heex:12
+#: lib/wraith_web/themes/layouts/journal/journal.ex:3
+#: lib/wraith_web/themes/layouts/journal/journal.ex:3
+#: lib/wraith_web/themes/layouts/journal/templates/layout.html.heex:8
+#: lib/wraith_web/themes/layouts/list/list.ex:3
+#: lib/wraith_web/themes/layouts/list/list.ex:3
+#: lib/wraith_web/themes/layouts/magazine/magazine.ex:3
+#: lib/wraith_web/themes/layouts/magazine/magazine.ex:3
+#: lib/wraith_web/themes/layouts/magazine/templates/layout.html.heex:6
+#: lib/wraith_web/themes/layouts/minimal/minimal.ex:3
+#: lib/wraith_web/themes/layouts/minimal/minimal.ex:3
+#: lib/wraith_web/themes/layouts/minimal/templates/layout.html.heex:7
+#: lib/wraith_web/themes/shared.ex:179
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:174
+#, elixir-autogen, elixir-format
+msgid "Search posts…"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:106
+#, elixir-autogen, elixir-format
+msgid "Send me a sign-in link"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:141
+#: lib/wraith_web/components/site_components.ex:239
+#: lib/wraith_web/themes/shared.ex:43
+#, elixir-autogen, elixir-format
+msgid "Sign in"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:74
+#, elixir-autogen, elixir-format
+msgid "Sign out"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:130
+#, elixir-autogen, elixir-format
+msgid "Sign up for free to keep reading."
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/editorial/templates/layout.html.heex:14
+#: lib/wraith_web/themes/layouts/grid/templates/layout.html.heex:4
+#: lib/wraith_web/themes/layouts/journal/templates/layout.html.heex:6
+#: lib/wraith_web/themes/layouts/list/templates/layout.html.heex:5
+#: lib/wraith_web/themes/layouts/magazine/templates/layout.html.heex:20
+#: lib/wraith_web/themes/layouts/minimal/templates/layout.html.heex:5
+#, elixir-autogen, elixir-format
+msgid "Site"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:138
+#: lib/wraith_web/themes/layouts/editorial/templates/layout.html.heex:25
+#: lib/wraith_web/themes/layouts/grid/templates/layout.html.heex:21
+#: lib/wraith_web/themes/layouts/journal/templates/layout.html.heex:9
+#: lib/wraith_web/themes/layouts/magazine/templates/index.html.heex:52
+#: lib/wraith_web/themes/layouts/magazine/templates/index.html.heex:54
+#: lib/wraith_web/themes/layouts/minimal/templates/layout.html.heex:8
+#: lib/wraith_web/themes/shared.ex:34
+#: lib/wraith_web/themes/shared.ex:110
+#, elixir-autogen, elixir-format
+msgid "Subscribe"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:18
+#, elixir-autogen, elixir-format
+msgid "Subscribe to %{site}"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/editorial/editorial.ex:3
+#: lib/wraith_web/themes/layouts/grid/grid.ex:3
+#: lib/wraith_web/themes/layouts/journal/journal.ex:3
+#: lib/wraith_web/themes/layouts/list/list.ex:3
+#: lib/wraith_web/themes/layouts/list/templates/listing.html.heex:3
+#: lib/wraith_web/themes/layouts/magazine/magazine.ex:3
+#: lib/wraith_web/themes/layouts/minimal/minimal.ex:3
+#, elixir-autogen, elixir-format
+msgid "Tag"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:125
+#, elixir-autogen, elixir-format
+msgid "This post is for members"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:124
+#, elixir-autogen, elixir-format
+msgid "This post is for paid members"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:218
+#, elixir-autogen, elixir-format
+msgid "Toggle light or dark mode"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/magazine/templates/index.html.heex:57
+#, elixir-autogen, elixir-format
+msgid "Topics"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:61
+#, elixir-autogen, elixir-format
+msgid "Turn off"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:61
+#, elixir-autogen, elixir-format
+msgid "Turn on"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:136
+#: lib/wraith_web/themes/shared.ex:67
+#, elixir-autogen, elixir-format
+msgid "Upgrade"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:129
+#, elixir-autogen, elixir-format
+msgid "Upgrade to keep reading."
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/editorial/templates/index.html.heex:7
+#, elixir-autogen, elixir-format
+msgid "Write the first post →"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:23
+#, elixir-autogen, elixir-format
+msgid "You're in — check your inbox for a confirmation link."
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:43
+#, elixir-autogen, elixir-format
+msgid "Your account"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/list/templates/layout.html.heex:9
+#, elixir-autogen, elixir-format
+msgid "account"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/list/templates/layout.html.heex:11
+#, elixir-autogen, elixir-format
+msgid "admin"
+msgstr ""
+
+#: lib/wraith_web/components/core_components.ex:81
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr ""
+
+#: lib/wraith_web/themes/shared.ex:111
+#, elixir-autogen, elixir-format
+msgid "first."
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/list/templates/index.html.heex:5
+#, elixir-autogen, elixir-format
+msgid "nothing published yet"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/list/templates/post.html.heex:25
+#, elixir-autogen, elixir-format
+msgid "read next"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/list/templates/layout.html.heex:10
+#, elixir-autogen, elixir-format
+msgid "rss"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/list/templates/layout.html.heex:7
+#, elixir-autogen, elixir-format
+msgid "search"
+msgstr ""
+
+#: lib/wraith_web/themes/layouts/list/templates/layout.html.heex:8
+#, elixir-autogen, elixir-format
+msgid "subscribe"
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:239
+#, elixir-autogen, elixir-format
+msgid "to join the conversation."
+msgstr ""
+
+#: lib/wraith_web/components/site_components.ex:334
+#, elixir-autogen, elixir-format
+msgid "← Newer"
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:85
+#: lib/wraith_web/controllers/error_html.ex:114
+#, elixir-autogen, elixir-format
+msgid "Back to the front page"
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:39
+#, elixir-autogen, elixir-format
+msgid "Not allowed"
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:36
+#, elixir-autogen, elixir-format
+msgid "Page not found"
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:43
+#, elixir-autogen, elixir-format
+msgid "Something went wrong"
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:37
+#, elixir-autogen, elixir-format
+msgid "That page isn't here. It may have moved, or the link may be old."
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:44
+#, elixir-autogen, elixir-format
+msgid "The site hit an error. It's been noted — try again in a moment."
+msgstr ""
+
+#: lib/wraith_web/controllers/error_html.ex:39
+#, elixir-autogen, elixir-format
+msgid "You don't have access to this page."
+msgstr ""

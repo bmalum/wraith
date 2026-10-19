@@ -55,3 +55,37 @@ defmodule Wraith.ImagesTest do
     assert Task.Supervisor.children(Wraith.TaskSupervisor) == []
   end
 end
+
+defmodule Wraith.UploadsLibraryTest do
+  use Wraith.StoreCase, async: false
+
+  alias Wraith.Uploads
+
+  setup do
+    File.rm_rf!(Uploads.Local.root())
+    :ok
+  end
+
+  test "the library lists originals only, newest first" do
+    {:ok, img} = Image.new(900, 600, color: :red)
+    {:ok, png} = Image.write(img, :memory, suffix: ".png")
+
+    {:ok, url1} = Uploads.store(png, "image/png", name: "first")
+    {:ok, url2} = Uploads.store(png, "image/png", name: "second")
+    {:ok, _pdf} = Uploads.store("%PDF-1.4", "application/pdf", name: "doc")
+
+    # let the variant tasks finish so variants exist on disk to be filtered out
+    Task.Supervisor.children(Wraith.TaskSupervisor)
+    |> Enum.each(fn pid ->
+      ref = Process.monitor(pid)
+      assert_receive {:DOWN, ^ref, :process, ^pid, _}, 10_000
+    end)
+
+    list = Uploads.list()
+    urls = Enum.map(list, & &1.url)
+    assert urls == [url2, url1]
+    refute Enum.any?(list, &Uploads.variant_key?(&1.key))
+    refute Enum.any?(urls, &String.ends_with?(&1, ".pdf"))
+    assert Uploads.list(limit: 1) |> length() == 1
+  end
+end

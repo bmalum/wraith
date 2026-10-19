@@ -23,4 +23,29 @@ defmodule Wraith.Uploads.Local do
     File.rm(Path.join(root(), key))
     :ok
   end
+
+  @impl true
+  def list(_opts) do
+    root = root()
+
+    if File.dir?(root) do
+      root
+      |> Path.join("**/*")
+      |> Path.wildcard()
+      |> Enum.filter(&File.regular?/1)
+      |> Enum.map(fn path ->
+        key = Path.relative_to(path, root)
+        %File.Stat{size: size, mtime: mtime} = File.stat!(path, time: :posix)
+
+        %{
+          key: key,
+          url: "/uploads/" <> key,
+          size: size,
+          modified: mtime |> DateTime.from_unix!() |> DateTime.to_iso8601()
+        }
+      end)
+    else
+      []
+    end
+  end
 end

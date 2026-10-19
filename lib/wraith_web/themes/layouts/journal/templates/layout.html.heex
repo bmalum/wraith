@@ -3,12 +3,14 @@
     <a href="/" class="l-jrn-brand">{@site["title"]}</a>
     <p :if={@site["description"] not in [nil, ""]} class="l-jrn-sub">{@site["description"]}</p>
     <.nav_toggle />
-    <nav class="l-jrn-nav t-nav" id="site-nav" aria-label="Site">
+    <nav class="l-jrn-nav t-nav" id="site-nav" aria-label={gettext("Site")}>
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
-      <a href={~p"/search"}>Search</a>
-      <a :if={@site["members_enabled"] and is_nil(assigns[:current_member])} href={~p"/subscribe"}>Subscribe</a>
-      <a :if={assigns[:current_member]} href={~p"/members"}>Account</a>
-      <a :if={@current_user} href={~p"/admin"}>Admin</a>
+      <a href={~p"/search"}>{gettext("Search")}</a>
+      <a :if={@site["members_enabled"] and is_nil(assigns[:current_member])} href={~p"/subscribe"}>{gettext(
+        "Subscribe"
+      )}</a>
+      <a :if={assigns[:current_member]} href={~p"/members"}>{gettext("Account")}</a>
+      <a :if={@current_user} href={~p"/admin"}>{gettext("Admin")}</a>
       <.mode_toggle />
     </nav>
   </header>

@@ -14,32 +14,36 @@ defmodule WraithWeb.ErrorHTML do
 
   alias WraithWeb.{Layouts, SiteComponents, Themes}
 
-  def render("404.html", _assigns), do: page(404, "Page not found", lost_copy())
-
-  def render("403.html", _assigns),
-    do: page(403, "Not allowed", "You don't have access to this page.")
-
-  def render("500.html", _assigns),
-    do:
-      page(
-        500,
-        "Something went wrong",
-        "The site hit an error. It's been noted — try again in a moment."
-      )
-
   def render(template, _assigns) do
     status = template |> String.split(".") |> hd() |> String.to_integer()
-    page(status, Phoenix.Controller.status_message_from_template(template), "")
-  end
 
-  defp lost_copy, do: "That page isn't here. It may have moved, or the link may be old."
-
-  defp page(status, title, copy) do
+    # the error path runs outside the router pipelines, so pick the locale
+    # here; copy is chosen after that so gettext sees the site's language
     case safe_context() do
-      {:ok, site, theme} -> themed(status, title, copy, site, theme)
-      :error -> plain(status, title, copy)
+      {:ok, site, theme} ->
+        Gettext.put_locale(WraithWeb.Gettext, WraithWeb.Locale.locale())
+        {title, copy} = copy(status, template)
+        themed(status, title, copy, site, theme)
+
+      :error ->
+        {title, copy} = copy(status, template)
+        plain(status, title, copy)
     end
   end
+
+  defp copy(404, _),
+    do:
+      {gettext("Page not found"),
+       gettext("That page isn't here. It may have moved, or the link may be old.")}
+
+  defp copy(403, _), do: {gettext("Not allowed"), gettext("You don't have access to this page.")}
+
+  defp copy(500, _),
+    do:
+      {gettext("Something went wrong"),
+       gettext("The site hit an error. It's been noted — try again in a moment.")}
+
+  defp copy(_, template), do: {Phoenix.Controller.status_message_from_template(template), ""}
 
   defp safe_context do
     site = Wraith.Settings.get()
@@ -78,8 +82,8 @@ defmodule WraithWeb.ErrorHTML do
             <h1 class="t-title">{@title}</h1>
             <p :if={@copy != ""} class="t-lede">{@copy}</p>
             <p class="t-error-actions">
-              <a href="/" class="btn-accent">Back to the front page</a>
-              <a href="/search" class="btn-ghost">Search</a>
+              <a href="/" class="btn-accent">{gettext("Back to the front page")}</a>
+              <a href="/search" class="btn-ghost">{gettext("Search")}</a>
             </p>
           </section>
         </SiteComponents.theme_layout>
@@ -107,7 +111,7 @@ defmodule WraithWeb.ErrorHTML do
         <p>{@status}</p>
         <h1>{@title}</h1>
         <p>{@copy}</p>
-        <p><a href="/">Back to the front page</a></p>
+        <p><a href="/">{gettext("Back to the front page")}</a></p>
       </body>
     </html>
     """

@@ -1,7 +1,7 @@
 <div class="l-grid">
   <header class="l-grid-head">
     <.nav_toggle />
-    <nav class="l-grid-nav t-nav" id="site-nav" aria-label="Site">
+    <nav class="l-grid-nav t-nav" id="site-nav" aria-label={gettext("Site")}>
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
     </nav>
     <a href="/" class="l-grid-brand">
@@ -9,7 +9,7 @@
       <span :if={@site["logo"] in [nil, ""]}>{@site["title"]}</span>
     </a>
     <div class="l-grid-tools">
-      <a href={~p"/search"} class="masthead-icon" aria-label="Search"><.icon
+      <a href={~p"/search"} class="masthead-icon" aria-label={gettext("Search")}><.icon
         name="hero-magnifying-glass"
         class="size-4"
       /></a>
@@ -18,9 +18,9 @@
         :if={@site["members_enabled"] and is_nil(assigns[:current_member])}
         href={~p"/subscribe"}
         class="btn-accent"
-      >Subscribe</a>
-      <a :if={assigns[:current_member]} href={~p"/members"} class="btn-ghost">Account</a>
-      <a :if={@current_user} href={~p"/admin"} class="masthead-icon" title="Admin"><.icon
+      >{gettext("Subscribe")}</a>
+      <a :if={assigns[:current_member]} href={~p"/members"} class="btn-ghost">{gettext("Account")}</a>
+      <a :if={@current_user} href={~p"/admin"} class="masthead-icon" title={gettext("Admin")}><.icon
         name="hero-pencil-square"
         class="size-4"
       /></a>

@@ -16,6 +16,7 @@ defmodule WraithWeb.Theme.Layout do
 
     quote do
       use Phoenix.Component
+      use Gettext, backend: WraithWeb.Gettext
       use WraithWeb, :verified_routes
       import WraithWeb.CoreComponents, only: [icon: 1, input: 1]
       import WraithWeb.SiteComponents
@@ -42,7 +43,7 @@ defmodule WraithWeb.Theme.Layout do
       def tag(assigns) do
         assigns
         |> Map.merge(%{
-          kicker: "Tag",
+          kicker: gettext("Tag"),
           heading: assigns.tag["name"],
           lede: assigns.tag["description"]
         })
@@ -52,7 +53,7 @@ defmodule WraithWeb.Theme.Layout do
       def author(assigns) do
         assigns
         |> Map.merge(%{
-          kicker: "Author",
+          kicker: gettext("Author"),
           heading: assigns.author["name"],
           lede: assigns.author["bio"]
         })
@@ -64,8 +65,8 @@ defmodule WraithWeb.Theme.Layout do
 
         assigns
         |> Map.merge(%{
-          kicker: "Search",
-          heading: if(assigns.q == "", do: "Search", else: "“#{assigns.q}”"),
+          kicker: gettext("Search"),
+          heading: if(assigns.q == "", do: gettext("Search"), else: "“#{assigns.q}”"),
           lede: nil,
           posts: posts,
           search: true

@@ -8,7 +8,7 @@
       <h1 class="post-title">{@post["title"]}</h1>
       <.byline post={@post} authors={@authors} />
       <div :if={@current_user} class="post-edit">
-        <.link navigate={~p"/admin/posts/#{@post["id"]}"}>Edit</.link>
+        <.link navigate={~p"/admin/posts/#{@post["id"]}"}>{gettext("Edit")}</.link>
       </div>
     </header>
     <figure :if={@post["feature_image"]} class="post-figure">

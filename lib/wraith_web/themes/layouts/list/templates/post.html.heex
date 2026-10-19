@@ -22,7 +22,7 @@
   />
 </article>
 <section :if={@related != []} class="t-head">
-  <p class="t-muted">// read next</p>
+  <p class="t-muted">// {gettext("read next")}</p>
   <ol class="l-list-rows">
     <li :for={post <- @related}>
       <time datetime={post["published_at"]}>{String.slice(post["published_at"] || "", 0, 10)}</time><.link navigate={

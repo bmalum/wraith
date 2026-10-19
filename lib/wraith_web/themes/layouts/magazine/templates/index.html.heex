@@ -1,5 +1,5 @@
 <div :if={@posts == []} class="t-empty">
-  <p>Nothing published yet.</p>
+  <p>{gettext("Nothing published yet.")}</p>
 </div>
 <% {hero, posts} =
   if @page == 1 and @posts != [], do: {hd(@posts), tl(@posts)}, else: {nil, @posts} %>
@@ -45,16 +45,16 @@
   </section>
   <aside class="l-mag-side">
     <section class="l-mag-box">
-      <h3>About</h3>
+      <h3>{gettext("About")}</h3>
       <p>{@site["description"]}</p>
     </section>
     <section :if={@site["members_enabled"]} class="l-mag-box is-accent">
-      <h3>Subscribe</h3>
-      <p>New posts by mail, free.</p>
-      <.link navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
+      <h3>{gettext("Subscribe")}</h3>
+      <p>{gettext("New posts by mail, free.")}</p>
+      <.link navigate={~p"/subscribe"} class="btn-accent">{gettext("Subscribe")}</.link>
     </section>
     <section class="l-mag-box">
-      <h3>Topics</h3>
+      <h3>{gettext("Topics")}</h3>
       <div class="l-mag-tags">
         <.link
           :for={t <- WraithWeb.Themes.Layouts.Magazine.sidebar_tags()}
