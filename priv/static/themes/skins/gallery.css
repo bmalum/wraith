@@ -1,0 +1,26 @@
+/* gallery — a quiet art-book. Light display serif, huge airy lead, images
+   framed with a thin burgundy keyline, wide gutters, small-caps tags. */
+[data-skin="gallery"] .masthead { border-bottom: 0; }
+[data-skin="gallery"] .masthead-inner { padding: 1.5rem; }
+[data-skin="gallery"] .masthead-title { font-weight: 400; font-style: italic; font-size: 1.6rem; }
+[data-skin="gallery"] .masthead-nav { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; }
+[data-skin="gallery"] .masthead-cta { border-color: var(--accent); color: var(--accent) !important; }
+[data-skin="gallery"] .masthead-cta:hover { background: var(--accent); color: var(--paper) !important; }
+[data-skin="gallery"] .t-head.is-lead { border-bottom: 0; padding: 3rem 0 4rem; text-align: center; }
+[data-skin="gallery"] .t-title.is-display { font-weight: 300; font-style: italic; font-size: clamp(3rem, 7vw, 5.5rem); letter-spacing: 0; }
+[data-skin="gallery"] .t-lede { margin-inline: auto; font-weight: 300; letter-spacing: .02em; }
+[data-skin="gallery"] .feed { gap: 4rem 3rem; }
+[data-skin="gallery"] .post-card.is-featured { border-bottom: 0; padding-bottom: 0; }
+[data-skin="gallery"] .post-card-image, [data-skin="gallery"] .post-figure img { border-radius: 0; outline: 1px solid var(--accent); outline-offset: 8px; }
+[data-skin="gallery"] .post-card-tags { justify-content: center; }
+[data-skin="gallery"] .post-card-tags a { font-variant: small-caps; text-transform: lowercase; letter-spacing: .2em; font-size: .9rem; color: var(--ink-3); }
+[data-skin="gallery"] .post-card-body { text-align: center; align-items: center; }
+[data-skin="gallery"] .post-card-title { font-weight: 400; font-size: 1.7rem; }
+[data-skin="gallery"] .post-card.is-featured .post-card-title { font-weight: 300; font-style: italic; }
+[data-skin="gallery"] .post-card-excerpt { font-weight: 300; max-width: 34rem; }
+[data-skin="gallery"] .byline { justify-content: center; }
+[data-skin="gallery"] .post-head { text-align: center; }
+[data-skin="gallery"] .post-head .post-card-tags, [data-skin="gallery"] .post-head .byline { justify-content: center; }
+[data-skin="gallery"] .post-title { font-weight: 300; font-style: italic; }
+[data-skin="gallery"] .site-footer { border-top: 0; text-align: center; }
+[data-skin="gallery"] .site-footer-inner { justify-content: center; }

@@ -55,6 +55,8 @@ defmodule WraithWeb.E2ETest do
         {:ok, _, head} = live(conn, ~p"/")
         assert head =~ ~s(href="/themes/base.css")
         assert head =~ ~s(href="/themes/layouts/#{info.layout_name}.css")
+        assert head =~ ~s(href="/themes/skins/#{@theme}.css"), "#{@theme}: skin css link"
+        assert File.exists?("priv/static/themes/skins/#{@theme}.css"), "#{@theme}: skin css file"
         assert head =~ "--heading:" and head =~ "--accent:"
         # tokens must not be HTML-escaped (the quote-escaping regression)
         refute head =~ "&#39;", "#{@theme}: tokens were HTML-escaped"

@@ -3,6 +3,7 @@
   lang={(assigns[:site] && @site["lang"]) || "en"}
   data-theme="wraith"
   data-layout={assigns[:theme] && @theme.info().layout_name}
+  data-skin={assigns[:theme] && @theme.info().name}
   data-scheme={assigns[:theme] && (@theme.info().tokens["--scheme"] || "light")}
 >
   <head>

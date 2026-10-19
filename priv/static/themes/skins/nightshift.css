@@ -1,0 +1,26 @@
+/* nightshift — a navy journal by lamplight. Gold rules and numerals, a thin
+   gold frame on the page, timeline dots down the date column, soft vignette. */
+[data-skin="nightshift"] body { background: radial-gradient(90rem 60rem at 50% -20%, #182440, var(--paper) 70%); }
+[data-skin="nightshift"] .l-jrn-head { border-bottom: 1px solid var(--accent); position: relative; }
+[data-skin="nightshift"] .l-jrn-head::before, [data-skin="nightshift"] .l-jrn-head::after { content: "✦"; color: var(--accent); position: absolute; top: 1.2rem; font-size: .8rem; }
+[data-skin="nightshift"] .l-jrn-head::before { left: 2rem; } [data-skin="nightshift"] .l-jrn-head::after { right: 2rem; }
+[data-skin="nightshift"] .l-jrn-brand { color: var(--accent); font-weight: 400; letter-spacing: .06em; }
+[data-skin="nightshift"] .l-jrn-sub { font-style: italic; }
+[data-skin="nightshift"] .l-jrn-nav a { color: var(--ink-2); letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; }
+[data-skin="nightshift"] .l-jrn-nav a:hover { color: var(--accent); }
+[data-skin="nightshift"] .l-jrn-entries { position: relative; }
+[data-skin="nightshift"] .l-jrn-entries::before { content: ""; position: absolute; left: 5.9rem; top: 1rem; bottom: 1rem; width: 1px; background: linear-gradient(var(--accent), transparent); opacity: .5; }
+[data-skin="nightshift"] .l-jrn-entry { border-bottom: 0; position: relative; }
+[data-skin="nightshift"] .l-jrn-entry::before { content: ""; position: absolute; left: 5.6rem; top: 3.1rem; width: .65rem; height: .65rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--paper), 0 0 14px var(--accent); }
+[data-skin="nightshift"] .l-jrn-day { color: var(--accent); font-weight: 400; font-size: 2.4rem; }
+[data-skin="nightshift"] .l-jrn-month { color: var(--ink-3); }
+[data-skin="nightshift"] .l-jrn-entry-body h2 { font-weight: 400; }
+[data-skin="nightshift"] .l-jrn-entry-body h2 a:hover { color: var(--accent); }
+[data-skin="nightshift"] .l-jrn-more > a { color: var(--accent); }
+[data-skin="nightshift"] .l-jrn-tag a { color: var(--ink-3); }
+[data-skin="nightshift"] .l-jrn-date.is-post .l-jrn-day { font-size: 3rem; }
+[data-skin="nightshift"] .post-title { font-weight: 400; color: var(--accent); }
+[data-skin="nightshift"] .post-figure img { border: 1px solid var(--accent); padding: 6px; background: var(--paper-2); border-radius: 0; }
+[data-skin="nightshift"] .prose-wraith blockquote { border-left-color: var(--accent); }
+[data-skin="nightshift"] .l-jrn-foot { border-top: 1px solid var(--accent); color: var(--ink-3); }
+@media (max-width: 42rem) { [data-skin="nightshift"] .l-jrn-entries::before, [data-skin="nightshift"] .l-jrn-entry::before { display: none; } }

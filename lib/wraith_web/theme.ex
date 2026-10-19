@@ -74,7 +74,11 @@ defmodule WraithWeb.Theme do
         description: description,
         layout: layout,
         layout_name: layout.name(),
-        css: ["/themes/base.css", "/themes/layouts/#{layout.name()}.css"],
+        css: [
+          "/themes/base.css",
+          "/themes/layouts/#{layout.name()}.css",
+          "/themes/skins/#{name}.css"
+        ],
         fonts: fonts,
         tokens: tokens,
         swatch: [

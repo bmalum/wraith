@@ -1,0 +1,27 @@
+/* polaroid — prints on a fridge. White-bordered photo cards with a caption
+   strip, each tilted a touch, pastel tape, round friendly type. */
+[data-skin="polaroid"] body { background:
+  radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--ink) 9%, transparent) 1px, transparent 0) 0 0 / 22px 22px, var(--paper); }
+[data-skin="polaroid"] .l-grid-head { border-bottom: 0; }
+[data-skin="polaroid"] .l-grid-brand { font-weight: 800; font-size: 1.8rem; }
+[data-skin="polaroid"] .l-grid-brand span { background: var(--accent); color: #fff; padding: .2rem .9rem; border-radius: 999px; transform: rotate(-2deg); display: inline-block; }
+[data-skin="polaroid"] .l-grid-tools .btn-accent { border-radius: 999px; font-weight: 800; }
+[data-skin="polaroid"] .l-grid-tagline { font-weight: 600; color: var(--ink-2); }
+[data-skin="polaroid"] .l-grid-cards { gap: 3rem 2rem; padding: 1rem; }
+[data-skin="polaroid"] .l-grid-card { background: #fff; padding: .9rem .9rem 1.2rem; border-radius: 4px; box-shadow: 0 10px 30px -12px rgba(60,30,20,.35), 0 2px 4px rgba(60,30,20,.1); position: relative; transition: transform .25s var(--ease); }
+[data-skin="polaroid"] .l-grid-card:nth-child(3n+1) { transform: rotate(-1.6deg); }
+[data-skin="polaroid"] .l-grid-card:nth-child(3n+2) { transform: rotate(1.2deg); }
+[data-skin="polaroid"] .l-grid-card:nth-child(3n) { transform: rotate(-.6deg); }
+[data-skin="polaroid"] .l-grid-card:hover { transform: rotate(0) scale(1.03); z-index: 1; }
+[data-skin="polaroid"] .l-grid-card::before { content: ""; position: absolute; top: -12px; left: 50%; width: 90px; height: 26px; margin-left: -45px; background: color-mix(in oklab, var(--accent) 35%, #fff); opacity: .85; transform: rotate(-3deg); }
+[data-skin="polaroid"] .l-grid-card-img { border-radius: 2px; aspect-ratio: 1; }
+[data-skin="polaroid"] .l-grid-card-blank { background: var(--paper-2); font-family: 'Nunito', system-ui; font-weight: 800; color: var(--accent); }
+[data-skin="polaroid"] .l-grid-card-body { padding-top: .9rem; text-align: center; align-items: center; }
+[data-skin="polaroid"] .l-grid-card-body h2 { font-weight: 800; font-size: 1.15rem; }
+[data-skin="polaroid"] .l-grid-card-body p { display: none; }
+[data-skin="polaroid"] .l-grid-card-body .post-card-tags { display: none; }
+[data-skin="polaroid"] .l-grid-card-body .byline { font-size: .75rem; }
+[data-skin="polaroid"] .l-grid-post { background: #fff; padding: 2rem clamp(1rem, 5vw, 4rem) 3rem; border-radius: 6px; box-shadow: 0 20px 50px -20px rgba(60,30,20,.3); }
+[data-skin="polaroid"] .post-title { font-weight: 800; }
+[data-skin="polaroid"] .l-grid-hero img { border-radius: 4px; }
+[data-skin="polaroid"] .l-grid-foot { border-top: 0; }

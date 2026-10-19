@@ -1,0 +1,23 @@
+/* zen — a reading room. Everything centred, a single thin rule, a tiny
+   centred nameplate, titles only, generous leading, a monogram footer. */
+[data-skin="zen"] .l-min { max-width: 36rem; }
+[data-skin="zen"] .l-min-head { flex-direction: column; align-items: center; gap: 1.25rem; padding: 5rem 0 3rem; text-align: center; }
+[data-skin="zen"] .l-min-brand { font-weight: 400; font-size: 1rem; letter-spacing: .3em; text-transform: uppercase; }
+[data-skin="zen"] .l-min-nav { margin: 0; gap: 1.5rem; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; }
+[data-skin="zen"] .l-min-intro { text-align: center; font-style: italic; font-size: 1.25rem; line-height: 1.7; margin-bottom: 4rem; }
+[data-skin="zen"] .l-min-intro::after { content: "※"; display: block; margin-top: 2.5rem; color: var(--ink-3); font-style: normal; }
+[data-skin="zen"] .l-min-list li { border-bottom: 0; }
+[data-skin="zen"] .l-min-item { grid-template-columns: 1fr; text-align: center; padding: 1.6rem 0; gap: .4rem; justify-items: center; }
+[data-skin="zen"] .l-min-item-title { font-size: 1.45rem; font-weight: 400; line-height: 1.3; }
+[data-skin="zen"] .l-min-item-excerpt { font-style: italic; color: var(--ink-3); -webkit-line-clamp: 2; max-width: 30rem; }
+[data-skin="zen"] .l-min-item time { grid-row: auto; grid-column: 1; letter-spacing: .14em; text-transform: uppercase; font-size: .7rem; }
+[data-skin="zen"] .l-min-item:hover .l-min-item-title { color: var(--accent); }
+[data-skin="zen"] .post-head { text-align: center; }
+[data-skin="zen"] .post-head .byline { justify-content: center; }
+[data-skin="zen"] .post-title { font-weight: 400; font-size: clamp(2rem, 4.5vw, 2.8rem); line-height: 1.15; }
+[data-skin="zen"] .prose-wraith { font-size: 1.15rem; line-height: 1.8; }
+[data-skin="zen"] .prose-wraith p + p { text-indent: 1.5em; margin-top: 0; }
+[data-skin="zen"] .l-min-post-foot { justify-content: center; border-top: 0; }
+[data-skin="zen"] .l-min-post-foot::before { content: "※"; color: var(--ink-3); }
+[data-skin="zen"] .l-min-related h2 { text-align: center; font-weight: 400; font-style: italic; }
+[data-skin="zen"] .l-min-foot { justify-content: center; border-top: 0; padding: 4rem 0; letter-spacing: .14em; text-transform: uppercase; font-size: .7rem; }

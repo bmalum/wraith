@@ -1,0 +1,25 @@
+/* broadsheet — a newspaper front page. Heavy black rules, all-caps section
+   labels, tight justified-feeling columns, an italic standfirst, no radius. */
+[data-skin="broadsheet"] .masthead { border-bottom: 3px double var(--ink); }
+[data-skin="broadsheet"] .masthead-title { font-weight: 900; text-transform: uppercase; letter-spacing: .04em; font-size: 1.1rem; }
+[data-skin="broadsheet"] .masthead-nav { text-transform: uppercase; letter-spacing: .1em; font-size: .72rem; }
+[data-skin="broadsheet"] .masthead-cta { border-radius: 0; text-transform: uppercase; letter-spacing: .1em; }
+[data-skin="broadsheet"] .t-head.is-lead { text-align: center; border-bottom: 1px solid var(--ink); border-top: 1px solid var(--ink); padding: 1.5rem 0; margin-bottom: 2rem; }
+[data-skin="broadsheet"] .t-title.is-display { font-weight: 900; font-size: clamp(3rem, 8vw, 6rem); letter-spacing: -.02em; text-transform: uppercase; }
+[data-skin="broadsheet"] .t-lede { font-style: italic; margin-inline: auto; font-size: 1rem; }
+[data-skin="broadsheet"] .feed { gap: 0 2rem; }
+[data-skin="broadsheet"] .post-card { padding: 1.5rem 0; border-top: 1px solid var(--ink); gap: .4rem; }
+[data-skin="broadsheet"] .post-card.is-featured { border-top: 0; border-bottom: 3px double var(--ink); padding: 0 0 2rem; margin-bottom: 1rem; }
+[data-skin="broadsheet"] .post-card.is-featured .post-card-title { font-size: clamp(2.2rem, 4.5vw, 3.4rem); font-weight: 900; line-height: 1; }
+[data-skin="broadsheet"] .post-card-tags a { color: var(--ink); font-weight: 700; letter-spacing: .14em; }
+[data-skin="broadsheet"] .post-card-tags a::before { content: "— "; }
+[data-skin="broadsheet"] .post-card-title { font-weight: 700; font-size: 1.35rem; line-height: 1.1; }
+[data-skin="broadsheet"] .post-card-excerpt { font-size: .95rem; line-height: 1.5; }
+[data-skin="broadsheet"] .post-card-image, [data-skin="broadsheet"] .post-figure img { border-radius: 0; filter: grayscale(1) contrast(1.1); }
+[data-skin="broadsheet"] .byline { text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; }
+[data-skin="broadsheet"] .post-title { font-weight: 900; text-align: center; }
+[data-skin="broadsheet"] .post-head { text-align: center; }
+[data-skin="broadsheet"] .post-head .post-card-tags, [data-skin="broadsheet"] .post-head .byline { justify-content: center; }
+[data-skin="broadsheet"] .post-excerpt { font-style: italic; }
+[data-skin="broadsheet"] .prose-wraith > p:first-child::first-letter { float: left; font-family: var(--heading); font-weight: 900; font-size: 4.2rem; line-height: .8; padding: .35rem .5rem 0 0; }
+[data-skin="broadsheet"] .site-footer { border-top: 3px double var(--ink); }

@@ -1,0 +1,21 @@
+/* slate — a dark product site. Glassy cards with a gradient border, a sticky
+   translucent header, glow on hover, gradient accent text. */
+[data-skin="slate"] body { background:
+  radial-gradient(60rem 30rem at 20% -10%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 60%),
+  radial-gradient(50rem 30rem at 100% 0%, color-mix(in oklab, #a78bfa 14%, transparent), transparent 60%), var(--paper); }
+[data-skin="slate"] .l-grid-head { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px); background: color-mix(in oklab, var(--paper) 70%, transparent); border-bottom: 1px solid color-mix(in oklab, var(--ink) 12%, transparent); }
+[data-skin="slate"] .l-grid-brand { font-weight: 700; letter-spacing: -.02em; }
+[data-skin="slate"] .l-grid-tools .btn-accent { background: linear-gradient(135deg, var(--accent), #a78bfa); color: #061226; font-weight: 700; border: 0; box-shadow: 0 0 24px -6px var(--accent); }
+[data-skin="slate"] .l-grid-tagline { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 500; letter-spacing: -.02em; color: var(--ink); background: linear-gradient(90deg, var(--ink), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+[data-skin="slate"] .l-grid-cards { gap: 1.25rem; }
+[data-skin="slate"] .l-grid-card { position: relative; padding: 1px; border-radius: 16px; background: linear-gradient(160deg, color-mix(in oklab, var(--ink) 18%, transparent), color-mix(in oklab, var(--ink) 4%, transparent)); transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+[data-skin="slate"] .l-grid-card::after { content: ""; position: absolute; inset: 1px; border-radius: 15px; background: color-mix(in oklab, var(--paper-2) 85%, transparent); z-index: -1; }
+[data-skin="slate"] .l-grid-card:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -24px var(--accent); background: linear-gradient(160deg, var(--accent), color-mix(in oklab, var(--ink) 6%, transparent)); }
+[data-skin="slate"] .l-grid-card-img { border-radius: 15px 15px 0 0; aspect-ratio: 16/10; }
+[data-skin="slate"] .l-grid-card-blank { background: linear-gradient(135deg, var(--paper-2), var(--rule)); color: var(--accent); }
+[data-skin="slate"] .l-grid-card-body { padding: 1.1rem 1.25rem 1.4rem; }
+[data-skin="slate"] .l-grid-card-body h2 { font-weight: 600; }
+[data-skin="slate"] .l-grid-card-body .post-card-tags a { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); padding: .15rem .55rem; border-radius: 999px; font-size: .68rem; }
+[data-skin="slate"] .post-title { background: linear-gradient(90deg, var(--ink), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+[data-skin="slate"] .l-grid-hero img { border-radius: 16px; box-shadow: 0 30px 80px -30px var(--accent); }
+[data-skin="slate"] .l-grid-foot { border-top: 1px solid color-mix(in oklab, var(--ink) 12%, transparent); }

@@ -1,0 +1,16 @@
+/* ledger — an accounts book. Ruled lines, numbered rows, a boxed header,
+   tabular everything, blue ink. */
+[data-skin="ledger"] .l-list { max-width: 56rem; }
+[data-skin="ledger"] .l-list-head { border: 1px solid var(--ink); padding: 1rem 1.25rem; margin-top: 1.5rem; border-bottom-width: 3px; }
+[data-skin="ledger"] .l-list-brand::before { content: "№ "; color: var(--ink-3); }
+[data-skin="ledger"] .l-list-h { font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: clamp(1.4rem, 3vw, 2rem) !important; }
+[data-skin="ledger"] .t-lede { font-size: .95rem; }
+[data-skin="ledger"] .l-list-rows { counter-reset: row; border-top: 1px solid var(--ink); font-size: .9rem; }
+[data-skin="ledger"] .l-list-rows li { counter-increment: row; border-bottom: 1px solid var(--rule); padding: .8rem 0; gap: 1.5rem; }
+[data-skin="ledger"] .l-list-rows li::before { content: counter(row, decimal-leading-zero); color: var(--ink-3); min-width: 2ch; }
+[data-skin="ledger"] .l-list-rows li:nth-child(even) { background: var(--paper-2); }
+[data-skin="ledger"] .l-list-rows time { color: var(--ink-2); }
+[data-skin="ledger"] .l-list-rows a { font-weight: 600; }
+[data-skin="ledger"] .l-list-tags { text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; }
+[data-skin="ledger"] .l-list-post .l-list-h { text-transform: none; letter-spacing: -.01em; font-weight: 600; }
+[data-skin="ledger"] .l-list-foot { border-top: 3px solid var(--ink); }

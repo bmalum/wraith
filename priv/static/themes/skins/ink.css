@@ -1,0 +1,7 @@
+/* ink — the default terminal. A blinking cursor after the brand, dim rows that
+   brighten on hover, a green prompt. */
+[data-skin="ink"] .l-list-brand::after { content: "▌"; color: var(--accent); margin-left: .25rem; animation: ink-blink 1.1s steps(1) infinite; }
+@keyframes ink-blink { 50% { opacity: 0; } }
+[data-skin="ink"] .l-list-rows li { transition: background .15s; padding-inline: .5rem; margin-inline: -.5rem; }
+[data-skin="ink"] .l-list-rows li:hover { background: var(--paper-2); }
+[data-skin="ink"] .l-list-rows a::before { content: "→ "; color: var(--ink-3); }

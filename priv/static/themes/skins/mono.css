@@ -1,0 +1,27 @@
+/* mono — a README. Markdown-ish chrome: `#` headings, a code-fence header,
+   dates in brackets, keyboard-key nav, dotted leaders. */
+[data-skin="mono"] .l-min { max-width: 44rem; }
+[data-skin="mono"] .l-min-head { display: block; padding: 2.5rem 0 1.5rem; border-bottom: 1px dashed var(--rule); }
+[data-skin="mono"] .l-min-brand { font-size: 1.1rem; font-weight: 600; }
+[data-skin="mono"] .l-min-brand::before { content: "# "; color: var(--ink-3); }
+[data-skin="mono"] .l-min-nav { margin: 1rem 0 0; gap: .5rem; }
+[data-skin="mono"] .l-min-nav a { border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: .1rem .5rem; font-size: .78rem; background: var(--paper-2); color: var(--ink-2); }
+[data-skin="mono"] .l-min-nav a:hover { border-color: var(--accent); color: var(--accent); }
+[data-skin="mono"] .l-min-intro { border-left: 3px solid var(--rule); padding-left: 1rem; color: var(--ink-2); font-size: .95rem; }
+[data-skin="mono"] .l-min-intro::before { content: "> "; color: var(--ink-3); }
+[data-skin="mono"] .l-min-list li { border-bottom: 0; }
+[data-skin="mono"] .l-min-item { grid-template-columns: auto 1fr auto; gap: 0 .75rem; padding: .55rem 0; align-items: baseline; }
+[data-skin="mono"] .l-min-item::before { content: "-"; color: var(--ink-3); }
+[data-skin="mono"] .l-min-item-title { font-size: 1rem; font-weight: 500; }
+[data-skin="mono"] .l-min-item-title::after { content: ""; display: inline-block; }
+[data-skin="mono"] .l-min-item-excerpt { display: none; }
+[data-skin="mono"] .l-min-item time { grid-row: 1; grid-column: 3; font-size: .8rem; }
+[data-skin="mono"] .l-min-item time::before { content: "["; }
+[data-skin="mono"] .l-min-item time::after { content: "]"; }
+[data-skin="mono"] .t-title, [data-skin="mono"] .post-title { font-size: clamp(1.5rem, 3.5vw, 2.1rem); font-weight: 600; }
+[data-skin="mono"] .post-title::before { content: "# "; color: var(--ink-3); }
+[data-skin="mono"] .prose-wraith h2::before { content: "## "; color: var(--ink-3); }
+[data-skin="mono"] .prose-wraith h3::before { content: "### "; color: var(--ink-3); }
+[data-skin="mono"] .l-min-post-foot a::before { content: "#"; }
+[data-skin="mono"] .l-min-foot { border-top: 1px dashed var(--rule); font-size: .78rem; }
+[data-skin="mono"] .l-min-foot::before { content: "---"; color: var(--ink-3); }

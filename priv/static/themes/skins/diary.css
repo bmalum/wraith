@@ -1,0 +1,24 @@
+/* diary — a lined notebook. Ruled paper, a red margin line, handwriting
+   headings, circled day numbers, washi tape on images. */
+[data-skin="diary"] body { background:
+  repeating-linear-gradient(transparent 0 31px, color-mix(in oklab, var(--accent) 22%, transparent) 31px 32px), var(--paper); }
+[data-skin="diary"] .l-jrn-main { position: relative; }
+[data-skin="diary"] .l-jrn-main::before { content: ""; position: absolute; left: 6.2rem; top: 0; bottom: 0; width: 2px; background: color-mix(in oklab, #d9534f 55%, transparent); }
+[data-skin="diary"] .l-jrn-head { border-bottom: 0; }
+[data-skin="diary"] .l-jrn-brand { font-size: clamp(2.6rem, 6vw, 4rem); transform: rotate(-2deg); display: inline-block; color: var(--accent); }
+[data-skin="diary"] .l-jrn-sub { font-style: italic; }
+[data-skin="diary"] .l-jrn-nav a { font-family: var(--heading); font-size: 1.2rem; }
+[data-skin="diary"] .l-jrn-entry { border-bottom: 0; }
+[data-skin="diary"] .l-jrn-day { width: 3rem; height: 3rem; border: 2px solid var(--accent); border-radius: 50% 48% 52% 50% / 48% 52% 48% 52%; display: inline-grid; place-items: center; font-size: 1.5rem; color: var(--accent); margin-left: auto; transform: rotate(-4deg); }
+[data-skin="diary"] .l-jrn-month { font-family: var(--heading); font-size: 1rem; text-transform: none; letter-spacing: 0; }
+[data-skin="diary"] .l-jrn-entry-body h2 { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+[data-skin="diary"] .l-jrn-entry-body h2 a:hover { text-decoration: underline wavy var(--accent); }
+[data-skin="diary"] .l-jrn-more > a { font-family: var(--heading); font-size: 1.15rem; }
+[data-skin="diary"] .l-jrn-tag a { font-family: var(--heading); font-size: 1.05rem; }
+[data-skin="diary"] .post-title { font-size: clamp(2.6rem, 6vw, 4rem); font-weight: 700; color: var(--accent); line-height: 1; }
+[data-skin="diary"] .post-figure { position: relative; transform: rotate(-1deg); }
+[data-skin="diary"] .post-figure::before { content: ""; position: absolute; top: -10px; left: 2rem; width: 110px; height: 28px; background: color-mix(in oklab, var(--accent) 30%, #fff); opacity: .8; transform: rotate(-3deg); z-index: 1; }
+[data-skin="diary"] .post-figure img { border-radius: 2px; border: 8px solid #fff; box-shadow: 0 6px 20px -8px rgba(0,0,0,.35); }
+[data-skin="diary"] .prose-wraith h2 { font-size: 1.9rem; }
+[data-skin="diary"] .l-jrn-foot { border-top: 0; font-family: var(--heading); font-size: 1.1rem; }
+@media (max-width: 42rem) { [data-skin="diary"] .l-jrn-main::before { display: none; } }

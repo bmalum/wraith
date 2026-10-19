@@ -1,0 +1,28 @@
+/* terminal — CRT phosphor. Scanlines, a soft glow on text, a boxed `ls -la`
+   listing with permissions-style columns, ASCII rules. */
+[data-skin="terminal"] body { background:
+  repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px), var(--paper); }
+[data-skin="terminal"] .l-list { text-shadow: 0 0 6px color-mix(in oklab, var(--ink) 45%, transparent); }
+[data-skin="terminal"] .l-list-head { border-bottom: 0; }
+[data-skin="terminal"] .l-list-head::after { content: ""; }
+[data-skin="terminal"] .l-list-brand::before { content: "root@spectre:"; color: var(--ink-3); }
+[data-skin="terminal"] .l-list-brand::after { content: " $ ls -la"; color: var(--ink-2); font-weight: 400; }
+[data-skin="terminal"] .l-list-nav a { text-transform: lowercase; }
+[data-skin="terminal"] .l-list-nav a::before { content: "["; color: var(--ink-3); }
+[data-skin="terminal"] .l-list-nav a::after { content: "]"; color: var(--ink-3); }
+[data-skin="terminal"] .t-head { border: 1px solid var(--rule); padding: 1rem 1.25rem; position: relative; }
+[data-skin="terminal"] .t-head::before { content: "# README.md"; position: absolute; top: -.7em; left: 1rem; background: var(--paper); padding: 0 .5rem; color: var(--ink-3); font-size: .75rem; }
+[data-skin="terminal"] .l-list-h { font-weight: 500; font-size: clamp(1.3rem, 3vw, 1.9rem) !important; text-transform: uppercase; }
+[data-skin="terminal"] .l-list-h::before { content: "> "; color: var(--accent); }
+[data-skin="terminal"] .t-lede { color: var(--ink-2); }
+[data-skin="terminal"] .t-lede::before { content: "// "; color: var(--ink-3); }
+[data-skin="terminal"] .l-list-rows { border: 0; margin-top: 2rem; }
+[data-skin="terminal"] .l-list-rows li { border-bottom: 0; padding: .3rem 0; }
+[data-skin="terminal"] .l-list-rows li::before { content: "-rw-r--r--"; color: var(--ink-3); letter-spacing: 0; }
+[data-skin="terminal"] .l-list-rows a { text-decoration: none; }
+[data-skin="terminal"] .l-list-rows a::after { content: ".md"; color: var(--ink-3); }
+[data-skin="terminal"] .l-list-rows a:hover { background: var(--ink); color: var(--paper); text-shadow: none; }
+[data-skin="terminal"] .l-list-tags { color: var(--accent); }
+[data-skin="terminal"] .l-list-foot { border-top: 0; }
+[data-skin="terminal"] .l-list-foot::before { content: "$ _"; color: var(--accent); }
+[data-skin="terminal"] .prose-wraith a { text-decoration: underline dotted; }

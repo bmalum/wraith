@@ -1,0 +1,9 @@
+/* paper — warm, soft, rounded. The friendly default: generous radius, a
+   tinted featured card, pill tags. */
+[data-skin="paper"] .post-card.is-featured { background: var(--paper-2); padding: 2rem; border-radius: 18px; border-bottom: 0; }
+[data-skin="paper"] .post-card-tags a { background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--accent); padding: .2rem .6rem; border-radius: 999px; letter-spacing: .04em; font-weight: 600; }
+[data-skin="paper"] .post-card-title { font-weight: 500; letter-spacing: -.02em; }
+[data-skin="paper"] .t-title.is-display { font-weight: 400; font-variation-settings: "opsz" 144, "SOFT" 60; }
+[data-skin="paper"] .masthead-cta { background: var(--accent); border-color: var(--accent); color: #fff !important; }
+[data-skin="paper"] .masthead-cta:hover { filter: brightness(1.1); }
+[data-skin="paper"] .post-card-image { border-radius: 16px; }

@@ -1,0 +1,31 @@
+/* letters — correspondence. Sepia paper with a deckled sheet, small-caps
+   datelines, "Dear reader" salutations, a signature flourish, an
+   old-style ornament between entries. */
+[data-skin="letters"] body { background: color-mix(in oklab, var(--paper) 85%, #c9a97a); }
+[data-skin="letters"] .l-jrn { max-width: 56rem; margin: 2rem auto; background: var(--paper); box-shadow: 0 1px 2px rgba(60,40,10,.2), 0 20px 50px -20px rgba(60,40,10,.4); }
+[data-skin="letters"] .l-jrn-head { border-bottom: 0; padding-top: 4rem; }
+[data-skin="letters"] .l-jrn-brand { font-weight: 400; font-style: italic; font-size: clamp(2rem, 4vw, 2.8rem); }
+[data-skin="letters"] .l-jrn-brand::after { content: ""; display: block; width: 4rem; height: 1px; background: var(--accent); margin: 1rem auto 0; }
+[data-skin="letters"] .l-jrn-sub { font-variant: small-caps; letter-spacing: .14em; font-size: .9rem; }
+[data-skin="letters"] .l-jrn-nav { font-variant: small-caps; letter-spacing: .1em; }
+[data-skin="letters"] .l-jrn-entries { max-width: 40rem; margin: 0 auto; }
+[data-skin="letters"] .l-jrn-entry { grid-template-columns: 1fr; gap: .5rem; border-bottom: 0; padding: 3rem 0; position: relative; }
+[data-skin="letters"] .l-jrn-entry + .l-jrn-entry::before { content: "❦"; position: absolute; top: -.7rem; left: 50%; transform: translateX(-50%); color: var(--accent); font-size: 1.3rem; }
+[data-skin="letters"] .l-jrn-date { text-align: right; display: flex; gap: .4rem; justify-content: flex-end; align-items: baseline; font-variant: small-caps; letter-spacing: .1em; font-size: .9rem; }
+[data-skin="letters"] .l-jrn-day { font-size: inherit; font-weight: 400; color: var(--ink-3); }
+[data-skin="letters"] .l-jrn-day::after { content: ","; }
+[data-skin="letters"] .l-jrn-month { text-transform: none; letter-spacing: .1em; font-size: inherit; margin: 0; }
+[data-skin="letters"] .l-jrn-entry-body h2 { font-weight: 400; font-style: italic; font-size: 1.9rem; }
+[data-skin="letters"] .l-jrn-entry-body p::before { content: "Dear reader, "; font-style: italic; color: var(--ink-3); }
+[data-skin="letters"] .l-jrn-entry-body p { text-indent: 0; line-height: 1.7; }
+[data-skin="letters"] .l-jrn-more { justify-content: flex-end; font-style: italic; }
+[data-skin="letters"] .l-jrn-more > a::before { content: "— "; }
+[data-skin="letters"] .l-jrn-more > a { color: var(--ink-2); }
+[data-skin="letters"] .l-jrn-tag { display: none; }
+[data-skin="letters"] .l-jrn-post { grid-template-columns: 1fr; max-width: 40rem; margin: 0 auto; }
+[data-skin="letters"] .l-jrn-date.is-post { justify-content: flex-end; }
+[data-skin="letters"] .post-title { font-weight: 400; font-style: italic; }
+[data-skin="letters"] .post-figure img { filter: sepia(.35) contrast(.95); border-radius: 0; }
+[data-skin="letters"] .prose-wraith { line-height: 1.8; }
+[data-skin="letters"] .prose-wraith > p:first-child::first-letter { float: left; font-size: 3.6rem; line-height: .85; padding: .3rem .5rem 0 0; color: var(--accent); }
+[data-skin="letters"] .l-jrn-foot { border-top: 0; font-style: italic; }

@@ -1,0 +1,27 @@
+/* weekend — the Sunday supplement. Warm orange blocks, a big rounded hero
+   with text over the image, rounded tiles, chunky section labels. */
+[data-skin="weekend"] .l-mag-head { border-bottom: 0; }
+[data-skin="weekend"] .l-mag-top { background: var(--accent); color: #fff; border-bottom: 0; font-weight: 700; }
+[data-skin="weekend"] .l-mag-top a, [data-skin="weekend"] .l-mag-top .mode-toggle, [data-skin="weekend"] .l-mag-top .masthead-icon { color: #fff; }
+[data-skin="weekend"] .l-mag-brand { font-weight: 600; font-style: italic; letter-spacing: -.02em; padding: 1.5rem; }
+[data-skin="weekend"] .l-mag-nav { border-top: 0; gap: .5rem; }
+[data-skin="weekend"] .l-mag-nav a { background: var(--paper-2); padding: .4rem .9rem; border-radius: 999px; text-transform: none; letter-spacing: 0; font-weight: 600; }
+[data-skin="weekend"] .l-mag-nav a:hover { background: var(--accent); color: #fff; }
+[data-skin="weekend"] .l-mag-hero { position: relative; border-bottom: 0; display: block; border-radius: 22px; overflow: hidden; min-height: 26rem; }
+[data-skin="weekend"] .l-mag-hero-img { position: absolute; inset: 0; border-radius: 0; }
+[data-skin="weekend"] .l-mag-hero-img img { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; }
+[data-skin="weekend"] .l-mag-hero-body { position: relative; z-index: 1; padding: 3rem; color: #fff; background: linear-gradient(180deg, transparent 20%, rgba(20,10,0,.75)); min-height: 26rem; display: flex; flex-direction: column; justify-content: flex-end; box-sizing: border-box; }
+[data-skin="weekend"] .l-mag-hero-body h2, [data-skin="weekend"] .l-mag-hero-body p, [data-skin="weekend"] .l-mag-hero-body .byline, [data-skin="weekend"] .l-mag-hero-body .byline-author { color: #fff; }
+[data-skin="weekend"] .l-mag-hero-body h2 { font-weight: 700; }
+[data-skin="weekend"] .l-mag-hero-body .post-card-tags a { background: var(--accent); color: #fff; padding: .25rem .7rem; border-radius: 999px; }
+[data-skin="weekend"] .l-mag-row { border-bottom: 0; background: var(--paper-2); border-radius: 18px; padding: 1.25rem; margin-bottom: 1rem; }
+[data-skin="weekend"] .l-mag-row-img img { border-radius: 12px; }
+[data-skin="weekend"] .l-mag-row h2 { font-weight: 600; }
+[data-skin="weekend"] .l-mag-box { border: 0; background: var(--paper-2); border-radius: 18px; }
+[data-skin="weekend"] .l-mag-box h3 { color: var(--accent); font-weight: 800; font-family: var(--body); }
+[data-skin="weekend"] .l-mag-box.is-accent { background: var(--accent); }
+[data-skin="weekend"] .l-mag-box.is-accent h3 { color: #fff; }
+[data-skin="weekend"] .l-mag-tags .chip { border-radius: 999px; border: 0; background: var(--paper); }
+[data-skin="weekend"] .post-card-tags a { background: color-mix(in oklab, var(--accent) 14%, transparent); padding: .2rem .6rem; border-radius: 999px; }
+[data-skin="weekend"] .post-figure img { border-radius: 22px; }
+[data-skin="weekend"] .l-mag-foot { border-top: 0; background: var(--paper-2); border-radius: 18px 18px 0 0; }
