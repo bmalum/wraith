@@ -1,0 +1,17 @@
+<section :if={@page == 1} class="t-head">
+  <h1 class="t-title l-list-h">{@site["title"]}</h1>
+  <p class="t-lede">{@site["description"]}</p>
+</section>
+<p :if={@posts == []} class="t-muted">// nothing published yet</p>
+<ol class="l-list-rows">
+  <li :for={post <- @posts}>
+    <time datetime={post["published_at"]}>{String.slice(post["published_at"] || "", 0, 10)}</time>
+    <.link navigate={~p"/#{post["slug"]}"}>{post["title"]}</.link>
+    <span class="l-list-tags"><span :for={t <- post["tags"] || []}>#{t}</span></span>
+  </li>
+</ol>
+<.pager
+  page={@page}
+  has_next={@has_next}
+  path={fn n -> if n == 1, do: ~p"/", else: ~p"/page/#{n}" end}
+/>

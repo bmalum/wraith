@@ -70,6 +70,36 @@ defmodule WraithWeb.SiteComponents do
     """
   end
 
+  @doc "The box under the public preview of a members-only or paid post."
+  attr :post, :map, required: true
+  attr :current_member, :map, default: nil
+
+  def paywall(assigns) do
+    ~H"""
+    <div class="paywall">
+      <h3>
+        {if @post["visibility"] == "paid",
+          do: "This post is for paid members",
+          else: "This post is for members"}
+      </h3>
+      <p>
+        {if @post["visibility"] == "paid",
+          do: "Upgrade to keep reading.",
+          else: "Sign up for free to keep reading."}
+      </p>
+      <.link
+        :if={@post["visibility"] == "paid" and @current_member}
+        navigate={~p"/members"}
+        class="btn-accent"
+      >Upgrade</.link>
+      <.link :if={is_nil(@current_member)} navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
+      <p :if={is_nil(@current_member)} class="form-help">
+        Already a member? <.link navigate={~p"/members"}>Sign in</.link>
+      </p>
+    </div>
+    """
+  end
+
   @doc "A table of contents from `Wraith.Markdown.toc/1`."
   attr :toc, :list, required: true
 
@@ -273,4 +303,16 @@ defmodule WraithWeb.SiteComponents do
   end
 
   def date(_), do: ""
+
+  def day(iso) when is_binary(iso), do: String.slice(iso, 8, 2)
+  def day(_), do: ""
+
+  def month(iso) when is_binary(iso) do
+    case DateTime.from_iso8601(iso) do
+      {:ok, dt, _} -> Calendar.strftime(dt, "%b %Y")
+      _ -> ""
+    end
+  end
+
+  def month(_), do: ""
 end

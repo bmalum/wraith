@@ -1,0 +1,28 @@
+/* list — a terminal: a path-like brand, dated rows, a narrow reading column. */
+
+.l-list { --measure: 40rem; display: flex; flex-direction: column; min-height: 100dvh; max-width: 48rem; margin: 0 auto; padding: 0 1.5rem; }
+.l-list-head { display: flex; align-items: center; gap: 1rem; padding: 1.5rem 0; border-bottom: 1px solid var(--rule); font-family: var(--mono); flex-wrap: wrap; }
+.l-list-brand { font-family: var(--mono); font-weight: 600; color: var(--ink); text-decoration: none; font-size: 1rem; }
+.l-list-brand::before { content: "$ "; color: var(--accent); }
+.l-list-nav { margin-left: auto; display: flex; gap: 1rem; align-items: center; font-size: .85rem; font-family: var(--mono); }
+.l-list-nav a { color: var(--ink-2); text-decoration: none; }
+.l-list-nav a:hover { color: var(--accent); }
+.l-list-main { flex: 1; padding: 2.5rem 0 4rem; }
+.l-list-foot { border-top: 1px solid var(--rule); padding: 1.5rem 0; display: flex; gap: 1.5rem; flex-wrap: wrap; color: var(--ink-3); font-size: .8rem; font-family: var(--mono); }
+
+.l-list .t-title.l-list-h, .l-list-h { font-family: var(--mono); font-weight: 600; letter-spacing: -.01em; }
+.l-list .t-lede { font-size: 1.05rem; }
+
+.l-list-rows { list-style: none; margin: 1.5rem 0 0; padding: 0; font-family: var(--mono); font-size: .95rem; }
+.l-list-rows li { display: flex; gap: 1rem; align-items: baseline; padding: .5rem 0; border-bottom: 1px dashed var(--rule); flex-wrap: wrap; }
+.l-list-rows time { color: var(--ink-3); font-variant-numeric: tabular-nums; flex: none; }
+.l-list-rows a { color: var(--ink); text-decoration: none; }
+.l-list-rows a:hover { color: var(--accent); text-decoration: underline; }
+.l-list-tags { margin-left: auto; color: var(--ink-3); display: inline-flex; gap: .5rem; font-size: .8rem; }
+
+.l-list-post { max-width: var(--measure); margin: 0 auto; }
+.l-list-meta { font-family: var(--mono); font-size: .82rem; display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+.l-list-meta a { color: var(--ink-2); text-decoration: none; }
+.l-list-meta a:hover { color: var(--accent); }
+.l-list-post .l-list-h { font-size: clamp(1.6rem, 4vw, 2.4rem); margin: .5rem 0 1.5rem; line-height: 1.15; }
+.l-list-figure { width: 100%; border-radius: var(--radius); margin: 0 0 2rem; }

@@ -1,0 +1,38 @@
+<article class="l-list-post">
+  <p class="t-muted l-list-meta">
+    <span :if={@post["published_at"]}>{String.slice(@post["published_at"], 0, 10)}</span>
+    <span :for={t <- @post["tags"] || []}><.link navigate={~p"/tag/#{t}"}>#{t}</.link></span>
+    <span :if={@author}>by
+    <.link navigate={~p"/author/#{@author["slug"]}"}>{@author["name"]}</.link></span>
+    <span :if={@post["status"] != "published"} class="badge-draft">{@post["status"]}</span>
+    <.link :if={@current_user} navigate={~p"/admin/posts/#{@post["id"]}"}>[edit]</.link>
+  </p>
+  <h1 class="l-list-h">{@post["title"]}</h1>
+  <img
+    :if={@post["feature_image"]}
+    src={@post["feature_image"]}
+    alt={@post["feature_image_alt"] || ""}
+    class="l-list-figure"
+  />
+  <.toc :if={not @locked} toc={@toc} />
+  <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />
+  <.paywall :if={@locked} post={@post} current_member={@current_member} />
+  <.comments
+    :if={not @locked}
+    enabled={@comments_enabled}
+    comments={@comments}
+    current_member={@current_member}
+    current_user={@current_user}
+    reply_to={@reply_to}
+  />
+</article>
+<section :if={@related != []} class="t-head">
+  <p class="t-muted">// read next</p>
+  <ol class="l-list-rows">
+    <li :for={post <- @related}>
+      <time datetime={post["published_at"]}>{String.slice(post["published_at"] || "", 0, 10)}</time><.link navigate={
+        ~p"/#{post["slug"]}"
+      }>{post["title"]}</.link>
+    </li>
+  </ol>
+</section>

@@ -1,0 +1,14 @@
+<section class="t-head">
+  <.author_meta :if={assigns[:author]} author={@author} />
+  <h1 class="t-title">{@heading}</h1>
+  <p :if={@lede not in [nil, ""]} class="t-lede">{@lede}</p>
+  <.search_form :if={assigns[:search]} q={@q} />
+  <.listing_count posts={@posts} search={assigns[:search] == true} />
+</section>
+<ul class="l-min-list">
+  <li :for={post <- @posts}>
+    <.link navigate={~p"/#{post["slug"]}"} class="l-min-item"><span class="l-min-item-title">{post[
+      "title"
+    ]}</span><time datetime={post["published_at"]}>{date(post["published_at"])}</time></.link>
+  </li>
+</ul>

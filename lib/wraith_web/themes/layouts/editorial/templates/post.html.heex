@@ -1,0 +1,42 @@
+<article class="post">
+  <header class="post-head">
+    <div class="post-card-tags">
+      <.link :for={tag <- @post["tags"] || []} navigate={~p"/tag/#{tag}"}>{tag}</.link>
+      <span :if={@post["status"] != "published"} class="badge-draft">{@post["status"]} preview</span>
+    </div>
+    <h1 class="post-title">{@post["title"]}</h1>
+    <p :if={not @locked and @post["custom_excerpt"] not in [nil, ""]} class="post-excerpt">
+      {@post["custom_excerpt"]}
+    </p>
+    <.byline post={@post} authors={@authors} />
+    <div :if={@current_user} class="post-edit">
+      <.link navigate={~p"/admin/posts/#{@post["id"]}"}><.icon name="hero-pencil" class="size-3" />
+      Edit</.link>
+    </div>
+  </header>
+  <figure :if={@post["feature_image"]} class="post-figure">
+    <img src={@post["feature_image"]} alt={@post["feature_image_alt"] || ""} />
+  </figure>
+  <.toc :if={not @locked} toc={@toc} />
+  <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />
+  <.paywall :if={@locked} post={@post} current_member={@current_member} />
+  <footer :if={@co_authors != []} class="post-foot">
+    <div :for={a <- @co_authors} class="author-card">
+      <img :if={a["avatar"]} src={a["avatar"]} alt="" class="author-avatar is-img" />
+      <div :if={is_nil(a["avatar"])} class="author-avatar">{String.first(a["name"])}</div>
+      <div>
+        <.link navigate={~p"/author/#{a["slug"]}"} class="author-name">{a["name"]}</.link>
+        <p :if={a["bio"] not in [nil, ""]} class="author-bio">{a["bio"]}</p>
+      </div>
+    </div>
+  </footer>
+  <.comments
+    :if={not @locked}
+    enabled={@comments_enabled}
+    comments={@comments}
+    current_member={@current_member}
+    current_user={@current_user}
+    reply_to={@reply_to}
+  />
+</article>
+<.related posts={@related} authors={@authors} />

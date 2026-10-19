@@ -1,9 +1,0 @@
-<section class="lead is-small">
-  <p class="lead-kicker">Tag</p>
-  <h1 class="lead-title">{@tag["name"]}</h1>
-  <p :if={@tag["description"] not in [nil, ""]} class="lead-desc">{@tag["description"]}</p>
-  <p class="lead-count">{length(@posts)} {if length(@posts) == 1, do: "post", else: "posts"}</p>
-</section>
-<section class="feed">
-  <.post_card :for={post <- @posts} post={post} authors={@authors} />
-</section>

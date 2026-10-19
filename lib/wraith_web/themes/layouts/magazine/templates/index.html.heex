@@ -1,0 +1,66 @@
+<div :if={@posts == []} class="t-empty">
+  <p>Nothing published yet.</p>
+</div>
+<% {hero, posts} =
+  if @page == 1 and @posts != [], do: {hd(@posts), tl(@posts)}, else: {nil, @posts} %>
+<%= if hero do %>
+  <section class="l-mag-hero">
+    <.link :if={hero["feature_image"]} navigate={~p"/#{hero["slug"]}"} class="l-mag-hero-img"><img
+      src={hero["feature_image"]}
+      alt=""
+    /></.link>
+    <div class="l-mag-hero-body">
+      <div class="post-card-tags">
+        <.link :for={t <- Enum.take(hero["tags"] || [], 2)} navigate={~p"/tag/#{t}"}>{t}</.link>
+      </div>
+      <h2><.link navigate={~p"/#{hero["slug"]}"}>{hero["title"]}</.link></h2>
+      <p>{hero["excerpt"]}</p>
+      <.byline post={hero} authors={@authors} />
+    </div>
+  </section>
+<% end %>
+<div class="l-mag-cols">
+  <section class="l-mag-stream">
+    <article :for={post <- posts} class="l-mag-row">
+      <.link :if={post["feature_image"]} navigate={~p"/#{post["slug"]}"} class="l-mag-row-img"><img
+        src={post["feature_image"]}
+        alt=""
+        loading="lazy"
+      /></.link>
+      <div>
+        <div class="post-card-tags">
+          <.link :for={t <- Enum.take(post["tags"] || [], 1)} navigate={~p"/tag/#{t}"}>{t}</.link>
+        </div>
+        <h2><.link navigate={~p"/#{post["slug"]}"}>{post["title"]}</.link></h2>
+        <p>{post["excerpt"]}</p>
+        <.byline post={post} authors={@authors} />
+      </div>
+    </article>
+    <.pager
+      page={@page}
+      has_next={@has_next}
+      path={fn n -> if n == 1, do: ~p"/", else: ~p"/page/#{n}" end}
+    />
+  </section>
+  <aside class="l-mag-side">
+    <section class="l-mag-box">
+      <h3>About</h3>
+      <p>{@site["description"]}</p>
+    </section>
+    <section :if={@site["members_enabled"]} class="l-mag-box is-accent">
+      <h3>Subscribe</h3>
+      <p>New posts by mail, free.</p>
+      <.link navigate={~p"/subscribe"} class="btn-accent">Subscribe</.link>
+    </section>
+    <section class="l-mag-box">
+      <h3>Topics</h3>
+      <div class="l-mag-tags">
+        <.link
+          :for={t <- WraithWeb.Themes.Layouts.Magazine.sidebar_tags()}
+          navigate={~p"/tag/#{t["slug"]}"}
+          class="chip"
+        >{t["name"]}</.link>
+      </div>
+    </section>
+  </aside>
+</div>

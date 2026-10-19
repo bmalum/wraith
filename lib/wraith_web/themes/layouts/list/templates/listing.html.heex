@@ -1,0 +1,14 @@
+<section class="t-head">
+  <.author_meta :if={assigns[:author]} author={@author} />
+  <h1 class="t-title l-list-h">{if @kicker == "Tag", do: "#" <> @tag["slug"], else: @heading}</h1>
+  <p :if={@lede not in [nil, ""]} class="t-lede">{@lede}</p>
+  <.search_form :if={assigns[:search]} q={@q} />
+  <.listing_count posts={@posts} search={assigns[:search] == true} />
+</section>
+<ol class="l-list-rows">
+  <li :for={post <- @posts}>
+    <time datetime={post["published_at"]}>{String.slice(post["published_at"] || "", 0, 10)}</time><.link navigate={
+      ~p"/#{post["slug"]}"
+    }>{post["title"]}</.link>
+  </li>
+</ol>

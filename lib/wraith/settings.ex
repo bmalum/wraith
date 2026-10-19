@@ -12,7 +12,7 @@ defmodule Wraith.Settings do
     "lang" => "en",
     "timezone" => "Etc/UTC",
     "posts_per_page" => 10,
-    "accent" => "#5b4bff",
+    "accent" => "",
     "theme" => "paper",
     "navigation" => [%{"label" => "Home", "url" => "/"}],
     "footer" => "",
@@ -104,7 +104,7 @@ defmodule Wraith.Settings do
           else: Map.put(acc, "theme", "is not an installed theme")
 
       {"accent", a}, acc when is_binary(a) ->
-        if Regex.match?(~r/^#[0-9a-fA-F]{6}$/, a),
+        if a == "" or Regex.match?(~r/^#[0-9a-fA-F]{6}$/, a),
           do: acc,
           else: Map.put(acc, "accent", "must be a hex colour")
 

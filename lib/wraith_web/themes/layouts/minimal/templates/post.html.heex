@@ -1,0 +1,33 @@
+<article class="post l-min-post">
+  <header class="post-head">
+    <h1 class="post-title">{@post["title"]}</h1>
+    <.byline post={@post} authors={@authors} />
+    <div :if={@current_user} class="post-edit">
+      <.link navigate={~p"/admin/posts/#{@post["id"]}"}>Edit</.link>
+    </div>
+  </header>
+  <.toc :if={not @locked} toc={@toc} />
+  <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />
+  <.paywall :if={@locked} post={@post} current_member={@current_member} />
+  <.comments
+    :if={not @locked}
+    enabled={@comments_enabled}
+    comments={@comments}
+    current_member={@current_member}
+    current_user={@current_user}
+    reply_to={@reply_to}
+  />
+  <footer class="l-min-post-foot">
+    <span :for={t <- @post["tags"] || []}><.link navigate={~p"/tag/#{t}"}>#{t}</.link></span>
+  </footer>
+</article>
+<section :if={@related != []} class="l-min-related">
+  <h2>Read next</h2>
+  <ul class="l-min-list">
+    <li :for={p <- @related}>
+      <.link navigate={~p"/#{p["slug"]}"} class="l-min-item"><span class="l-min-item-title">{p[
+        "title"
+      ]}</span></.link>
+    </li>
+  </ul>
+</section>

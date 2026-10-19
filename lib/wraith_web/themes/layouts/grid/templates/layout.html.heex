@@ -1,0 +1,34 @@
+<div class="l-grid">
+  <header class="l-grid-head">
+    <nav class="l-grid-nav" aria-label="Site">
+      <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
+    </nav>
+    <a href="/" class="l-grid-brand">
+      <img :if={@site["logo"] not in [nil, ""]} src={@site["logo"]} alt={@site["title"]} />
+      <span :if={@site["logo"] in [nil, ""]}>{@site["title"]}</span>
+    </a>
+    <div class="l-grid-tools">
+      <a href={~p"/search"} class="masthead-icon" aria-label="Search"><.icon
+        name="hero-magnifying-glass"
+        class="size-4"
+      /></a>
+      <.mode_toggle />
+      <a
+        :if={@site["members_enabled"] and is_nil(assigns[:current_member])}
+        href={~p"/subscribe"}
+        class="btn-accent"
+      >Subscribe</a>
+      <a :if={assigns[:current_member]} href={~p"/members"} class="btn-ghost">Account</a>
+      <a :if={@current_user} href={~p"/admin"} class="masthead-icon" title="Admin"><.icon
+        name="hero-pencil-square"
+        class="size-4"
+      /></a>
+    </div>
+  </header>
+  <main class="l-grid-main">{render_slot(@inner_block)}</main>
+  <footer class="l-grid-foot">
+    <span>{@site["title"]} © {Date.utc_today().year}</span>
+    <.social_links site={@site} />
+    <span :if={@site["footer"] not in [nil, ""]}>{@site["footer"]}</span>
+  </footer>
+</div>

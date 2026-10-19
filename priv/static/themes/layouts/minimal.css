@@ -1,0 +1,28 @@
+/* minimal — one narrow column, a name, a list of titles, the writing. */
+
+.l-min { --measure: 38rem; display: flex; flex-direction: column; min-height: 100dvh; max-width: 40rem; margin: 0 auto; padding: 0 1.5rem; }
+.l-min-head { padding: 3rem 0 2.5rem; display: flex; align-items: baseline; gap: 1.5rem; flex-wrap: wrap; }
+.l-min-brand { font-family: var(--heading); font-weight: 600; font-size: 1.3rem; color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
+.l-min-nav { margin-left: auto; display: flex; gap: 1rem; align-items: center; font-size: .85rem; }
+.l-min-nav a { color: var(--ink-3); text-decoration: none; }
+.l-min-nav a:hover { color: var(--ink); }
+.l-min-main { flex: 1; padding-bottom: 5rem; }
+.l-min-foot { border-top: 1px solid var(--rule); padding: 2rem 0; display: flex; gap: 1.5rem; flex-wrap: wrap; color: var(--ink-3); font-size: .82rem; align-items: center; }
+
+.l-min-intro { font-size: 1.15rem; color: var(--ink-2); line-height: 1.6; margin: 0 0 3rem; }
+
+.l-min-list { list-style: none; margin: 0; padding: 0; }
+.l-min-list li { border-bottom: 1px solid var(--rule); }
+.l-min-item { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; padding: 1.1rem 0; text-decoration: none; align-items: baseline; }
+.l-min-item-title { font-family: var(--heading); font-weight: 500; font-size: 1.15rem; color: var(--ink); line-height: 1.25; }
+.l-min-item:hover .l-min-item-title { color: var(--accent); }
+.l-min-item-excerpt { grid-column: 1; color: var(--ink-3); font-size: .9rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.l-min-item time { color: var(--ink-3); font-size: .82rem; font-variant-numeric: tabular-nums; grid-row: 1; grid-column: 2; }
+
+.l-min-post { max-width: var(--measure); }
+.l-min-post .post-title { font-size: clamp(1.7rem, 4vw, 2.4rem); }
+.l-min-post-foot { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); display: flex; gap: 1rem; font-size: .85rem; }
+.l-min-post-foot a { color: var(--ink-3); text-decoration: none; }
+.l-min-post-foot a:hover { color: var(--accent); }
+.l-min-related { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--rule); }
+.l-min-related h2 { font-family: var(--heading); font-weight: 500; font-size: 1.2rem; margin: 0 0 1rem; }

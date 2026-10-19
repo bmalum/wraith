@@ -1,0 +1,20 @@
+<p :if={@page == 1 and @site["description"] not in [nil, ""]} class="l-min-intro">
+  {@site["description"]}
+</p>
+<div :if={@posts == []} class="t-empty">
+  <p>Nothing published yet.</p>
+</div>
+<ul class="l-min-list">
+  <li :for={post <- @posts}>
+    <.link navigate={~p"/#{post["slug"]}"} class="l-min-item">
+      <span class="l-min-item-title">{post["title"]}</span>
+      <span class="l-min-item-excerpt">{post["excerpt"]}</span>
+      <time datetime={post["published_at"]}>{date(post["published_at"])}</time>
+    </.link>
+  </li>
+</ul>
+<.pager
+  page={@page}
+  has_next={@has_next}
+  path={fn n -> if n == 1, do: ~p"/", else: ~p"/page/#{n}" end}
+/>

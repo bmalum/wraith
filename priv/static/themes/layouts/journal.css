@@ -1,0 +1,35 @@
+/* journal — dated entries in a wide serif column, with a date in the margin. */
+
+.l-jrn { display: flex; flex-direction: column; min-height: 100dvh; }
+.l-jrn-head { text-align: center; padding: 3.5rem 1.5rem 2.5rem; border-bottom: 1px solid var(--rule); }
+.l-jrn-brand { font-family: var(--heading); font-weight: 600; font-size: clamp(2rem, 5vw, 3rem); color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
+.l-jrn-sub { color: var(--ink-2); margin: .5rem 0 0; font-size: 1.1rem; }
+.l-jrn-nav { margin-top: 1.5rem; display: flex; justify-content: center; flex-wrap: wrap; gap: 1.25rem; font-size: .9rem; align-items: center; }
+.l-jrn-nav a { color: var(--ink-2); text-decoration: none; }
+.l-jrn-nav a:hover { color: var(--accent); }
+.l-jrn-main { flex: 1; width: 100%; max-width: 52rem; margin: 0 auto; padding: 3rem 1.5rem 5rem; box-sizing: border-box; }
+.l-jrn-foot { border-top: 1px solid var(--rule); padding: 1.5rem; display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; color: var(--ink-3); font-size: .85rem; align-items: center; }
+
+.l-jrn-entries { display: flex; flex-direction: column; }
+.l-jrn-entry { display: grid; grid-template-columns: 5rem 1fr; gap: 2rem; padding: 2.5rem 0; border-bottom: 1px solid var(--rule); }
+.l-jrn-date { text-align: right; color: var(--ink-3); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.l-jrn-day { display: block; font-family: var(--heading); font-size: 2rem; font-weight: 600; color: var(--ink-2); }
+.l-jrn-month { display: block; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; margin-top: .25rem; }
+.l-jrn-entry-body h2 { font-family: var(--heading); font-weight: 600; font-size: 1.6rem; line-height: 1.2; margin: 0 0 .5rem; }
+.l-jrn-entry-body h2 a { text-decoration: none; color: inherit; }
+.l-jrn-entry-body h2 a:hover { color: var(--accent); }
+.l-jrn-entry-body p { color: var(--ink-2); line-height: 1.6; margin: 0 0 .75rem; }
+.l-jrn-more { font-size: .9rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+.l-jrn-more > a { color: var(--accent); text-decoration: none; }
+.l-jrn-tag a { color: var(--ink-3); text-decoration: none; }
+.l-jrn-tag a::before { content: "#"; }
+
+.l-jrn-post { display: grid; grid-template-columns: 5rem 1fr; gap: 2rem; }
+.l-jrn-date.is-post .l-jrn-day { font-size: 2.5rem; }
+.l-jrn-post .post { max-width: var(--measure); margin: 0; }
+@media (max-width: 42rem) {
+  .l-jrn-entry, .l-jrn-post { grid-template-columns: 1fr; gap: .5rem; }
+  .l-jrn-date { text-align: left; display: flex; gap: .5rem; align-items: baseline; }
+  .l-jrn-day { font-size: 1.1rem; }
+  .l-jrn-month { margin-top: 0; }
+}

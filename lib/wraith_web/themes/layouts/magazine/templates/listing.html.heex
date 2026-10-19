@@ -1,0 +1,22 @@
+<section class="t-head">
+  <p :if={@kicker} class="t-kicker">{@kicker}</p>
+  <.author_meta :if={assigns[:author]} author={@author} />
+  <h1 class="t-title">{@heading}</h1>
+  <p :if={@lede not in [nil, ""]} class="t-lede">{@lede}</p>
+  <.search_form :if={assigns[:search]} q={@q} />
+  <.listing_count posts={@posts} search={assigns[:search] == true} />
+</section>
+<section class="l-mag-stream is-wide">
+  <article :for={post <- @posts} class="l-mag-row">
+    <.link :if={post["feature_image"]} navigate={~p"/#{post["slug"]}"} class="l-mag-row-img"><img
+      src={post["feature_image"]}
+      alt=""
+      loading="lazy"
+    /></.link>
+    <div>
+      <h2><.link navigate={~p"/#{post["slug"]}"}>{post["title"]}</.link></h2>
+      <p>{post["excerpt"]}</p>
+      <.byline post={post} authors={@authors} />
+    </div>
+  </article>
+</section>

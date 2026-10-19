@@ -36,7 +36,7 @@ widgets and runs the site with you.
 | **MCP server**: every admin action as a tool (49), posts as resources, at `/mcp` for any agent — Kiro CLI, Claude, Cursor; the studio agent uses the same registry | `Wraith.Tools`, `WraithWeb.McpController`, `Wraith.Kiro.MCP` |
 | JSON APIs in Ghost's shape: Content API (read, `?key=`), Admin API (Bearer key or session), Ghost-compatible export and **import of a Ghost site** | `WraithWeb.Api.*`, `Wraith.ApiKeys`, `Wraith.Ghost` |
 | Public site: feed, post, tag, author, subscribe, RSS / JSON Feed / sitemap | `WraithWeb.Site.*`, `WraithWeb.FeedController` |
-| Themes: `paper` (editorial) and `ink` (dark terminal), switchable in Settings | `WraithWeb.Theme`, `WraithWeb.Themes`, `lib/wraith_web/themes/*`, `priv/static/themes/*.css` |
+| Themes: **18 themes across 6 layouts** (editorial, list, grid, magazine, minimal, journal), picked in a swatch gallery in Settings; token skins + shared base/layout CSS, light/dark | `WraithWeb.Theme`, `WraithWeb.Theme.Layout`, `WraithWeb.Themes`, `lib/wraith_web/themes/*`, `priv/static/themes/*.css` |
 | Admin: setup, login, dashboard, Markdown editor with live preview (widgets live too), posts, tags, members, settings | `WraithWeb.Admin.*` |
 | Widgets: behaviour, Lua sandbox, shared live state, built-ins (counter, poll, reactions, countdown, live visitors) | `Wraith.Widgets`, `Wraith.Widgets.Lua`, `priv/widgets/*.lua` |
 | Widget studio: write Lua, click the live preview, versions & rollback | `WraithWeb.Admin.WidgetEditorLive` |
@@ -131,17 +131,45 @@ implement `Wraith.Widgets.Widget` and are listed in `Wraith.Widgets.builtin_modu
 
 ## Themes
 
-The public site is a theme: a directory under `lib/wraith_web/themes/<name>/`
-with a module (`use WraithWeb.Theme, name: "<name>", label: …, description: …`)
-and six HEEx templates — `layout`, `index`, `post`, `tag`, `author`,
-`subscribe` — plus a plain stylesheet at `priv/static/themes/<name>.css`.
-Templates get the page's assigns (`@site`, `@posts`, `@post`, `@authors`,
-`@segments`/`@widgets`, …) and can use `WraithWeb.SiteComponents`
-(`post_card`, `byline`, `pager`, and `body`, which is what keeps widgets live
-in any theme). Tokens, the prose styles and the widget classes come from
-`app.css`, so a theme only has to style the page. Add the module to
-`WraithWeb.Themes.all/0` and it appears in Settings → Theme. Two ship:
-`paper` (the default) and `ink`.
+The public site is a theme, and a theme is two things: a **layout** (its
+structure and templates) and a **skin** of design tokens (fonts, palette,
+radius, measure). Six layouts ship, each a directory under
+`lib/wraith_web/themes/layouts/<layout>/` with a module
+(`use WraithWeb.Theme.Layout, name: "<layout>"`) and four HEEx templates —
+`layout`, `index`, `post`, and a shared `listing` (tag/author/search). The
+`subscribe` and `member` pages, the search box, the mode toggle and social
+links are shared by every layout from `WraithWeb.Themes.Shared`.
+
+Each layout carries three skins, so **18 themes ship**:
+
+| Layout | Themes |
+|---|---|
+| editorial — masthead, lead story, card feed | `paper` (default), `broadsheet`, `gallery` |
+| list — dated rows, narrow column | `ink`, `ledger`, `terminal` |
+| grid — centred logo, image-first cards | `studio`, `polaroid`, `slate` |
+| magazine — hero + sidebar | `review`, `weekend`, `tabloid` |
+| minimal — one narrow column | `plain`, `mono`, `zen` |
+| journal — dated entries, date in the margin | `diary`, `letters`, `nightshift` |
+
+A theme module is tiny — a name, a layout, a Google Fonts URL and a `tokens`
+map:
+
+```elixir
+use WraithWeb.Theme,
+  name: "broadsheet", label: "Broadsheet", description: "…",
+  layout: WraithWeb.Themes.Layouts.Editorial,
+  fonts: "https://fonts.googleapis.com/css2?family=Playfair+Display…",
+  tokens: %{"--heading" => "'Playfair Display', serif", "--accent" => "#b00020", …}
+```
+
+The root layout links `/themes/base.css` (everything the layouts share) and
+`/themes/layouts/<layout>.css`, loads the theme's fonts, and inlines the
+tokens as CSS variables on `:root`. The widget classes and prose styles come
+from `app.css`. Pick a theme in **Settings → Theme** (a gallery of swatches
+grouped by layout) or over MCP (`settings_update`, `themes_list`); your site
+accent colour overrides the theme's. Dark skins declare `--scheme: dark`, and
+light skins get a sensible dark palette from the reader's `prefers-color-scheme`
+or the light/dark toggle.
 
 Themes are compiled into the release, by design: no template code is loaded
 at runtime. Ghost (Handlebars) theme compatibility would be a second theme

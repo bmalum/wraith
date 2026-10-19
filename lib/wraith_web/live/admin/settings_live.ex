@@ -49,6 +49,21 @@ defmodule WraithWeb.Admin.SettingsLive do
     end
   end
 
+  def handle_event("pick-theme", %{"name" => name}, socket) do
+    case Settings.update(%{"theme" => name}) do
+      {:ok, _} ->
+        Wraith.Audit.log(socket.assigns.current_user, "settings_update", nil, %{
+          "keys" => ["theme"]
+        })
+
+        info = WraithWeb.Themes.get(name).info()
+        {:noreply, socket |> put_flash(:info, "Theme set to #{info.label}.") |> load()}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "That theme is not installed.")}
+    end
+  end
+
   def handle_event("set-role", %{"user" => id, "role" => role}, socket) do
     with true <- role in Wraith.Policy.assignable(socket.assigns.current_user),
          %{} = u <- Accounts.get_user(id),
@@ -270,6 +285,45 @@ defmodule WraithWeb.Admin.SettingsLive do
             />
             <button type="submit" class="btn-accent">Save settings</button>
           </.form>
+        </section>
+
+        <section class="panel" id="appearance">
+          <header class="panel-head">
+            <h2>Theme</h2>
+            <p class="panel-sub">
+              {length(WraithWeb.Themes.infos())} themes across {map_size(WraithWeb.Themes.by_layout())} layouts. Your accent colour, set on the left, overrides the theme's.
+            </p>
+          </header>
+          <div class="theme-groups">
+            <div
+              :for={{layout, infos} <- WraithWeb.Themes.by_layout()}
+              class="theme-group"
+              id={"layout-" <> layout}
+            >
+              <h3 class="theme-group-name">{layout}</h3>
+              <div class="theme-gallery">
+                <button
+                  :for={info <- infos}
+                  type="button"
+                  phx-click="pick-theme"
+                  phx-value-name={info.name}
+                  class={["theme-card", @site["theme"] == info.name && "is-active"]}
+                  id={"theme-" <> info.name}
+                  aria-pressed={to_string(@site["theme"] == info.name)}
+                  title={info.description}
+                >
+                  <span class="theme-swatch" aria-hidden="true">
+                    <span :for={c <- info.swatch} class="theme-swatch-chip" style={"background: #{c}"}></span>
+                  </span>
+                  <span class="theme-card-label">
+                    <span class="theme-card-name">{info.label}</span>
+                    <span :if={@site["theme"] == info.name} class="theme-card-current">Current</span>
+                  </span>
+                  <span class="theme-card-desc">{info.description}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="panel">

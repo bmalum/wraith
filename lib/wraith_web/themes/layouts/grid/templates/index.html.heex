@@ -1,0 +1,29 @@
+<p :if={@page == 1 and @site["description"] not in [nil, ""]} class="l-grid-tagline">
+  {@site["description"]}
+</p>
+<div :if={@posts == []} class="t-empty">
+  <p>Nothing published yet.</p>
+</div>
+<section class="l-grid-cards">
+  <article :for={post <- @posts} class="l-grid-card">
+    <.link navigate={~p"/#{post["slug"]}"} class="l-grid-card-img">
+      <img :if={post["feature_image"]} src={post["feature_image"]} alt="" loading="lazy" />
+      <span :if={is_nil(post["feature_image"])} class="l-grid-card-blank">{String.first(
+        post["title"]
+      )}</span>
+    </.link>
+    <div class="l-grid-card-body">
+      <div class="post-card-tags">
+        <.link :for={t <- Enum.take(post["tags"] || [], 1)} navigate={~p"/tag/#{t}"}>{t}</.link>
+      </div>
+      <h2><.link navigate={~p"/#{post["slug"]}"}>{post["title"]}</.link></h2>
+      <p>{post["excerpt"]}</p>
+      <.byline post={post} authors={@authors} />
+    </div>
+  </article>
+</section>
+<.pager
+  page={@page}
+  has_next={@has_next}
+  path={fn n -> if n == 1, do: ~p"/", else: ~p"/page/#{n}" end}
+/>

@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html lang={assigns[:site][:lang] || "en"} data-theme="wraith">
+<html
+  lang={(assigns[:site] && @site["lang"]) || "en"}
+  data-theme="wraith"
+  data-layout={assigns[:theme] && @theme.info().layout_name}
+  data-scheme={assigns[:theme] && (@theme.info().tokens["--scheme"] || "light")}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -48,18 +53,29 @@
     <link rel="alternate" type="application/feed+json" title="JSON Feed" href={~p"/feed.json"} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <%= if assigns[:theme] do %>
+      <link :if={@theme.info().fonts} href={@theme.info().fonts} rel="stylesheet" />
+    <% else %>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    <% end %>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
-    <link :if={assigns[:theme]} phx-track-static rel="stylesheet" href={@theme.info().css} />
+    <%= if assigns[:theme] do %>
+      <%= for css <- @theme.info().css do %>
+        <link phx-track-static rel="stylesheet" href={css} />
+      <% end %>
+      <style>
+        :root { <%= Phoenix.HTML.raw(Enum.map_join(@theme.info().tokens, " ", fn {k, v} -> "#{k}: #{v};" end)) %> }
+      </style>
+    <% end %>
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <script>
       try { const m = localStorage.getItem("wraith:mode"); if (m) document.documentElement.dataset.mode = m } catch (e) {}
     </script>
-    <style :if={assigns[:site] && assigns[:site]["accent"]}>
+    <style :if={assigns[:site] && @site["accent"] not in [nil, ""]}>
       :root { --accent: <%= @site["accent"] %>; }
     </style>
     <%= if assigns[:site] && @site["code_injection_head"] not in [nil, ""] do %>

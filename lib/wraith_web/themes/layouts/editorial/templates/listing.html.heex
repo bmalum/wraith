@@ -1,0 +1,11 @@
+<section class="t-head">
+  <p :if={@kicker} class="t-kicker">{@kicker}</p>
+  <.author_meta :if={assigns[:author]} author={@author} />
+  <h1 class="t-title">{@heading}</h1>
+  <p :if={@lede not in [nil, ""]} class="t-lede">{@lede}</p>
+  <.search_form :if={assigns[:search]} q={@q} />
+  <.listing_count posts={@posts} search={assigns[:search] == true} />
+</section>
+<section class="feed">
+  <.post_card :for={post <- @posts} post={post} authors={@authors} />
+</section>

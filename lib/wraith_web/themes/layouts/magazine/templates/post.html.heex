@@ -1,0 +1,53 @@
+<article class="l-mag-post">
+  <header class="post-head">
+    <div class="post-card-tags">
+      <.link :for={tag <- @post["tags"] || []} navigate={~p"/tag/#{tag}"}>{tag}</.link>
+    </div>
+    <h1 class="post-title">{@post["title"]}</h1>
+    <p :if={not @locked and @post["custom_excerpt"] not in [nil, ""]} class="post-excerpt">
+      {@post["custom_excerpt"]}
+    </p>
+    <.byline post={@post} authors={@authors} />
+    <div :if={@current_user} class="post-edit">
+      <.link navigate={~p"/admin/posts/#{@post["id"]}"}><.icon name="hero-pencil" class="size-3" />
+      Edit</.link>
+    </div>
+  </header>
+  <figure :if={@post["feature_image"]} class="post-figure">
+    <img src={@post["feature_image"]} alt={@post["feature_image_alt"] || ""} />
+  </figure>
+  <div class="l-mag-cols">
+    <div class="post">
+      <.toc :if={not @locked} toc={@toc} />
+      <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />
+      <.paywall :if={@locked} post={@post} current_member={@current_member} />
+      <.comments
+        :if={not @locked}
+        enabled={@comments_enabled}
+        comments={@comments}
+        current_member={@current_member}
+        current_user={@current_user}
+        reply_to={@reply_to}
+      />
+    </div>
+    <aside class="l-mag-side">
+      <section :if={@author} class="l-mag-box">
+        <img
+          :if={@author["avatar"]}
+          src={@author["avatar"]}
+          alt=""
+          class="author-avatar is-large is-img"
+        />
+        <h3>{@author["name"]}</h3>
+        <p :if={@author["bio"] not in [nil, ""]}>{@author["bio"]}</p>
+        <.link navigate={~p"/author/#{@author["slug"]}"}>More by {@author["name"]} →</.link>
+      </section>
+      <section :if={@related != []} class="l-mag-box">
+        <h3>Read next</h3>
+        <ul class="l-mag-list">
+          <li :for={p <- @related}><.link navigate={~p"/#{p["slug"]}"}>{p["title"]}</.link></li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</article>

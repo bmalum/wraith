@@ -1,0 +1,33 @@
+<article class="l-grid-post">
+  <header class="l-grid-post-head">
+    <div class="post-card-tags">
+      <.link :for={tag <- @post["tags"] || []} navigate={~p"/tag/#{tag}"}>{tag}</.link>
+    </div>
+    <h1 class="post-title">{@post["title"]}</h1>
+    <p :if={not @locked and @post["custom_excerpt"] not in [nil, ""]} class="post-excerpt">
+      {@post["custom_excerpt"]}
+    </p>
+    <.byline post={@post} authors={@authors} />
+    <div :if={@current_user} class="post-edit">
+      <.link navigate={~p"/admin/posts/#{@post["id"]}"}><.icon name="hero-pencil" class="size-3" />
+      Edit</.link>
+    </div>
+  </header>
+  <figure :if={@post["feature_image"]} class="l-grid-hero">
+    <img src={@post["feature_image"]} alt={@post["feature_image_alt"] || ""} />
+  </figure>
+  <div class="post">
+    <.toc :if={not @locked} toc={@toc} />
+    <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />
+    <.paywall :if={@locked} post={@post} current_member={@current_member} />
+    <.comments
+      :if={not @locked}
+      enabled={@comments_enabled}
+      comments={@comments}
+      current_member={@current_member}
+      current_user={@current_user}
+      reply_to={@reply_to}
+    />
+  </div>
+</article>
+<.related posts={@related} authors={@authors} />

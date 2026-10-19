@@ -129,31 +129,40 @@ defmodule WraithWeb.SiteTest do
       assert redirected_to(get(build_conn(), ~p"/members/confirm/nope")) == ~p"/subscribe"
     end
 
-    test "themes: paper is the default, ink renders the same pages, unknown names are refused", %{
-      conn: conn,
-      post: post
-    } do
+    test "themes: paper is the default, every theme renders the same pages, unknown names are refused",
+         %{conn: conn} do
       {:ok, _, html} = live(conn, ~p"/")
-      assert html =~ ~s(href="/themes/paper.css")
-      assert html =~ "masthead"
 
-      assert {:error, %{"theme" => _}} = Wraith.Settings.update(%{theme: "nope"})
-      {:ok, _} = Wraith.Settings.update(%{theme: "ink"})
+      assert html =~ ~s(href="/themes/base.css") and
+               html =~ ~s(href="/themes/layouts/editorial.css")
 
-      {:ok, _, html} = live(conn, ~p"/")
-      assert html =~ ~s(href="/themes/ink.css")
-      assert html =~ "ink-list"
-      assert html =~ "Hello World"
-      {:ok, view, html} = live(conn, ~p"/#{post["slug"]}")
-      assert html =~ "ink-post"
-      assert html =~ ~s(data-widget="counter"), "widgets stay live in any theme"
-      view |> element(~s(#widget-claps button[phx-value-event="inc"])) |> render_click()
-      assert render(view) =~ ~s(<span class="w-counter-value">1</span>)
-      {:ok, _, html} = live(conn, ~p"/tag/news")
-      assert html =~ "#news"
-      {:ok, _, html} = live(conn, ~p"/subscribe")
-      assert html =~ "subscribe →"
-      assert WraithWeb.Themes.names() == ["paper", "ink"]
+      assert html =~ "masthead" and html =~ "--heading:"
+
+      assert {:error, %{"theme" => _}} = Wraith.Settings.update(%{"theme" => "nope"})
+      assert length(WraithWeb.Themes.names()) == 18
+      assert "paper" in WraithWeb.Themes.names() and "ink" in WraithWeb.Themes.names()
+      assert WraithWeb.Themes.by_layout() |> map_size() == 6
+      :ok = Wraith.Search.rebuild()
+
+      for name <- WraithWeb.Themes.names() do
+        {:ok, _} = Wraith.Settings.update(%{"theme" => name})
+        info = WraithWeb.Themes.get(name).info()
+        {:ok, _, html} = live(conn, ~p"/")
+        assert html =~ ~s(href="/themes/layouts/#{info.layout_name}.css"), name
+        assert html =~ "Hello World", name
+        {:ok, _, html} = live(conn, ~p"/hello-world")
+        assert html =~ "Body text", name
+        {:ok, _, html} = live(conn, ~p"/tag/news")
+        assert html =~ "Hello World", name
+        {:ok, _, html} = live(conn, ~p"/author/owner-one")
+        assert html =~ "Owner One", name
+        {:ok, _, html} = live(conn, ~p"/search?q=hello")
+        assert html =~ "1 result", name
+        {:ok, _, html} = live(conn, ~p"/subscribe")
+        assert html =~ "subscribe-form", name
+      end
+
+      Wraith.Settings.update(%{"theme" => "paper"})
     end
 
     test "search page", %{conn: conn} do

@@ -1,0 +1,20 @@
+<div class="l-jrn">
+  <header class="l-jrn-head">
+    <a href="/" class="l-jrn-brand">{@site["title"]}</a>
+    <p :if={@site["description"] not in [nil, ""]} class="l-jrn-sub">{@site["description"]}</p>
+    <nav class="l-jrn-nav" aria-label="Site">
+      <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
+      <a href={~p"/search"}>Search</a>
+      <a :if={@site["members_enabled"] and is_nil(assigns[:current_member])} href={~p"/subscribe"}>Subscribe</a>
+      <a :if={assigns[:current_member]} href={~p"/members"}>Account</a>
+      <a :if={@current_user} href={~p"/admin"}>Admin</a>
+      <.mode_toggle />
+    </nav>
+  </header>
+  <main class="l-jrn-main">{render_slot(@inner_block)}</main>
+  <footer class="l-jrn-foot">
+    <span>{@site["title"]} · {Date.utc_today().year}</span><.social_links site={@site} /><span :if={
+      @site["footer"] not in [nil, ""]
+    }>{@site["footer"]}</span>
+  </footer>
+</div>

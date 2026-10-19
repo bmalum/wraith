@@ -1,0 +1,39 @@
+/* grid — a centred logo, a uniform grid of image cards, image-first posts. */
+
+.l-grid { display: flex; flex-direction: column; min-height: 100dvh; }
+.l-grid-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; padding: 1.5rem; border-bottom: 1px solid var(--rule); }
+.l-grid-nav { display: flex; gap: 1.1rem; font-size: .85rem; }
+.l-grid-nav a { color: var(--ink-2); text-decoration: none; }
+.l-grid-nav a:hover { color: var(--ink); }
+.l-grid-brand { justify-self: center; font-family: var(--heading); font-weight: 700; font-size: 1.5rem; letter-spacing: -.01em; color: var(--ink); text-decoration: none; }
+.l-grid-brand img { height: 2rem; width: auto; display: block; }
+.l-grid-tools { justify-self: end; display: flex; gap: .75rem; align-items: center; }
+.l-grid-tools .btn-accent, .l-grid-tools .btn-ghost { font-size: .85rem; padding: .35rem .85rem; }
+.l-grid-main { flex: 1; width: 100%; max-width: 76rem; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; box-sizing: border-box; }
+.l-grid-foot { border-top: 1px solid var(--rule); padding: 1.5rem; display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; color: var(--ink-3); font-size: .85rem; align-items: center; }
+
+.l-grid-tagline { text-align: center; font-size: 1.3rem; color: var(--ink-2); max-width: 40rem; margin: 0 auto 3rem; font-family: var(--heading); }
+
+.l-grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: 2.5rem 1.75rem; }
+.l-grid-card { display: flex; flex-direction: column; gap: .85rem; }
+.l-grid-card-img { display: block; aspect-ratio: 4/3; overflow: hidden; border-radius: var(--radius); background: var(--paper-2); }
+.l-grid-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease); }
+.l-grid-card:hover .l-grid-card-img img { transform: scale(1.04); }
+.l-grid-card-blank { display: grid; place-items: center; width: 100%; height: 100%; font-family: var(--heading); font-size: 3rem; color: var(--ink-3); }
+.l-grid-card-body { display: flex; flex-direction: column; gap: .4rem; }
+.l-grid-card-body h2 { font-family: var(--heading); font-weight: 600; font-size: 1.25rem; line-height: 1.2; margin: 0; }
+.l-grid-card-body h2 a { text-decoration: none; color: inherit; }
+.l-grid-card-body h2 a:hover { color: var(--accent); }
+.l-grid-card-body p { margin: 0; color: var(--ink-2); font-size: .92rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.l-grid-post { max-width: 52rem; margin: 0 auto; }
+.l-grid-post-head { text-align: center; margin-bottom: 2rem; }
+.l-grid-post-head .post-card-tags { justify-content: center; }
+.l-grid-post-head .byline { justify-content: center; }
+.l-grid-hero { margin: 0 0 2.5rem; }
+.l-grid-hero img { width: 100%; border-radius: var(--radius); }
+
+@media (max-width: 42rem) {
+  .l-grid-head { grid-template-columns: auto 1fr; }
+  .l-grid-nav { display: none; }
+}

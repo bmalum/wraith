@@ -1,0 +1,30 @@
+<article class="l-jrn-post">
+  <time datetime={@post["published_at"]} class="l-jrn-date is-post">
+    <span class="l-jrn-day">{day(@post["published_at"])}</span>
+    <span class="l-jrn-month">{month(@post["published_at"])}</span>
+  </time>
+  <div class="post">
+    <header class="post-head">
+      <h1 class="post-title">{@post["title"]}</h1>
+      <.byline post={@post} authors={@authors} />
+      <div :if={@current_user} class="post-edit">
+        <.link navigate={~p"/admin/posts/#{@post["id"]}"}>Edit</.link>
+      </div>
+    </header>
+    <figure :if={@post["feature_image"]} class="post-figure">
+      <img src={@post["feature_image"]} alt={@post["feature_image_alt"] || ""} />
+    </figure>
+    <.toc :if={not @locked} toc={@toc} />
+    <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />
+    <.paywall :if={@locked} post={@post} current_member={@current_member} />
+    <.comments
+      :if={not @locked}
+      enabled={@comments_enabled}
+      comments={@comments}
+      current_member={@current_member}
+      current_user={@current_user}
+      reply_to={@reply_to}
+    />
+  </div>
+</article>
+<.related posts={@related} authors={@authors} />
