@@ -65,4 +65,28 @@ defmodule WraithWeb.ConnCase do
     |> Plug.Conn.put_session(:user_token, token)
     |> Plug.Conn.put_session(:visitor, "test-visitor")
   end
+
+  @doc "A member, defaulting to a confirmed free member."
+  def member_fixture(attrs \\ %{}) do
+    {:ok, member} =
+      Wraith.Members.create(
+        Map.merge(
+          %{"email" => "reader@wraith.test", "name" => "Reader", "status" => "free"},
+          attrs
+        )
+      )
+
+    {:ok, member} = Wraith.Members.confirm(member)
+    member
+  end
+
+  @doc "Sign the conn in as `member`."
+  def log_in_member(conn, member) do
+    token = Wraith.Members.create_session(member)
+
+    conn
+    |> Phoenix.ConnTest.init_test_session(%{})
+    |> Plug.Conn.put_session(:member_token, token)
+    |> Plug.Conn.put_session(:visitor, "v-" <> member["id"])
+  end
 end

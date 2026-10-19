@@ -205,15 +205,6 @@ defmodule WraithWeb.MembersTest do
     assert Members.get(m["id"])["status"] == "free"
   end
 
-  defp log_in_member(conn, member) do
-    token = Members.create_session(member)
-
-    conn
-    |> Phoenix.ConnTest.init_test_session(%{})
-    |> Plug.Conn.put_session(:member_token, token)
-    |> Plug.Conn.put_session(:visitor, "v-" <> member["id"])
-  end
-
   test "comments: members comment and reply, live for other readers, moderation", %{
     conn: conn,
     owner: owner
