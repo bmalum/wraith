@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Mono do
       "--rule" => "#dcdcd8",
       "--ink" => "#202020",
       "--ink-2" => "#505050",
-      "--ink-3" => "#808080",
+      "--ink-3" => "#717171",
       "--accent" => "#2563eb",
       "--radius" => "4px",
       "--measure" => "38rem"

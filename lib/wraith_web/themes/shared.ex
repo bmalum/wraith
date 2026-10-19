@@ -162,6 +162,32 @@ defmodule WraithWeb.Themes.Shared do
     """
   end
 
+  @doc """
+  The hamburger that shows the site nav on small screens. Pure JS commands —
+  no hook — so it works the instant the dead render arrives. `target` is the
+  nav's DOM id.
+  """
+  attr :target, :string, default: "site-nav"
+
+  def nav_toggle(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class="nav-toggle"
+      aria-controls={@target}
+      aria-expanded="false"
+      aria-label="Menu"
+      phx-click={
+        JS.toggle_class("is-open", to: "#" <> @target)
+        |> JS.toggle_attribute({"aria-expanded", "true", "false"})
+      }
+    >
+      <.icon name="hero-bars-3" class="size-5 nav-toggle-open" />
+      <.icon name="hero-x-mark" class="size-5 nav-toggle-close" />
+    </button>
+    """
+  end
+
   def mode_toggle(assigns) do
     ~H"""
     <button
@@ -173,6 +199,18 @@ defmodule WraithWeb.Themes.Shared do
     >
       <.icon name="hero-moon" class="size-4" />
     </button>
+    """
+  end
+
+  @doc "The footer line every layout shares: the site's note and, if allowed, the Wraith credit."
+  attr :site, :map, required: true
+
+  def site_credit(assigns) do
+    ~H"""
+    <span :if={@site["footer"] not in [nil, ""]} class="t-footer-note">{@site["footer"]}</span>
+    <span :if={@site["powered_by"] != false} class="t-credit">
+      Published with <a href="https://github.com/mkarrer/wraith" rel="noopener">Wraith</a>
+    </span>
     """
   end
 

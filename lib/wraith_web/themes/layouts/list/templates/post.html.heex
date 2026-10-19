@@ -8,12 +8,7 @@
     <.link :if={@current_user} navigate={~p"/admin/posts/#{@post["id"]}"}>[edit]</.link>
   </p>
   <h1 class="l-list-h">{@post["title"]}</h1>
-  <img
-    :if={@post["feature_image"]}
-    src={@post["feature_image"]}
-    alt={@post["feature_image_alt"] || ""}
-    class="l-list-figure"
-  />
+  <.feature_img post={@post} sizes={:post} eager class="l-list-figure" />
   <.toc :if={not @locked} toc={@toc} />
   <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />
   <.paywall :if={@locked} post={@post} current_member={@current_member} />

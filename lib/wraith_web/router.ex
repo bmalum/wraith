@@ -24,10 +24,14 @@ defmodule WraithWeb.Router do
     plug :accepts, ["xml", "json"]
   end
 
+  pipeline :public_cache do
+    plug WraithWeb.PublicCache
+  end
+
   # ---- the public site -----------------------------------------------------------
 
   scope "/", WraithWeb do
-    pipe_through :browser
+    pipe_through [:browser, :public_cache]
 
     live_session :site,
       on_mount: [
@@ -214,7 +218,7 @@ defmodule WraithWeb.Router do
 
   # last: a post or page by slug
   scope "/", WraithWeb do
-    pipe_through :browser
+    pipe_through [:browser, :public_cache]
 
     live_session :post,
       on_mount: [
@@ -222,6 +226,8 @@ defmodule WraithWeb.Router do
         {WraithWeb.UserAuth, :mount_visitor},
         {WraithWeb.MemberAuth, :mount_current_member}
       ] do
+      # a shareable draft preview: anyone with the token, any status
+      live "/preview/:token", Site.PostLive, :preview
       live "/:slug", Site.PostLive, :show
     end
   end

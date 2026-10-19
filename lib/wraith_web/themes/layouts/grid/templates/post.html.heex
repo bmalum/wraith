@@ -14,7 +14,7 @@
     </div>
   </header>
   <figure :if={@post["feature_image"]} class="l-grid-hero">
-    <img src={@post["feature_image"]} alt={@post["feature_image_alt"] || ""} />
+    <.feature_img post={@post} sizes={:feature} eager />
   </figure>
   <div class="post">
     <.toc :if={not @locked} toc={@toc} />

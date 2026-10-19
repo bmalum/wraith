@@ -47,10 +47,20 @@ defmodule WraithWeb.WidgetHost do
 
     presence = Presence.list(presence_topic) |> map_size()
 
+    # one definition lookup per distinct widget, not one per instance
+    defs =
+      segments
+      |> Enum.flat_map(fn
+        {:widget, slug, _, _} -> [slug]
+        _ -> []
+      end)
+      |> Enum.uniq()
+      |> Map.new(&{&1, Widgets.get(&1)})
+
     widgets =
       for {:widget, slug, props, instance} <- segments, into: %{} do
         if Phoenix.LiveView.connected?(socket), do: Widgets.subscribe(instance)
-        widget = Widgets.get(slug)
+        widget = defs[slug]
         state = if widget, do: Widgets.state(widget, instance, props), else: %{}
         {instance, %{widget: widget, slug: slug, props: props, state: state, html: nil}}
       end

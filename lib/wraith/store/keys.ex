@@ -36,6 +36,7 @@ defmodule Wraith.Store.Keys do
 
   def post(id), do: {"POST#" <> id, "POST"}
   def post_slug(slug), do: {"SLUG#" <> slug, "POST"}
+  def post_preview(token), do: {"PREVIEW#" <> token, "POST"}
   def post_revision(id, at), do: {"POST#" <> id, "REV#" <> at}
   def post_revisions_prefix, do: "REV#"
   def posts_index(status), do: "POSTS#" <> to_string(status)

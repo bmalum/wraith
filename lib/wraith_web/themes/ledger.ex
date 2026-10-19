@@ -16,7 +16,7 @@ defmodule WraithWeb.Themes.Ledger do
       "--rule" => "#d9d9d4",
       "--ink" => "#1b1b1b",
       "--ink-2" => "#4a4a4a",
-      "--ink-3" => "#7d7d7d",
+      "--ink-3" => "#737373",
       "--accent" => "#1d4ed8",
       "--radius" => "3px"
     }

@@ -17,10 +17,11 @@ defmodule Wraith.Settings do
     "navigation" => [%{"label" => "Home", "url" => "/"}],
     "footer" => "",
     "members_enabled" => true,
+    "powered_by" => true,
     "setup_done" => false
   }
 
-  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled stripe_secret_key stripe_webhook_secret stripe_price_id paid_price_label redirects comments_enabled code_injection_head code_injection_foot logo icon cover_image twitter facebook widget_fetch_hosts)
+  @editable ~w(title description lang timezone posts_per_page accent theme navigation footer members_enabled powered_by stripe_secret_key stripe_webhook_secret stripe_price_id paid_price_label redirects comments_enabled code_injection_head code_injection_foot logo icon cover_image twitter facebook widget_fetch_hosts)
 
   # secrets are never stored in the clear: `<name>` in → `<name>_ciphertext` + `<name>_hint` at rest
   @secrets ~w(stripe_secret_key stripe_webhook_secret)
@@ -124,6 +125,9 @@ defmodule Wraith.Settings do
 
       {"comments_enabled", v} ->
         [{"comments_enabled", v in [true, "true", "on"]}]
+
+      {"powered_by", v} ->
+        [{"powered_by", v in [true, "true", "on"]}]
 
       # an empty secret leaves the stored one alone; "clear" removes it
       {name, v} when name in @secrets and v in [nil, ""] ->

@@ -7,75 +7,82 @@ defmodule WraithWeb.Site.PostLive do
   alias Wraith.{Accounts, Comments, Content, Markdown, Settings}
 
   @impl true
-  def mount(%{"slug" => slug}, _session, socket) do
-    site = Settings.get()
-    post = Content.get_published(slug) || preview(socket, slug)
-
-    case post do
-      nil ->
-        raise WraithWeb.NotFound, "no post at /#{slug}"
-
-      post ->
-        if connected?(socket) do
-          Content.subscribe()
-          Comments.subscribe(post["id"])
-          Wraith.Analytics.hit(post["id"], socket.assigns[:visitor])
-        end
-
-        author = post["author_id"] && Accounts.get_user(post["author_id"])
-        authors = Accounts.list_users() |> Map.new(&{&1["id"], &1})
-        url = url(~p"/#{post["slug"]}")
-
-        {:ok,
-         socket
-         |> assign(
-           site: site,
-           theme: Themes.get(site["theme"]),
-           post: post,
-           author: author && Accounts.public(author),
-           authors: authors,
-           co_authors:
-             (post["authors"] || []) |> Enum.map(&authors[&1]) |> Enum.reject(&is_nil/1),
-           toc: if(post["show_toc"], do: Markdown.toc(post["markdown"]), else: []),
-           comments: Comments.for_post(post["id"]),
-           comments_enabled: Comments.enabled?() and post["status"] == "published",
-           reply_to: nil,
-           related:
-             if(post["status"] == "published" and post["type"] == "post",
-               do: Content.related(post),
-               else: []
-             ),
-           noindex: post["noindex"] == true,
-           json_ld: json_ld(post, author, url),
-           meta: %{
-             type: "article",
-             title: post["meta_title"] || post["title"],
-             description: post["meta_description"] || post["custom_excerpt"] || post["excerpt"],
-             url: url,
-             canonical: post["canonical_url"] || url,
-             image: post["og_image"] || post["feature_image"],
-             published_at: post["published_at"],
-             tags: post["tags"]
-           },
-           page_title: post["meta_title"] || post["title"],
-           meta_description:
-             if(post["visibility"] == "members",
-               do: nil,
-               else: post["meta_description"] || post["excerpt"]
-             ),
-           locked:
-             not (socket.assigns.current_user != nil or
-                    Wraith.Members.can_read?(socket.assigns[:current_member], post["visibility"]))
-         )
-         |> then(fn socket ->
-           body =
-             if socket.assigns.locked,
-               do: Markdown.public_preview(post["markdown"]) || "",
-               else: Markdown.strip_paywall(post["markdown"])
-
-           mount_widgets(socket, body, post["id"], post)
-         end)}
+  def mount(%{"token" => token}, _session, socket) do
+    # a preview link: any status, no analytics hit, flagged on the page
+    case Content.get_by_preview_token(token) do
+      nil -> raise WraithWeb.NotFound, "no preview for that link"
+      post -> mount_post(post, assign(socket, preview?: true), analytics: false)
     end
+  end
+
+  def mount(%{"slug" => slug}, _session, socket) do
+    case Content.get_published(slug) || preview(socket, slug) do
+      nil -> raise WraithWeb.NotFound, "no post at /#{slug}"
+      post -> mount_post(post, assign(socket, preview?: false), analytics: true)
+    end
+  end
+
+  defp mount_post(post, socket, opts) do
+    site = Settings.get()
+
+    if connected?(socket) do
+      Content.subscribe()
+      Comments.subscribe(post["id"])
+      if opts[:analytics], do: Wraith.Analytics.hit(post["id"], socket.assigns[:visitor])
+    end
+
+    author = post["author_id"] && Accounts.get_user(post["author_id"])
+    authors = Accounts.list_users() |> Map.new(&{&1["id"], &1})
+    url = url(~p"/#{post["slug"]}")
+
+    {:ok,
+     socket
+     |> assign(
+       site: site,
+       theme: Themes.get(site["theme"]),
+       post: post,
+       author: author && Accounts.public(author),
+       authors: authors,
+       co_authors: (post["authors"] || []) |> Enum.map(&authors[&1]) |> Enum.reject(&is_nil/1),
+       toc: if(post["show_toc"], do: Markdown.toc(post["markdown"]), else: []),
+       comments: Comments.for_post(post["id"]),
+       comments_enabled: Comments.enabled?() and post["status"] == "published",
+       reply_to: nil,
+       related:
+         if(post["status"] == "published" and post["type"] == "post",
+           do: Content.related(post),
+           else: []
+         ),
+       noindex: post["noindex"] == true or socket.assigns.preview?,
+       json_ld: json_ld(post, author, url),
+       meta: %{
+         type: "article",
+         title: post["meta_title"] || post["title"],
+         description: post["meta_description"] || post["custom_excerpt"] || post["excerpt"],
+         url: url,
+         canonical: post["canonical_url"] || url,
+         image: post["og_image"] || post["feature_image"],
+         published_at: post["published_at"],
+         tags: post["tags"]
+       },
+       page_title: post["meta_title"] || post["title"],
+       meta_description:
+         if(post["visibility"] == "members",
+           do: nil,
+           else: post["meta_description"] || post["excerpt"]
+         ),
+       locked:
+         not (socket.assigns.preview? or socket.assigns.current_user != nil or
+                Wraith.Members.can_read?(socket.assigns[:current_member], post["visibility"]))
+     )
+     |> then(fn socket ->
+       body =
+         if socket.assigns.locked,
+           do: Markdown.public_preview(post["markdown"]) || "",
+           else: Markdown.strip_paywall(post["markdown"])
+
+       mount_widgets(socket, body, post["id"], post)
+     end)}
   end
 
   defp json_ld(post, author, url) do
@@ -194,6 +201,7 @@ defmodule WraithWeb.Site.PostLive do
       theme={@theme}
       current_user={@current_user}
       current_member={assigns[:current_member]}
+      preview={if @preview?, do: @post}
     >
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}

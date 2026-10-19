@@ -27,6 +27,47 @@ defmodule WraithWeb.SiteComponents do
     apply(theme, :layout, [Map.delete(assigns, :theme)])
   end
 
+  @doc """
+  A post's feature image as a responsive `<img>`: `srcset`/`sizes` from the
+  uploaded variants (when the URL is one of ours), intrinsic `width`/`height`
+  when the post recorded them (no layout shift), lazy unless `eager`.
+  """
+  attr :post, :map, required: true
+  attr :sizes, :atom, default: :feature, values: [:feature, :card, :post]
+  attr :eager, :boolean, default: false, doc: "above the fold: fetch first, no lazy-loading"
+  attr :alt, :string, default: nil
+  attr :rest, :global
+
+  def feature_img(assigns) do
+    url = assigns.post["feature_image"]
+
+    assigns =
+      assign(assigns,
+        url: url,
+        srcset: Wraith.Images.srcset(url),
+        sizes_attr: Wraith.Images.sizes(assigns.sizes),
+        w: assigns.post["feature_image_width"],
+        h: assigns.post["feature_image_height"],
+        alt_text: assigns.alt || assigns.post["feature_image_alt"] || ""
+      )
+
+    ~H"""
+    <img
+      :if={@url}
+      src={@url}
+      srcset={@srcset}
+      sizes={@srcset && @sizes_attr}
+      width={@w}
+      height={@h}
+      alt={@alt_text}
+      loading={if @eager, do: "eager", else: "lazy"}
+      fetchpriority={if @eager, do: "high"}
+      decoding="async"
+      {@rest}
+    />
+    """
+  end
+
   attr :post, :map, required: true
   attr :authors, :map, default: %{}
   attr :featured, :boolean, default: false
@@ -35,7 +76,7 @@ defmodule WraithWeb.SiteComponents do
     ~H"""
     <article class={["post-card", @featured && "is-featured"]}>
       <a :if={@post["feature_image"]} href={~p"/#{@post["slug"]}"} class="post-card-image">
-        <img src={@post["feature_image"]} alt="" loading="lazy" />
+        <.feature_img post={@post} sizes={:card} alt="" eager={@featured} />
       </a>
       <div class="post-card-body">
         <div class="post-card-tags">

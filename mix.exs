@@ -92,6 +92,7 @@ defmodule Wraith.MixProject do
       # the SQL store adapter (PostgreSQL and Aurora DSQL)
       {:postgrex, "~> 0.22"},
       # uploads to S3
+      {:image, "~> 0.72.0"},
       {:ex_aws_s3, "~> 2.5"},
       # mail: newsletters, magic links, password resets (SES in prod via ex_aws)
       {:swoosh, "~> 1.29"}

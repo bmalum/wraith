@@ -448,3 +448,7 @@ a { color: inherit; }
 .theme-card-name { font-weight: 600; font-size: .92rem; }
 .theme-card-current { font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
 .theme-card-desc { font-size: .78rem; color: var(--ink-3); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* editor: shareable preview link row */
+.editor-share { display: flex; gap: .6rem; align-items: center; padding: .5rem 1.25rem; background: var(--paper-2); border-bottom: 1px solid var(--rule); font-size: .85rem; color: var(--ink-2); }
+.editor-share-url { flex: 1; font-family: var(--mono); font-size: .8rem; padding: .35rem .6rem; min-width: 0; }

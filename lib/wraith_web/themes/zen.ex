@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Zen do
       "--rule" => "#e8e4d8",
       "--ink" => "#2e2b26",
       "--ink-2" => "#5f5a51",
-      "--ink-3" => "#948e82",
+      "--ink-3" => "#787266",
       "--accent" => "#4a6c5a",
       "--radius" => "0px",
       "--measure" => "46rem"

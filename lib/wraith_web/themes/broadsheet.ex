@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Broadsheet do
       "--rule" => "#111111",
       "--ink" => "#111111",
       "--ink-2" => "#444444",
-      "--ink-3" => "#777777",
+      "--ink-3" => "#747474",
       "--accent" => "#b00020",
       "--radius" => "0px"
     }

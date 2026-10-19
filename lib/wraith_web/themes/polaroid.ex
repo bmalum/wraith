@@ -14,7 +14,7 @@ defmodule WraithWeb.Themes.Polaroid do
       "--rule" => "#f3d9c8",
       "--ink" => "#3b2f2a",
       "--ink-2" => "#6b5a52",
-      "--ink-3" => "#9a8a82",
+      "--ink-3" => "#7e6e66",
       "--accent" => "#e0607e",
       "--radius" => "22px"
     }

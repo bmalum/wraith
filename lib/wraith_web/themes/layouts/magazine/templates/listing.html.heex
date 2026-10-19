@@ -8,10 +8,10 @@
 </section>
 <section class="l-mag-stream is-wide">
   <article :for={post <- @posts} class="l-mag-row">
-    <.link :if={post["feature_image"]} navigate={~p"/#{post["slug"]}"} class="l-mag-row-img"><img
-      src={post["feature_image"]}
+    <.link :if={post["feature_image"]} navigate={~p"/#{post["slug"]}"} class="l-mag-row-img"><.feature_img
+      post={post}
+      sizes={:card}
       alt=""
-      loading="lazy"
     /></.link>
     <div>
       <h2><.link navigate={~p"/#{post["slug"]}"}>{post["title"]}</.link></h2>

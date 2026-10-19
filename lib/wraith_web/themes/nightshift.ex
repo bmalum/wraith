@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Nightshift do
       "--rule" => "#263149",
       "--ink" => "#e9e4d6",
       "--ink-2" => "#b6b0a1",
-      "--ink-3" => "#7e7a6f",
+      "--ink-3" => "#837f74",
       "--accent" => "#e0b84d",
       "--radius" => "4px",
       "--scheme" => "dark"

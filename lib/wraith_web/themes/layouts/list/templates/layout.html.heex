@@ -1,7 +1,8 @@
 <div class="l-list">
   <header class="l-list-head">
     <a href="/" class="l-list-brand">~/{Wraith.Slug.slugify(@site["title"])}</a>
-    <nav class="l-list-nav" aria-label="Site">
+    <.nav_toggle />
+    <nav class="l-list-nav t-nav" id="site-nav" aria-label="Site">
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
       <a href={~p"/search"}>search</a>
       <a :if={@site["members_enabled"] and is_nil(assigns[:current_member])} href={~p"/subscribe"}>subscribe</a>
@@ -11,10 +12,10 @@
       <.mode_toggle />
     </nav>
   </header>
-  <main class="l-list-main">{render_slot(@inner_block)}</main>
+  <main class="l-list-main" id="main" tabindex="-1">{render_slot(@inner_block)}</main>
   <footer class="l-list-foot">
     <span>© {Date.utc_today().year} {@site["title"]}</span>
-    <span :if={@site["footer"] not in [nil, ""]}>{@site["footer"]}</span>
+    <.site_credit site={@site} />
     <span>wraith</span>
   </footer>
 </div>

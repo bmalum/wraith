@@ -16,7 +16,8 @@
       <img :if={@site["logo"] not in [nil, ""]} src={@site["logo"]} alt={@site["title"]} />
       <span :if={@site["logo"] in [nil, ""]}>{@site["title"]}</span>
     </a>
-    <nav class="l-mag-nav" aria-label="Site">
+    <.nav_toggle />
+    <nav class="l-mag-nav t-nav" id="site-nav" aria-label="Site">
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
       <a
         :for={t <- WraithWeb.Themes.Layouts.Magazine.sidebar_tags() |> Enum.take(5)}
@@ -24,10 +25,10 @@
       >{t["name"]}</a>
     </nav>
   </header>
-  <main class="l-mag-main">{render_slot(@inner_block)}</main>
+  <main class="l-mag-main" id="main" tabindex="-1">{render_slot(@inner_block)}</main>
   <footer class="l-mag-foot">
     <span>{@site["title"]} © {Date.utc_today().year}</span>
     <.social_links site={@site} />
-    <span :if={@site["footer"] not in [nil, ""]}>{@site["footer"]}</span>
+    <.site_credit site={@site} />
   </footer>
 </div>

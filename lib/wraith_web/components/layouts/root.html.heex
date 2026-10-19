@@ -54,23 +54,7 @@
     <link rel="alternate" type="application/feed+json" title="JSON Feed" href={~p"/feed.json"} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <%= if assigns[:theme] do %>
-      <link :if={@theme.info().fonts} href={@theme.info().fonts} rel="stylesheet" />
-    <% else %>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap"
-        rel="stylesheet"
-      />
-    <% end %>
-    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
-    <%= if assigns[:theme] do %>
-      <%= for css <- @theme.info().css do %>
-        <link phx-track-static rel="stylesheet" href={css} />
-      <% end %>
-      <style>
-        :root { <%= Phoenix.HTML.raw(Enum.map_join(@theme.info().tokens, " ", fn {k, v} -> "#{k}: #{v};" end)) %> }
-      </style>
-    <% end %>
+    <Layouts.theme_head theme={assigns[:theme]} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <script>
@@ -84,6 +68,7 @@
     <% end %>
   </head>
   <body>
+    <a :if={assigns[:theme]} href="#main" class="skip-link">Skip to content</a>
     {@inner_content}
     <%= if assigns[:site] && @site["code_injection_foot"] not in [nil, ""] do %>
       {Phoenix.HTML.raw(@site["code_injection_foot"])}

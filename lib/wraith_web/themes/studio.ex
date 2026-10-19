@@ -14,7 +14,7 @@ defmodule WraithWeb.Themes.Studio do
       "--rule" => "#e2e2e6",
       "--ink" => "#0a0a0a",
       "--ink-2" => "#4b4b52",
-      "--ink-3" => "#8a8a93",
+      "--ink-3" => "#73737c",
       "--accent" => "#ff4d00",
       "--radius" => "14px"
     }

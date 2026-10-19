@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Weekend do
       "--rule" => "#f1dcc0",
       "--ink" => "#2a2017",
       "--ink-2" => "#5e4f41",
-      "--ink-3" => "#948574",
+      "--ink-3" => "#7b6e5f",
       "--accent" => "#e8600f",
       "--radius" => "8px"
     }

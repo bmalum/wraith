@@ -1,7 +1,8 @@
 <div class="l-min">
   <header class="l-min-head">
     <a href="/" class="l-min-brand">{@site["title"]}</a>
-    <nav class="l-min-nav" aria-label="Site">
+    <.nav_toggle />
+    <nav class="l-min-nav t-nav" id="site-nav" aria-label="Site">
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
       <a href={~p"/search"}>Search</a>
       <a :if={@site["members_enabled"] and is_nil(assigns[:current_member])} href={~p"/subscribe"}>Subscribe</a>
@@ -10,10 +11,8 @@
       <.mode_toggle />
     </nav>
   </header>
-  <main class="l-min-main">{render_slot(@inner_block)}</main>
+  <main class="l-min-main" id="main" tabindex="-1">{render_slot(@inner_block)}</main>
   <footer class="l-min-foot">
-    <span>{@site["title"]}</span><.social_links site={@site} /><span :if={
-      @site["footer"] not in [nil, ""]
-    }>{@site["footer"]}</span>
+    <span>{@site["title"]}</span><.social_links site={@site} /><.site_credit site={@site} />
   </footer>
 </div>

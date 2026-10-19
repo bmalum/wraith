@@ -24,7 +24,7 @@ defmodule Wraith.Content do
   @statuses ~w(draft scheduled published)
   @types ~w(post page)
   @visibilities ~w(public members paid)
-  @fields ~w(type title slug markdown custom_excerpt status visibility featured tags author_id authors published_at feature_image feature_image_alt canonical_url og_image meta_title meta_description show_toc noindex unpublish_at send_on_publish)
+  @fields ~w(type title slug markdown custom_excerpt status visibility featured tags author_id authors published_at feature_image feature_image_alt feature_image_width feature_image_height canonical_url og_image meta_title meta_description show_toc noindex unpublish_at send_on_publish)
   @max_revisions 30
 
   @topic "content"
@@ -60,6 +60,46 @@ defmodule Wraith.Content do
       _ -> nil
     end
   end
+
+  # ---- preview links ----------------------------------------------------------------
+
+  @doc """
+  A shareable preview link's token for `post`, minted on first ask and then
+  stable, so a reviewer who isn't staff can read a draft at `/preview/<token>`.
+  The token is random (128 bits) and never derived from the post.
+  """
+  @spec preview_token(map()) :: {:ok, String.t()} | {:error, term()}
+  def preview_token(%{"preview_token" => token}) when is_binary(token) and token != "",
+    do: {:ok, token}
+
+  def preview_token(%{"id" => id} = post) do
+    token = :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+    {ppk, psk} = Keys.post_preview(token)
+    {pk, sk} = Keys.post(id)
+
+    # the pointer first (conditionally, so a token is never reused), then the
+    # post remembers it so the link stays stable
+    with :ok <-
+           Store.transact([
+             {:put, %{"pk" => ppk, "sk" => psk, "post_id" => id}, condition: :not_exists}
+           ]),
+         {:ok, _} <- Store.update(pk, sk, &Map.put(&1, "preview_token", token)) do
+      _ = post
+      {:ok, token}
+    end
+  end
+
+  @doc "The post behind a preview token, whatever its status; nil when unknown."
+  def get_by_preview_token(token) when is_binary(token) and token != "" do
+    {pk, sk} = Keys.post_preview(token)
+
+    case Store.get(pk, sk) do
+      {:ok, %{"post_id" => id}} -> get_post(id)
+      :error -> nil
+    end
+  end
+
+  def get_by_preview_token(_), do: nil
 
   @doc """
   Posts of one status, newest first, paged. Options: `type:` (`"post"`,

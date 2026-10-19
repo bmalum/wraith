@@ -276,6 +276,12 @@ defmodule Wraith.Tools do
         ["id"]
       ),
       write("post_unpublish", "Back to draft.", %{"id" => str("")}, ["id"]),
+      write(
+        "post_preview_link",
+        "A shareable link to read a draft (any status) without signing in. Stable per post.",
+        %{"id" => str("")},
+        ["id"]
+      ),
       destructive(
         "post_delete",
         "Delete a post or page for good (revisions too).",
@@ -626,6 +632,15 @@ defmodule Wraith.Tools do
     else
       {:error, %{} = e} -> MCP.error("post_update: " <> inspect(e))
       {:error, why} -> MCP.error(to_string(why))
+    end
+  end
+
+  defp do_call(_ctx, "post_preview_link", %{"id" => id}) do
+    with %{} = post <- find_post(id) || {:error, "no post #{id}"},
+         {:ok, token} <- Content.preview_token(post) do
+      json(%{url: WraithWeb.Endpoint.url() <> "/preview/" <> token, status: post["status"]})
+    else
+      {:error, why} -> MCP.error(inspect(why))
     end
   end
 

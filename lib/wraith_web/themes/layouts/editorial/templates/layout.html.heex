@@ -10,7 +10,8 @@
         />
         <span :if={@site["logo"] in [nil, ""]}>{@site["title"]}</span>
       </a>
-      <nav class="masthead-nav" aria-label="Site">
+      <.nav_toggle />
+      <nav class="masthead-nav t-nav" id="site-nav" aria-label="Site">
         <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
         <a href={~p"/search"} class="masthead-icon" title="Search" aria-label="Search"><.icon
           name="hero-magnifying-glass"
@@ -30,14 +31,13 @@
       </nav>
     </div>
   </header>
-  <main class="site-main">{render_slot(@inner_block)}</main>
+  <main class="site-main" id="main" tabindex="-1">{render_slot(@inner_block)}</main>
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span>{@site["title"]} © {Date.utc_today().year}</span>
       <span class="site-footer-links">
         <.social_links site={@site} />
-        <span :if={@site["footer"] not in [nil, ""]}>{@site["footer"]}</span>
-        <span>Published with <a href="https://github.com/mkarrer/wraith">Wraith</a></span>
+        <.site_credit site={@site} />
       </span>
     </div>
   </footer>

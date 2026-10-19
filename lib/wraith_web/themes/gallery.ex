@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Gallery do
       "--rule" => "#e3d9c6",
       "--ink" => "#2b2622",
       "--ink-2" => "#5b524a",
-      "--ink-3" => "#8b8178",
+      "--ink-3" => "#756d65",
       "--accent" => "#7a1f2b",
       "--radius" => "4px"
     }

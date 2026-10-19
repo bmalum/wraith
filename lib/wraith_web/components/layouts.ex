@@ -13,11 +13,26 @@ defmodule WraithWeb.Layouts do
   attr :theme, :atom, required: true, doc: "the theme module (`WraithWeb.Themes.current/0`)"
   attr :current_user, :map, default: nil
   attr :current_member, :map, default: nil
+  attr :preview, :map, default: nil, doc: "the post, when this is a shareable draft preview"
   slot :inner_block, required: true
 
   @doc "Every public page: the theme's layout around the page, then the flash."
   def site(assigns) do
     ~H"""
+    <div :if={@preview} class="preview-banner" role="status">
+      <span class="preview-banner-dot" aria-hidden="true"></span>
+      <strong>Preview</strong>
+      <span>
+        This {@preview["type"]} is {@preview["status"]} — only people with this link can see it.
+      </span>
+      <.link
+        :if={@current_user}
+        navigate={"/admin/posts/" <> @preview["id"]}
+        class="preview-banner-edit"
+      >
+        Edit
+      </.link>
+    </div>
     <WraithWeb.SiteComponents.theme_layout
       theme={@theme}
       site={@site}
@@ -27,6 +42,35 @@ defmodule WraithWeb.Layouts do
       {render_slot(@inner_block)}
     </WraithWeb.SiteComponents.theme_layout>
     <.flash_group flash={@flash} />
+    """
+  end
+
+  attr :theme, :atom, default: nil, doc: "the theme module, or nil for the admin"
+
+  @doc """
+  The `<head>` part a theme owns: its fonts, `app.css`, its three stylesheets
+  (base, layout, skin) and its tokens as `:root` CSS variables. Shared by the
+  root layout and the themed error pages.
+  """
+  def theme_head(assigns) do
+    ~H"""
+    <%= if @theme do %>
+      <link :if={@theme.info().fonts} href={@theme.info().fonts} rel="stylesheet" />
+    <% else %>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    <% end %>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <%= if @theme do %>
+      <%= for css <- @theme.info().css do %>
+        <link phx-track-static rel="stylesheet" href={css} />
+      <% end %>
+      <style>
+        :root { <%= Phoenix.HTML.raw(Enum.map_join(@theme.info().tokens, " ", fn {k, v} -> "#{k}: #{v};" end)) %> }
+      </style>
+    <% end %>
     """
   end
 

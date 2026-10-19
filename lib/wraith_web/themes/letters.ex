@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Letters do
       "--rule" => "#d9cbb0",
       "--ink" => "#3a2f22",
       "--ink-2" => "#6a5c4a",
-      "--ink-3" => "#97896f",
+      "--ink-3" => "#756954",
       "--accent" => "#8a5a2b",
       "--radius" => "3px"
     }

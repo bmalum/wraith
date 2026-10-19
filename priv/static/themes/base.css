@@ -144,3 +144,55 @@ html[data-scheme="light"][data-mode="dark"] {
   --paper: oklch(17% 0.01 60); --paper-2: oklch(22% 0.01 60); --rule: oklch(30% 0.01 60);
   --ink: oklch(92% 0.01 90); --ink-2: oklch(72% 0.01 60); --ink-3: oklch(55% 0.01 60);
 }
+
+/* ---- error pages ----------------------------------------------------- */
+.t-error { padding: 12vh 0 8vh; max-width: 40rem; margin-inline: auto; }
+.t-error .t-kicker { font-family: var(--mono); font-size: 1rem; letter-spacing: .2em; }
+.t-error-actions { display: flex; gap: .75rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }
+
+/* ---- accessibility --------------------------------------------------- */
+.skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 100; padding: .6rem 1rem; background: var(--ink); color: var(--paper); border-radius: var(--radius); text-decoration: none; font-weight: 600; transition: top .15s; }
+.skip-link:focus { top: 1rem; outline: 3px solid var(--accent); outline-offset: 2px; }
+main:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* ---- mobile navigation -----------------------------------------------
+   Every layout marks its nav `.t-nav#site-nav` and puts a `.nav-toggle`
+   button before it. Wide screens: the button is hidden and the layout's own
+   CSS lays the nav out. Narrow screens: the nav becomes a panel under the
+   header that the button opens (JS.toggle_class, no hook needed). */
+.nav-toggle { display: none; border: 0; background: none; color: var(--ink); padding: .4rem; border-radius: 8px; cursor: pointer; line-height: 0; }
+.nav-toggle:hover { background: var(--paper-2); }
+.nav-toggle .nav-toggle-close { display: none; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-open { display: none; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-close { display: inline-block; }
+
+@media (max-width: 48rem) {
+  .nav-toggle { display: inline-flex; margin-left: auto; order: 10; }
+  .t-nav { display: none !important; }
+  .t-nav.is-open {
+    display: flex !important; flex-direction: column; align-items: stretch !important; gap: 0 !important;
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
+    background: var(--paper); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    padding: .5rem 1.25rem 1rem; margin: 0 !important; box-shadow: 0 20px 40px -20px rgba(0,0,0,.25);
+    font-size: 1.05rem !important; text-transform: none !important; letter-spacing: 0 !important;
+  }
+  .t-nav.is-open > a, .t-nav.is-open > button { padding: .7rem 0; border-bottom: 1px solid var(--rule); text-align: left; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: .6rem; }
+  .t-nav.is-open > :last-child { border-bottom: 0; }
+  .t-nav.is-open .masthead-cta, .t-nav.is-open .btn-accent, .t-nav.is-open .btn-ghost { margin-top: .5rem; justify-content: center; }
+  /* the header that holds the nav must be the positioning context */
+  .masthead, .masthead-inner, .l-grid-head, .l-jrn-head, .l-list-head, .l-mag-head, .l-min-head { position: relative; }
+  /* layouts that centred a wrapping nav: keep the brand and the button on one line */
+  .l-min-head, .l-list-head { flex-wrap: nowrap; }
+  .l-jrn-head { padding-bottom: 1.25rem; }
+  .l-mag-head .nav-toggle { position: absolute; right: 1rem; top: .35rem; }
+  .l-mag-top { padding-right: 3.25rem; }
+}
+
+/* ---- draft preview banner -------------------------------------------- */
+.preview-banner { position: sticky; top: 0; z-index: 50; display: flex; gap: .75rem; align-items: center; justify-content: center; padding: .55rem 1rem; background: #1c1917; color: #fafaf9; font: 500 .85rem/1.3 system-ui, sans-serif; }
+.preview-banner-dot { width: .55rem; height: .55rem; border-radius: 50%; background: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,.25); }
+.preview-banner strong { letter-spacing: .08em; text-transform: uppercase; font-size: .72rem; }
+.preview-banner-edit { color: #fbbf24; text-decoration: none; margin-left: .5rem; }
+.preview-banner-edit:hover { text-decoration: underline; }

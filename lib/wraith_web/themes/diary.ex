@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Diary do
       "--rule" => "#ece5cf",
       "--ink" => "#2c2a24",
       "--ink-2" => "#5a564c",
-      "--ink-3" => "#8e887a",
+      "--ink-3" => "#797367",
       "--accent" => "#2f6f9f",
       "--radius" => "6px"
     }

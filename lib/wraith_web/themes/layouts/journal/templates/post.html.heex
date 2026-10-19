@@ -12,7 +12,7 @@
       </div>
     </header>
     <figure :if={@post["feature_image"]} class="post-figure">
-      <img src={@post["feature_image"]} alt={@post["feature_image_alt"] || ""} />
+      <.feature_img post={@post} sizes={:feature} eager />
     </figure>
     <.toc :if={not @locked} toc={@toc} />
     <.body :if={not @locked or @segments != []} segments={@segments} widgets={@widgets} />

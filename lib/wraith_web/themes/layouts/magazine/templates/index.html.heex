@@ -5,8 +5,9 @@
   if @page == 1 and @posts != [], do: {hd(@posts), tl(@posts)}, else: {nil, @posts} %>
 <%= if hero do %>
   <section class="l-mag-hero">
-    <.link :if={hero["feature_image"]} navigate={~p"/#{hero["slug"]}"} class="l-mag-hero-img"><img
-      src={hero["feature_image"]}
+    <.link :if={hero["feature_image"]} navigate={~p"/#{hero["slug"]}"} class="l-mag-hero-img"><.feature_img
+      post={hero}
+      sizes={:card}
       alt=""
     /></.link>
     <div class="l-mag-hero-body">
@@ -22,10 +23,10 @@
 <div class="l-mag-cols">
   <section class="l-mag-stream">
     <article :for={post <- posts} class="l-mag-row">
-      <.link :if={post["feature_image"]} navigate={~p"/#{post["slug"]}"} class="l-mag-row-img"><img
-        src={post["feature_image"]}
+      <.link :if={post["feature_image"]} navigate={~p"/#{post["slug"]}"} class="l-mag-row-img"><.feature_img
+        post={post}
+        sizes={:card}
         alt=""
-        loading="lazy"
       /></.link>
       <div>
         <div class="post-card-tags">

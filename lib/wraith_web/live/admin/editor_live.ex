@@ -28,6 +28,7 @@ defmodule WraithWeb.Admin.EditorLive do
         errors: %{},
         drawer: false,
         saved_at: nil,
+        preview_url: nil,
         widget_defs: Widgets.list_enabled(),
         sent: Wraith.Newsletter.send_record(post),
         all_authors: Wraith.Accounts.list_users(),
@@ -57,17 +58,23 @@ defmodule WraithWeb.Admin.EditorLive do
     if entry.done? do
       result =
         consume_uploaded_entry(socket, entry, fn %{path: path} ->
-          {:ok, Uploads.store_file(path, entry.client_type, name: entry.client_name)}
+          {:ok, Uploads.store_image_file(path, entry.client_type, name: entry.client_name)}
         end)
 
       case {kind, result} do
         {_, {:error, why}} ->
           {:noreply, put_flash(socket, :error, "Upload failed: " <> why)}
 
-        {:feature, {:ok, url}} ->
-          {:noreply, save(socket, %{"feature_image" => url})}
+        {:feature, {:ok, url, dims}} ->
+          attrs = %{
+            "feature_image" => url,
+            "feature_image_width" => dims && dims.width,
+            "feature_image_height" => dims && dims.height
+          }
 
-        {:inline, {:ok, url}} ->
+          {:noreply, save(socket, attrs)}
+
+        {:inline, {:ok, url, _dims}} ->
           alt = entry.client_name |> Path.rootname() |> String.replace(~r/[-_]+/, " ")
           {:noreply, push_event(socket, "editor:insert", %{text: "\n![#{alt}](#{url})\n"})}
       end
@@ -96,6 +103,20 @@ defmodule WraithWeb.Admin.EditorLive do
   end
 
   def handle_event("drawer", _params, socket), do: {:noreply, update(socket, :drawer, &(not &1))}
+
+  def handle_event("share-preview", _params, socket) do
+    case Content.preview_token(socket.assigns.post) do
+      {:ok, token} ->
+        post = Map.put(socket.assigns.post, "preview_token", token)
+        {:noreply, assign(socket, post: post, preview_url: url(~p"/preview/#{token}"))}
+
+      {:error, why} ->
+        {:noreply, put_flash(socket, :error, "Could not make a preview link: #{inspect(why)}")}
+    end
+  end
+
+  def handle_event("hide-preview", _params, socket),
+    do: {:noreply, assign(socket, preview_url: nil)}
 
   def handle_event("validate-upload", _params, socket), do: {:noreply, socket}
 
@@ -214,6 +235,7 @@ defmodule WraithWeb.Admin.EditorLive do
           saved_at: DateTime.utc_now(),
           page_title: if(post["title"] == "", do: "New " <> post["type"], else: post["title"])
         )
+        |> push_event("editor:saved", %{})
         |> then(fn s ->
           if Map.has_key?(attrs, "markdown") and widgets_changed?(s, post["markdown"]),
             do: mount_widgets(s, post["markdown"], post["id"], post),
@@ -270,6 +292,12 @@ defmodule WraithWeb.Admin.EditorLive do
               target="_blank"
               class="btn-ghost"
             >Preview</a>
+            <button
+              :if={@post["status"] != "published"}
+              phx-click="share-preview"
+              class="btn-ghost"
+              title="A link anyone can open to read this draft"
+            ><.icon name="hero-link" class="size-4" /> Share preview</button>
             <button phx-click="drawer" class="btn-ghost" aria-expanded={to_string(@drawer)}><.icon
               name="hero-adjustments-horizontal"
               class="size-4"
@@ -302,6 +330,37 @@ defmodule WraithWeb.Admin.EditorLive do
             /> sent to {@sent["recipients"]}</span>
           </div>
         </header>
+
+        <div :if={@preview_url} class="editor-share" id="editor-share" phx-hook=".CopyField">
+          <.icon name="hero-link" class="size-4" />
+          <span>Anyone with this link can read the draft:</span>
+          <input
+            type="text"
+            readonly
+            value={@preview_url}
+            class="input editor-share-url"
+            aria-label="Preview link"
+          />
+          <button type="button" class="btn-ghost is-small" data-copy>Copy</button>
+          <button type="button" class="icon-btn" phx-click="hide-preview" aria-label="Close"><.icon
+            name="hero-x-mark"
+            class="size-4"
+          /></button>
+          <script :type={Phoenix.LiveView.ColocatedHook} name=".CopyField">
+            export default {
+              mounted() {
+                const input = this.el.querySelector("input")
+                const btn = this.el.querySelector("[data-copy]")
+                btn?.addEventListener("click", async () => {
+                  input.select()
+                  try { await navigator.clipboard.writeText(input.value) } catch (_) { document.execCommand("copy") }
+                  const was = btn.textContent; btn.textContent = "Copied"
+                  setTimeout(() => { btn.textContent = was }, 1200)
+                })
+              }
+            }
+          </script>
+        </div>
 
         <div class={["editor-split", @drawer && "has-drawer"]}>
           <div class="editor-write">

@@ -64,6 +64,31 @@ const Editor = {
         save?.click()
       }
     })
+
+    // Unsaved-changes guard. The editor autosaves after a short debounce, so
+    // "dirty" only ever spans that window or an in-flight save — but that is
+    // exactly when a reload or a click away would lose the last keystrokes.
+    this.dirty = false
+    this.el.addEventListener("input", () => { this.dirty = true })
+    this.handleEvent("editor:saved", () => { this.dirty = false })
+    this.onBeforeUnload = (e) => {
+      if (!this.dirty) return
+      e.preventDefault()
+      e.returnValue = ""
+    }
+    window.addEventListener("beforeunload", this.onBeforeUnload)
+    // in-app navigation (live links): ask before leaving
+    this.onNav = (e) => {
+      if (this.dirty && !window.confirm("You have unsaved changes. Leave anyway?")) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+      }
+    }
+    window.addEventListener("phx:page-loading-start", this.onNav)
+  },
+  destroyed() {
+    window.removeEventListener("beforeunload", this.onBeforeUnload)
+    window.removeEventListener("phx:page-loading-start", this.onNav)
   }
 }
 

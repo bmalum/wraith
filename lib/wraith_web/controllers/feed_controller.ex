@@ -63,7 +63,7 @@ defmodule WraithWeb.FeedController do
     </rss>
     """
 
-    conn |> put_resp_content_type("application/rss+xml") |> send_resp(200, xml)
+    cached(conn, posts, "application/rss+xml", xml)
   end
 
   def json(conn, _params) do
@@ -95,20 +95,23 @@ defmodule WraithWeb.FeedController do
         end
     }
 
-    conn |> put_resp_content_type("application/feed+json") |> send_resp(200, Jason.encode!(feed))
+    cached(conn, posts, "application/feed+json", Jason.encode!(feed))
   end
 
   def sitemap(conn, _params) do
     base = url(~p"/")
-    posts = Content.list_posts("published", limit: 500).posts
+    posts = Content.list_posts("published", limit: 500, type: "post").posts
+    pages = Content.list_posts("published", limit: 200, type: "page").posts
+
+    entry = fn loc, lastmod ->
+      ~s(<url><loc>#{loc}</loc>#{if lastmod, do: "<lastmod>#{lastmod}</lastmod>", else: ""}</url>)
+    end
 
     urls =
-      [~s(<url><loc>#{base}</loc></url>)] ++
-        Enum.map(
-          posts,
-          &~s(<url><loc>#{base}#{&1["slug"]}</loc><lastmod>#{&1["updated_at"]}</lastmod></url>)
-        ) ++
-        Enum.map(Content.list_tags(), &~s(<url><loc>#{base}tag/#{&1["slug"]}</loc></url>))
+      [entry.(base, nil)] ++
+        Enum.map(posts ++ pages, &entry.("#{base}#{&1["slug"]}", &1["updated_at"])) ++
+        Enum.map(Content.list_tags(), &entry.("#{base}tag/#{&1["slug"]}", nil)) ++
+        Enum.map(Accounts.list_users(), &entry.("#{base}author/#{&1["slug"]}", nil))
 
     xml = """
     <?xml version="1.0" encoding="UTF-8"?>
@@ -117,7 +120,16 @@ defmodule WraithWeb.FeedController do
     </urlset>
     """
 
-    conn |> put_resp_content_type("application/xml") |> send_resp(200, xml)
+    cached(conn, posts ++ pages, "application/xml", xml)
+  end
+
+  # ETag/Cache-Control from the items; a matching If-None-Match gets a 304
+  defp cached(conn, items, content_type, body) do
+    conn = WraithWeb.PublicCache.put(conn, items)
+
+    if conn.halted,
+      do: conn,
+      else: conn |> put_resp_content_type(content_type) |> send_resp(200, body)
   end
 
   # feeds get the HTML with widgets replaced by a pointer to the live page

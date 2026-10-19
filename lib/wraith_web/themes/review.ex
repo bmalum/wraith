@@ -15,7 +15,7 @@ defmodule WraithWeb.Themes.Review do
       "--rule" => "#e6dfd1",
       "--ink" => "#1c1a17",
       "--ink-2" => "#4e4942",
-      "--ink-3" => "#857d72",
+      "--ink-3" => "#7a7369",
       "--accent" => "#9b1c1c",
       "--radius" => "2px"
     }

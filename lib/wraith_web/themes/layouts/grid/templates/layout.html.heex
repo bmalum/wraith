@@ -1,6 +1,7 @@
 <div class="l-grid">
   <header class="l-grid-head">
-    <nav class="l-grid-nav" aria-label="Site">
+    <.nav_toggle />
+    <nav class="l-grid-nav t-nav" id="site-nav" aria-label="Site">
       <a :for={item <- @site["navigation"] || []} href={item["url"]}>{item["label"]}</a>
     </nav>
     <a href="/" class="l-grid-brand">
@@ -25,10 +26,10 @@
       /></a>
     </div>
   </header>
-  <main class="l-grid-main">{render_slot(@inner_block)}</main>
+  <main class="l-grid-main" id="main" tabindex="-1">{render_slot(@inner_block)}</main>
   <footer class="l-grid-foot">
     <span>{@site["title"]} © {Date.utc_today().year}</span>
     <.social_links site={@site} />
-    <span :if={@site["footer"] not in [nil, ""]}>{@site["footer"]}</span>
+    <.site_credit site={@site} />
   </footer>
 </div>

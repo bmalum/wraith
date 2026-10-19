@@ -47,9 +47,32 @@ defmodule Wraith.Uploads do
         key = key_for(content_type, opts[:name])
 
         case impl().put(key, content, content_type) do
-          {:ok, url} -> {:ok, url}
-          {:error, why} -> {:error, "upload failed: #{inspect(why)}"}
+          {:ok, url} ->
+            # resized WebP copies beside the original, off the request path
+            if Wraith.Images.raster?(content_type) and opts[:variants] != false do
+              Task.Supervisor.start_child(Wraith.TaskSupervisor, fn ->
+                Wraith.Images.variants(key, content)
+              end)
+            end
+
+            {:ok, url}
+
+          {:error, why} ->
+            {:error, "upload failed: #{inspect(why)}"}
         end
+    end
+  end
+
+  @doc """
+  Like `store/3` but also returns the image's dimensions (nil for non-raster
+  types), so a feature image's `width`/`height` can be saved with the post.
+  """
+  @spec store_image(binary(), String.t(), keyword()) ::
+          {:ok, String.t(), map() | nil} | {:error, String.t()}
+  def store_image(content, content_type, opts \\ []) do
+    with {:ok, url} <- store(content, content_type, opts) do
+      dims = if Wraith.Images.raster?(content_type), do: Wraith.Images.dimensions(content)
+      {:ok, url, dims}
     end
   end
 
@@ -57,6 +80,15 @@ defmodule Wraith.Uploads do
   def store_file(path, content_type, opts \\ []) do
     with {:ok, content} <- File.read(path) do
       store(content, content_type, opts)
+    else
+      {:error, why} -> {:error, "could not read the upload: #{inspect(why)}"}
+    end
+  end
+
+  @doc "Store a file on disk and return its dimensions too."
+  def store_image_file(path, content_type, opts \\ []) do
+    with {:ok, content} <- File.read(path) do
+      store_image(content, content_type, opts)
     else
       {:error, why} -> {:error, "could not read the upload: #{inspect(why)}"}
     end

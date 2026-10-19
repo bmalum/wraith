@@ -16,7 +16,7 @@ defmodule WraithWeb.Themes.Paper do
       "--rule" => "oklch(88% 0.01 95)",
       "--ink" => "oklch(22% 0.012 60)",
       "--ink-2" => "oklch(45% 0.012 60)",
-      "--ink-3" => "oklch(62% 0.01 60)",
+      "--ink-3" => "oklch(52% 0.01 60)",
       "--accent" => "#5b4bff",
       "--radius" => "10px"
     }

@@ -27,6 +27,8 @@ defmodule WraithWeb.Theme.Layout do
           search_form: 1,
           mode_toggle: 1,
           social_links: 1,
+          site_credit: 1,
+          nav_toggle: 1,
           author_meta: 1,
           listing_count: 1
         ]

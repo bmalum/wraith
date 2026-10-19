@@ -7,7 +7,7 @@
 <section class="l-grid-cards">
   <article :for={post <- @posts} class="l-grid-card">
     <.link navigate={~p"/#{post["slug"]}"} class="l-grid-card-img">
-      <img :if={post["feature_image"]} src={post["feature_image"]} alt="" loading="lazy" />
+      <.feature_img post={post} sizes={:card} alt="" />
       <span :if={is_nil(post["feature_image"])} class="l-grid-card-blank">{String.first(
         post["title"]
       )}</span>
