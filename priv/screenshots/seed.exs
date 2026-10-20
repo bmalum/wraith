@@ -1,7 +1,8 @@
 # Seed used by the screenshot run: an owner with a profile, a page, six posts
-# with feature images (see images.exs), one of them members-only, live widgets
-# in the lead essay. THEME selects the active theme; MEMBERS/COMMENTS are on.
-Code.eval_file(Path.join(__DIR__, "images.exs"))
+# with feature images (made once, up front, by images.exs — writing files
+# under priv/static *during* boot trips the dev file watcher mid-seed), one
+# of them members-only, live widgets in the lead essay. THEME selects the
+# active theme; MEMBERS/COMMENTS are on.
 
 {:ok, owner} =
   Wraith.Accounts.setup_owner(%{

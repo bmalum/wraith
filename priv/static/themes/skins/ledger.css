@@ -14,3 +14,16 @@
 [data-skin="ledger"] .l-list-tags { text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; }
 [data-skin="ledger"] .l-list-post .l-list-h { text-transform: none; letter-spacing: -.01em; font-weight: 600; }
 [data-skin="ledger"] .l-list-foot { border-top: 3px solid var(--ink); }
+
+/* secondary views: boxed, ruled, tabular */
+[data-skin="ledger"] .t-head { border: 1px solid var(--ink); border-bottom-width: 3px; padding: 1rem 1.25rem; }
+[data-skin="ledger"] .t-kicker { font-family: var(--mono); letter-spacing: .1em; }
+[data-skin="ledger"] .t-kicker::before { content: "№ "; }
+[data-skin="ledger"] .t-title { font-family: var(--mono); font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: clamp(1.4rem, 3vw, 2rem); }
+[data-skin="ledger"] .t-count { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+[data-skin="ledger"] .input { border: 1px solid var(--ink); border-radius: 0; font-family: var(--mono); background: var(--paper-2); }
+[data-skin="ledger"] .input:focus { box-shadow: inset 0 0 0 1px var(--ink); border-color: var(--ink); }
+[data-skin="ledger"] .t-form label { font-family: var(--mono); text-transform: uppercase; font-size: .72rem; letter-spacing: .08em; }
+[data-skin="ledger"] .t-form .btn-accent { border-radius: 0; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; font-size: .85rem; }
+[data-skin="ledger"] .author-avatar { border-radius: 0; font-family: var(--mono); background: var(--ink); }
+[data-skin="ledger"] .paywall { border: 1px solid var(--ink); border-radius: 0; background: var(--paper-2); font-family: var(--mono); }

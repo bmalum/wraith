@@ -26,3 +26,21 @@
 [data-skin="terminal"] .l-list-foot { border-top: 0; }
 [data-skin="terminal"] .l-list-foot::before { content: "$ _"; color: var(--accent); }
 [data-skin="terminal"] .prose-wraith a { text-decoration: underline dotted; }
+
+/* secondary views: prompts and brackets everywhere */
+[data-skin="terminal"] .t-title { font-family: var(--mono); text-transform: uppercase; font-size: clamp(1.3rem, 3vw, 1.9rem); }
+[data-skin="terminal"] .t-title::before { content: "> "; color: var(--accent); }
+[data-skin="terminal"] .t-kicker::before { content: "# "; }
+[data-skin="terminal"] .t-count::before { content: "total "; }
+[data-skin="terminal"] .input { background: var(--paper-2); border: 1px solid var(--rule); border-radius: 0; color: var(--ink); font-family: var(--mono); caret-color: var(--accent); }
+[data-skin="terminal"] .input::placeholder { color: var(--ink-3); }
+[data-skin="terminal"] .input:focus { border-color: var(--accent); box-shadow: 0 0 12px -4px var(--accent); }
+[data-skin="terminal"] .t-form .btn-accent { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 0; font-family: var(--mono); text-transform: lowercase; }
+[data-skin="terminal"] .t-form .btn-accent::before { content: "$ "; }
+[data-skin="terminal"] .t-form .btn-accent:hover { background: var(--accent); color: var(--paper); text-shadow: none; }
+[data-skin="terminal"] .t-form label { font-family: var(--mono); text-transform: lowercase; }
+[data-skin="terminal"] .t-form label::after { content: ":"; }
+[data-skin="terminal"] .author-avatar { border-radius: 0; background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+[data-skin="terminal"] .t-notice { border: 1px dashed var(--accent); padding: 1rem; }
+[data-skin="terminal"] .paywall { border: 1px dashed var(--accent); border-radius: 0; background: var(--paper-2); }
+[data-skin="terminal"] .paywall h3::before { content: "[locked] "; color: var(--accent); }

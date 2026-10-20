@@ -13,7 +13,6 @@
 [data-skin="letters"] .l-jrn-entry + .l-jrn-entry::before { content: "❦"; position: absolute; top: -.7rem; left: 50%; transform: translateX(-50%); color: var(--accent); font-size: 1.3rem; }
 [data-skin="letters"] .l-jrn-date { text-align: right; display: flex; gap: .4rem; justify-content: flex-end; align-items: baseline; font-variant: small-caps; letter-spacing: .1em; font-size: .9rem; }
 [data-skin="letters"] .l-jrn-day { font-size: inherit; font-weight: 400; color: var(--ink-3); }
-[data-skin="letters"] .l-jrn-day::after { content: ","; }
 [data-skin="letters"] .l-jrn-month { text-transform: none; letter-spacing: .1em; font-size: inherit; margin: 0; }
 [data-skin="letters"] .l-jrn-entry-body h2 { font-weight: 400; font-style: italic; font-size: 1.9rem; }
 [data-skin="letters"] .l-jrn-entry-body p::before { content: "Dear reader, "; font-style: italic; color: var(--ink-3); }
@@ -29,3 +28,22 @@
 [data-skin="letters"] .prose-wraith { line-height: 1.8; }
 [data-skin="letters"] .prose-wraith > p:first-child::first-letter { float: left; font-size: 3.6rem; line-height: .85; padding: .3rem .5rem 0 0; color: var(--accent); }
 [data-skin="letters"] .l-jrn-foot { border-top: 0; font-style: italic; }
+
+/* secondary views: datelines as small caps, fields underlined like a form letter */
+[data-skin="letters"] .t-head { text-align: center; }
+[data-skin="letters"] .t-kicker { font-variant: small-caps; letter-spacing: .2em; text-transform: lowercase; font-size: 1rem; color: var(--accent); }
+[data-skin="letters"] .t-title { font-weight: 400; font-style: italic; }
+[data-skin="letters"] .t-title::after { content: ""; display: block; width: 4rem; height: 1px; background: var(--accent); margin: 1rem auto 0; }
+[data-skin="letters"] .t-lede { margin-inline: auto; font-style: italic; }
+[data-skin="letters"] .t-meta { justify-content: center; font-variant: small-caps; letter-spacing: .1em; }
+[data-skin="letters"] .t-count { text-align: center; font-variant: small-caps; letter-spacing: .14em; }
+[data-skin="letters"] .t-search, [data-skin="letters"] .t-form { margin-inline: auto; }
+[data-skin="letters"] .input { border: 0; border-bottom: 1px solid var(--ink-2); border-radius: 0; background: transparent; padding-inline: .2rem; font-family: var(--heading); font-size: 1.1rem; }
+[data-skin="letters"] .input:focus { box-shadow: none; border-bottom-color: var(--accent); }
+[data-skin="letters"] .t-form label { font-variant: small-caps; letter-spacing: .12em; }
+[data-skin="letters"] .t-form .btn-accent { align-self: center; border-radius: 0; font-family: var(--heading); font-style: italic; letter-spacing: .04em; }
+[data-skin="letters"] .author-avatar { border-radius: 0; margin-inline: auto; filter: sepia(.3); }
+[data-skin="letters"] .t-notice { justify-content: center; font-style: italic; }
+[data-skin="letters"] .paywall { border: 0; border-top: 1px solid var(--accent); border-bottom: 1px solid var(--accent); border-radius: 0; }
+[data-skin="letters"] .paywall h3 { font-style: italic; font-weight: 400; }
+[data-skin="letters"] .l-jrn-entries .l-jrn-entry:first-child::before { display: none; }

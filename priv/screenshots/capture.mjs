@@ -1,7 +1,7 @@
 // Capture every public view of the running Wraith site via headless Chrome
 // (CDP). Usage: node capture.mjs <theme> [port]
 // Writes priv/screenshots/<theme>/<view>.png
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { spawn } from "node:child_process";
 
 const theme = process.argv[2] || "paper";
@@ -11,13 +11,16 @@ const outDir = new URL(`./${theme}/`, import.meta.url);
 mkdirSync(outDir, { recursive: true });
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+// a fresh profile per run: a reused dir with a stale SingletonLock can stall
+const profile = `/tmp/wraith-chrome-${process.pid}`;
 const chrome = spawn(
   CHROME,
   [
     "--headless=new",
     "--disable-gpu",
     "--remote-debugging-port=9333",
-    "--user-data-dir=/tmp/chrome-prof",
+    `--user-data-dir=${profile}`,
+    "--no-first-run",
     "--hide-scrollbars",
     "--force-color-profile=srgb",
     "about:blank",
@@ -40,10 +43,11 @@ ws.onmessage = (m) => {
     delete pending[d.id];
   }
 };
-const send = (method, params = {}) =>
-  new Promise((res) => {
+const send = (method, params = {}, ms = 15000) =>
+  new Promise((res, rej) => {
     const i = ++id;
-    pending[i] = res;
+    const t = setTimeout(() => { delete pending[i]; rej(new Error(`${method} timed out`)); }, ms);
+    pending[i] = (r) => { clearTimeout(t); res(r); };
     ws.send(JSON.stringify({ id: i, method, params }));
   });
 
@@ -62,20 +66,36 @@ const views = [
   ["signin", "/members", 900],
 ];
 
-for (const [name, path, h] of views) {
-  await send("Emulation.setDeviceMetricsOverride", {
-    width: 1400,
-    height: h,
-    deviceScaleFactor: 1,
-    mobile: false,
-  });
-  await send("Page.navigate", { url: base + path });
-  // wait for the LiveView to connect and widgets to settle
-  await new Promise((r) => setTimeout(r, 2200));
-  const { data } = await send("Page.captureScreenshot", { format: "png" });
-  writeFileSync(new URL(`./${name}.png`, outDir), Buffer.from(data, "base64"));
-  console.log(`  ${theme}/${name}.png`);
+// one shot = set viewport, navigate, wait for LiveView + widgets, capture.
+// a failure (timeout, navigation error) is logged and skipped — never fatal.
+async function shoot(name, path, { width, height, scale = 1, mobile = false, after } = {}) {
+  try {
+    await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: scale, mobile });
+    await send("Page.navigate", { url: base + path });
+    await new Promise((r) => setTimeout(r, 2200));
+    if (after) await after();
+    const { data } = await send("Page.captureScreenshot", { format: "png" });
+    writeFileSync(new URL(`./${name}.png`, outDir), Buffer.from(data, "base64"));
+    console.log(`  ${theme}/${name}.png`);
+  } catch (e) {
+    console.log(`  !! ${theme}/${name}: ${e.message}`);
+  }
 }
 
+for (const [name, path, h] of views) {
+  await shoot(name, path, { width: 1400, height: h });
+}
+
+// mobile: the front page closed, then with the nav open
+await shoot("mobile", "/", { width: 390, height: 844, scale: 2, mobile: true });
+await shoot("mobile-nav", "/", {
+  width: 390, height: 844, scale: 2, mobile: true,
+  after: async () => {
+    await send("Runtime.evaluate", { expression: `document.querySelector('.nav-toggle')?.click()` });
+    await new Promise((r) => setTimeout(r, 600));
+  },
+});
+
 chrome.kill();
+try { rmSync(profile, { recursive: true, force: true }); } catch (_) {}
 process.exit(0);

@@ -25,3 +25,12 @@
 [data-skin="weekend"] .post-card-tags a { background: color-mix(in oklab, var(--accent) 14%, transparent); padding: .2rem .6rem; border-radius: 999px; }
 [data-skin="weekend"] .post-figure img { border-radius: 22px; }
 [data-skin="weekend"] .l-mag-foot { border-top: 0; background: var(--paper-2); border-radius: 18px 18px 0 0; }
+
+/* secondary views: warm rounded blocks */
+[data-skin="weekend"] .t-head { background: var(--paper-2); border-radius: 18px; padding: 1.75rem 2rem; }
+[data-skin="weekend"] .t-kicker { background: var(--accent); color: #fff; display: inline-block; padding: .2rem .7rem; border-radius: 999px; font-weight: 700; }
+[data-skin="weekend"] .input { border-radius: 14px; border-width: 2px; background: var(--paper); }
+[data-skin="weekend"] .t-form .btn-accent { border-radius: 999px; font-weight: 700; padding-inline: 1.6rem; }
+[data-skin="weekend"] .author-avatar { border-radius: 18px; }
+[data-skin="weekend"] .t-notice { background: var(--paper-2); border-radius: 18px; padding: 1rem 1.25rem; }
+[data-skin="weekend"] .paywall { background: var(--paper-2); border: 0; border-radius: 18px; }

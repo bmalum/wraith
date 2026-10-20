@@ -20,3 +20,17 @@
 [data-skin="review"] .post-card-tags a { font-style: italic; text-transform: none; letter-spacing: 0; font-size: .85rem; font-family: var(--heading); }
 [data-skin="review"] .post-title { font-weight: 400; }
 [data-skin="review"] .l-mag-foot { border-top: 1px solid var(--ink); }
+
+/* secondary views: hairlines and small caps */
+[data-skin="review"] .t-head { border-bottom: 1px solid var(--ink); padding-bottom: 1.25rem; }
+[data-skin="review"] .t-kicker { font-variant: small-caps; text-transform: lowercase; letter-spacing: .18em; font-size: .95rem; font-family: var(--heading); }
+[data-skin="review"] .t-title { font-weight: 400; }
+[data-skin="review"] .t-count { font-style: italic; }
+[data-skin="review"] .input { border: 0; border-bottom: 1px solid var(--ink); border-radius: 0; background: transparent; font-family: var(--heading); font-size: 1.1rem; padding-inline: .2rem; }
+[data-skin="review"] .input:focus { box-shadow: none; border-bottom-width: 2px; border-bottom-color: var(--accent); }
+[data-skin="review"] .t-form label { font-variant: small-caps; letter-spacing: .14em; font-family: var(--heading); font-size: .95rem; }
+[data-skin="review"] .t-form .btn-accent { border-radius: 0; font-family: var(--heading); letter-spacing: .04em; }
+[data-skin="review"] .author-avatar { border-radius: 0; }
+[data-skin="review"] .paywall { border: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); border-radius: 0; }
+[data-skin="review"] .paywall h3 { font-weight: 400; }
+[data-skin="review"] .paywall p::first-letter { font-size: 2.4rem; float: left; line-height: .8; padding: .2rem .35rem 0 0; font-family: var(--heading); color: var(--accent); }

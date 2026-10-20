@@ -24,3 +24,16 @@
 [data-skin="nightshift"] .prose-wraith blockquote { border-left-color: var(--accent); }
 [data-skin="nightshift"] .l-jrn-foot { border-top: 1px solid var(--accent); color: var(--ink-3); }
 @media (max-width: 42rem) { [data-skin="nightshift"] .l-jrn-entries::before, [data-skin="nightshift"] .l-jrn-entry::before { display: none; } }
+
+/* secondary views: gold rules and numerals */
+[data-skin="nightshift"] .t-kicker { color: var(--accent); letter-spacing: .2em; }
+[data-skin="nightshift"] .t-kicker::before { content: "✦ "; }
+[data-skin="nightshift"] .t-title { font-weight: 400; color: var(--accent); }
+[data-skin="nightshift"] .t-head { border-bottom: 1px solid var(--accent); padding-bottom: 1.5rem; }
+[data-skin="nightshift"] .input { background: var(--paper-2); border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent); border-radius: 4px; color: var(--ink); }
+[data-skin="nightshift"] .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent); }
+[data-skin="nightshift"] .t-form .btn-accent { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; letter-spacing: .08em; }
+[data-skin="nightshift"] .t-form .btn-accent:hover { background: var(--accent); color: var(--paper); }
+[data-skin="nightshift"] .author-avatar { background: transparent; border: 1px solid var(--accent); color: var(--accent); box-shadow: 0 0 14px -4px var(--accent); }
+[data-skin="nightshift"] .paywall { border: 1px solid var(--accent); border-radius: 4px; background: var(--paper-2); }
+[data-skin="nightshift"] .paywall h3 { color: var(--accent); font-weight: 400; }

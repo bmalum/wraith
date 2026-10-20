@@ -33,7 +33,13 @@
 .l-grid-hero { margin: 0 0 2.5rem; }
 .l-grid-hero img { width: 100%; border-radius: var(--radius); }
 
-@media (max-width: 42rem) {
-  .l-grid-head { grid-template-columns: auto 1fr; }
-  .l-grid-nav { display: none; }
+@media (max-width: 48rem) {
+  /* brand left, tools (search, mode, subscribe, hamburger) right; the nav
+     itself is the shared mobile drawer under the header */
+  .l-grid-head { grid-template-columns: 1fr auto; grid-template-areas: "brand tools"; padding: 1rem 1.25rem; }
+  .l-grid-brand { grid-area: brand; justify-self: start; font-size: 1.25rem; }
+  .l-grid-tools { grid-area: tools; }
+  .l-grid-tools .btn-ghost { display: none; }
+  .l-grid-head .nav-toggle { grid-area: tools; justify-self: end; margin-left: 0; position: relative; z-index: 1; }
+  .l-grid-tools { padding-right: 2.6rem; } /* room for the toggle overlaying the cluster's end */
 }

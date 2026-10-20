@@ -25,3 +25,17 @@
 [data-skin="mono"] .l-min-post-foot a::before { content: "#"; }
 [data-skin="mono"] .l-min-foot { border-top: 1px dashed var(--rule); font-size: .78rem; }
 [data-skin="mono"] .l-min-foot::before { content: "---"; color: var(--ink-3); }
+
+/* secondary views: README headings, code-ish fields */
+[data-skin="mono"] .t-kicker::before { content: "## "; color: var(--ink-3); }
+[data-skin="mono"] .t-kicker { text-transform: none; letter-spacing: 0; font-size: .9rem; }
+[data-skin="mono"] .t-title::before { content: "# "; color: var(--ink-3); }
+[data-skin="mono"] .t-lede::before { content: "> "; color: var(--ink-3); }
+[data-skin="mono"] .t-count::before { content: "// "; color: var(--ink-3); }
+[data-skin="mono"] .input { font-family: var(--mono); background: var(--paper-2); border-radius: 4px; }
+[data-skin="mono"] .t-form label { font-family: var(--mono); font-size: .8rem; }
+[data-skin="mono"] .t-form label::before { content: "--"; color: var(--ink-3); }
+[data-skin="mono"] .t-form .btn-accent { font-family: var(--mono); border-radius: 4px; }
+[data-skin="mono"] .author-avatar { border-radius: 4px; font-family: var(--mono); }
+[data-skin="mono"] .paywall { border: 1px solid var(--rule); border-radius: 4px; background: var(--paper-2); font-family: var(--mono); }
+[data-skin="mono"] .paywall h3::before { content: "<!-- "; color: var(--ink-3); } [data-skin="mono"] .paywall h3::after { content: " -->"; color: var(--ink-3); }

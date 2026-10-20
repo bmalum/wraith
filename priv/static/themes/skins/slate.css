@@ -19,3 +19,13 @@
 [data-skin="slate"] .post-title { background: linear-gradient(90deg, var(--ink), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
 [data-skin="slate"] .l-grid-hero img { border-radius: 16px; box-shadow: 0 30px 80px -30px var(--accent); }
 [data-skin="slate"] .l-grid-foot { border-top: 1px solid color-mix(in oklab, var(--ink) 12%, transparent); }
+
+/* secondary views: gradient titles, glassy fields */
+[data-skin="slate"] .t-title { background: linear-gradient(90deg, var(--ink), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+[data-skin="slate"] .t-kicker { color: var(--accent); font-weight: 600; }
+[data-skin="slate"] .input { background: color-mix(in oklab, var(--paper-2) 80%, transparent); border: 1px solid color-mix(in oklab, var(--ink) 15%, transparent); border-radius: 12px; backdrop-filter: blur(8px); }
+[data-skin="slate"] .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent), 0 0 24px -8px var(--accent); }
+[data-skin="slate"] .t-form .btn-accent { background: linear-gradient(135deg, var(--accent), #a78bfa); color: #061226; font-weight: 700; border: 0; border-radius: 12px; box-shadow: 0 0 24px -6px var(--accent); }
+[data-skin="slate"] .author-avatar { background: linear-gradient(135deg, var(--accent), #a78bfa); color: #061226; box-shadow: 0 0 24px -6px var(--accent); }
+[data-skin="slate"] .paywall { border: 1px solid color-mix(in oklab, var(--ink) 15%, transparent); background: color-mix(in oklab, var(--paper-2) 85%, transparent); border-radius: 16px; box-shadow: 0 24px 50px -24px var(--accent); }
+[data-skin="slate"] .t-notice { border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent); border-radius: 12px; padding: 1rem 1.25rem; }

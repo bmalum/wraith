@@ -14,10 +14,17 @@ config :wraith, WraithWeb.Endpoint,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "Vg6oyr61qPwVIiGppy3NrD1JfJJdFy4+s+lyEniubOqcLZXg+x8RJk+FlQdyfiBd",
-  watchers: [
-    esbuild: {Esbuild, :install_and_run, [:wraith, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:wraith, ~w(--watch)]}
-  ]
+  # the screenshot runner boots the site many times; it builds assets once and
+  # sets WRAITH_WATCHERS=false so stray esbuild/tailwind watchers can't collide
+  watchers:
+    (if System.get_env("WRAITH_WATCHERS") == "false" do
+       []
+     else
+       [
+         esbuild: {Esbuild, :install_and_run, [:wraith, ~w(--sourcemap=inline --watch)]},
+         tailwind: {Tailwind, :install_and_run, [:wraith, ~w(--watch)]}
+       ]
+     end)
 
 # ## SSL Support
 #

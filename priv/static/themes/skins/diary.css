@@ -22,3 +22,15 @@
 [data-skin="diary"] .prose-wraith h2 { font-size: 1.9rem; }
 [data-skin="diary"] .l-jrn-foot { border-top: 0; font-family: var(--heading); font-size: 1.1rem; }
 @media (max-width: 42rem) { [data-skin="diary"] .l-jrn-main::before { display: none; } }
+
+/* secondary views: handwriting headings, pencil-line fields */
+[data-skin="diary"] .t-kicker { font-family: var(--heading); font-size: 1.2rem; text-transform: none; letter-spacing: 0; color: var(--accent); }
+[data-skin="diary"] .t-title { font-size: clamp(2.6rem, 6vw, 4rem); font-weight: 700; color: var(--accent); transform: rotate(-1.5deg); display: inline-block; }
+[data-skin="diary"] .t-count { font-family: var(--heading); font-size: 1.1rem; }
+[data-skin="diary"] .input { background: transparent; border: 0; border-bottom: 2px dashed var(--ink-3); border-radius: 0; font-family: var(--heading); font-size: 1.25rem; padding-inline: .3rem; }
+[data-skin="diary"] .input:focus { box-shadow: none; border-bottom-color: var(--accent); border-bottom-style: solid; }
+[data-skin="diary"] .t-form label { font-family: var(--heading); font-size: 1.15rem; color: var(--ink); }
+[data-skin="diary"] .t-form .btn-accent { font-family: var(--heading); font-size: 1.25rem; border-radius: 50% 48% 52% 50% / 48% 52% 48% 52%; transform: rotate(-2deg); padding: .6rem 1.6rem; }
+[data-skin="diary"] .author-avatar { border: 3px solid #fff; box-shadow: 0 6px 16px -8px rgba(0,0,0,.3); transform: rotate(-4deg); }
+[data-skin="diary"] .paywall { background: #fff; border: 0; border-radius: 4px; box-shadow: 0 6px 20px -8px rgba(0,0,0,.25); transform: rotate(-.6deg); }
+[data-skin="diary"] .paywall h3 { font-size: 2rem; color: var(--accent); }
