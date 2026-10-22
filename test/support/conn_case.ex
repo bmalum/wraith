@@ -56,6 +56,13 @@ defmodule WraithWeb.ConnCase do
     post
   end
 
+  @doc "A small, real PNG (libvips-made) for upload tests — the sniffer rejects stubs."
+  def png_fixture(w \\ 16, h \\ 12) do
+    {:ok, img} = Image.new(w, h, color: :blue)
+    {:ok, png} = Image.write(img, :memory, suffix: ".png")
+    png
+  end
+
   @doc "Sign the conn in as `user`."
   def log_in(conn, user) do
     token = Wraith.Accounts.create_session(user)

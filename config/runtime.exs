@@ -198,7 +198,31 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  # every absolute URL — feeds, sitemap, newsletter links, the API — is built
+  # from this; a forgotten variable would silently point them all at example.com
+  host =
+    System.get_env("PHX_HOST") ||
+      raise """
+      environment variable PHX_HOST is missing.
+      Set it to the public hostname of the site, e.g. blog.example.com
+      """
+
+  # Rate limits key on the client IP. Behind a load balancer the socket address
+  # is the balancer, and X-Forwarded-For is client-controlled except for the
+  # hops our own proxies append. Say how many proxies sit in front (1 for an
+  # ALB); 0 (the default) trusts only the socket address.
+  config :wraith, :trusted_proxies, String.to_integer(System.get_env("TRUSTED_PROXIES") || "0")
+
+  # Secrets at rest (Stripe keys, the Kiro key) are encrypted with this, not
+  # with SECRET_KEY_BASE, so cookies can be rotated without losing them.
+  config :wraith, Wraith.Vault,
+    key:
+      System.get_env("WRAITH_VAULT_KEY") ||
+        raise("""
+        environment variable WRAITH_VAULT_KEY is missing.
+        Generate one with: mix phx.gen.secret
+        It encrypts stored secrets (Stripe, Kiro); changing it makes them unreadable.
+        """)
 
   config :wraith, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

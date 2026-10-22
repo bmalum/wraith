@@ -73,7 +73,7 @@ defmodule WraithWeb.AdminTest do
 
     feature =
       file_input(view, "#feature-upload-form", :feature, [
-        %{name: "cover.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+        %{name: "cover.png", content: png_fixture(), type: "image/png"}
       ])
 
     render_upload(feature, "cover.png")
@@ -84,7 +84,7 @@ defmodule WraithWeb.AdminTest do
 
     inline =
       file_input(view, "#inline-upload-form", :inline, [
-        %{name: "diagram.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+        %{name: "diagram.png", content: png_fixture(), type: "image/png"}
       ])
 
     render_upload(inline, "diagram.png")
@@ -353,7 +353,7 @@ defmodule WraithWeb.AdminTest do
 
     av =
       file_input(view, "#avatar-form", :avatar, [
-        %{name: "me.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+        %{name: "me.png", content: png_fixture(), type: "image/png"}
       ])
 
     render_upload(av, "me.png")

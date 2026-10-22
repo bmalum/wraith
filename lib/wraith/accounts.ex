@@ -108,13 +108,42 @@ defmodule Wraith.Accounts do
     attrs =
       stringify(attrs) |> Map.take(~w(name bio avatar website twitter github mastodon location))
 
-    {pk, sk} = Keys.user(id)
+    # these render as href/src on the public site; only web URLs (or our own
+    # uploads for the avatar) may go there — never javascript: or data:
+    case Enum.find(~w(website mastodon avatar), &(not web_url?(attrs[&1], &1 == "avatar"))) do
+      nil ->
+        {pk, sk} = Keys.user(id)
 
-    Store.update(pk, sk, fn u ->
-      u = Map.merge(u, attrs)
-      if attrs["name"] in [nil, ""], do: u, else: Map.put(u, "slug", Slug.slugify(attrs["name"]))
-    end)
+        Store.update(pk, sk, fn u ->
+          u = Map.merge(u, attrs)
+
+          if attrs["name"] in [nil, ""],
+            do: u,
+            else: Map.put(u, "slug", Slug.slugify(attrs["name"]))
+        end)
+
+      field ->
+        {:error, %{field => "must be an http(s) URL"}}
+    end
   end
+
+  # nil/"" are fine (clearing); otherwise http(s), or a site-relative upload path
+  defp web_url?(nil, _), do: true
+  defp web_url?("", _), do: true
+  defp web_url?("/uploads/" <> _, true), do: true
+  defp web_url?("/images/" <> _, true), do: true
+
+  defp web_url?(url, _) when is_binary(url) do
+    case URI.new(url) do
+      {:ok, %URI{scheme: scheme, host: host}} when scheme in ["http", "https"] ->
+        is_binary(host) and host != ""
+
+      _ ->
+        false
+    end
+  end
+
+  defp web_url?(_, _), do: false
 
   @doc "Change a user's role (the caller's right to do so is the caller's business — `Wraith.Policy`)."
   def set_role(%{"id" => id}, role) when role in ["admin", "editor", "author", "contributor"] do

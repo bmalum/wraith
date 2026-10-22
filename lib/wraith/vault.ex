@@ -1,7 +1,9 @@
 defmodule Wraith.Vault do
   @moduledoc """
-  Secrets at rest (the Kiro API key): encrypted with a key derived from the
-  endpoint's `secret_key_base`, so the store never holds them in the clear.
+  Secrets at rest (the Kiro API key, Stripe keys): encrypted with a dedicated
+  key (`config :wraith, Wraith.Vault, key:` — `WRAITH_VAULT_KEY` in prod), so
+  the store never holds them in the clear and rotating the session secret
+  doesn't destroy them.
   """
 
   @spec encrypt(String.t()) :: String.t()
@@ -18,8 +20,12 @@ defmodule Wraith.Vault do
 
   def decrypt(_), do: :error
 
+  # A dedicated key (WRAITH_VAULT_KEY in prod) so cookies can be rotated
+  # without losing every stored secret. Dev and test fall back to the
+  # endpoint's secret_key_base for convenience.
   defp secret do
-    Application.get_env(:wraith, WraithWeb.Endpoint)[:secret_key_base] ||
-      raise("secret_key_base is not configured")
+    Application.get_env(:wraith, __MODULE__, [])[:key] ||
+      Application.get_env(:wraith, WraithWeb.Endpoint)[:secret_key_base] ||
+      raise("neither Wraith.Vault :key nor secret_key_base is configured")
   end
 end

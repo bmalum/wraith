@@ -12,7 +12,13 @@ defmodule WraithWeb.UploadsStatic do
         Plug.Static.init(
           at: "/uploads",
           from: Wraith.Uploads.Local.root(),
-          cache_control_for_etags: "public, max-age=31536000"
+          cache_control_for_etags: "public, max-age=31536000",
+          headers: [
+            # never let the browser guess a type, and give uploaded documents
+            # no origin to act from: an SVG or PDF opened directly is sandboxed
+            {"x-content-type-options", "nosniff"},
+            {"content-security-policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox"}
+          ]
         )
 
       Plug.Static.call(conn, opts)

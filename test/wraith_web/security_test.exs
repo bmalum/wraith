@@ -30,9 +30,10 @@ defmodule WraithWeb.SecurityTest do
     assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Too many attempts"
     assert get_resp_header(conn, "retry-after") != []
 
-    # another ip is unaffected (x-forwarded-for is honoured)
+    # a forged X-Forwarded-For does NOT buy a fresh bucket: with no trusted
+    # proxy configured the header is ignored and the socket address counts
     conn = build_conn() |> put_req_header("x-forwarded-for", "10.9.8.7, 1.2.3.4") |> bad.()
-    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "do not match"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Too many attempts"
   end
 
   test "magic links are limited per address and per client" do

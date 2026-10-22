@@ -14,7 +14,9 @@ config :wraith, WraithWeb.Endpoint,
   force_ssl: [
     rewrite_on: [:x_forwarded_proto],
     exclude: [
-      # paths: ["/health"],
+      # the load balancer's health check arrives over plain HTTP without
+      # X-Forwarded-Proto; a 301 there marks every fresh task unhealthy
+      paths: ["/health", "/health/live"],
       hosts: ["localhost", "127.0.0.1"]
     ]
   ]
@@ -30,5 +32,5 @@ config :wraith, Wraith.Mailer, adapter: Swoosh.Adapters.ExAwsAmazonSES
 config :swoosh, local: false
 
 # bandit 1.12.5 (EEF-CVE-2026-105659) is an HTTP/2 flow-control issue with no fixed release
-# yet; the load balancer terminates TLS and speaks HTTP/1.1 to us, so h2 is off here.
-config :wraith, WraithWeb.Endpoint, http: [http_2_options: [enabled: false]]
+# yet; h2 is disabled in config/runtime.exs (the one place the http: options are
+# assembled). The load balancer terminates TLS and speaks HTTP/1.1 to us.

@@ -8,11 +8,13 @@ defmodule Wraith.UploadsTest do
   end
 
   test "stores an image under a dated key and serves it from /uploads" do
+    png = WraithWeb.ConnCase.png_fixture()
+
     assert {:ok, "/uploads/" <> key = url} =
-             Uploads.store(<<137, 80, 78, 71>>, "image/png", name: "My Photo.PNG")
+             Uploads.store(png, "image/png", name: "My Photo.PNG", variants: false)
 
     assert key =~ ~r"^\d{4}/\d{2}/my-photo-[0-9a-f]{8}\.png$"
-    assert File.read!(Path.join(Uploads.Local.root(), key)) == <<137, 80, 78, 71>>
+    assert File.read!(Path.join(Uploads.Local.root(), key)) == png
     conn = build_conn() |> get(url)
     assert conn.status == 200
     assert Plug.Conn.get_resp_header(conn, "content-type") |> hd() =~ "image/png"

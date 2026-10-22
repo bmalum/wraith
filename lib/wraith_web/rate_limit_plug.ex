@@ -48,11 +48,26 @@ defmodule WraithWeb.RateLimitPlug do
     end
   end
 
-  @doc "The client IP as a string; the first `x-forwarded-for` hop when present."
+  @doc """
+  The client IP as a string.
+
+  `X-Forwarded-For` is a list the *client* starts and each proxy appends to,
+  so the first hop is whatever the client wrote — trusting it lets anyone
+  pick their own rate-limit bucket (or someone else's, to lock them out).
+  Only the hop appended by our own load balancer is trustworthy: with
+  `:trusted_proxies` = N, that is the N-th address from the end. With no
+  trusted proxies configured, the socket address is the truth.
+  """
   def client_ip(conn) do
-    case get_req_header(conn, "x-forwarded-for") do
-      [forwarded | _] -> forwarded |> String.split(",") |> hd() |> String.trim()
-      [] -> conn.remote_ip |> :inet.ntoa() |> to_string()
+    trusted = Application.get_env(:wraith, :trusted_proxies, 0)
+
+    with n when n > 0 <- trusted,
+         [forwarded | _] <- get_req_header(conn, "x-forwarded-for"),
+         hops = forwarded |> String.split(",") |> Enum.map(&String.trim/1),
+         ip when is_binary(ip) and ip != "" <- Enum.at(hops, -n) do
+      ip
+    else
+      _ -> conn.remote_ip |> :inet.ntoa() |> to_string()
     end
   end
 end

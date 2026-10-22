@@ -95,6 +95,8 @@ defmodule Wraith.MixProject do
       {:image, "~> 0.72.0"},
       {:ex_aws_s3, "~> 2.5"},
       # mail: newsletters, magic links, password resets (SES in prod via ex_aws)
+      # the SES adapter builds raw MIME with gen_smtp's :mimemail
+      {:gen_smtp, "~> 1.2"},
       {:swoosh, "~> 1.29"}
     ]
   end

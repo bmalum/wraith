@@ -325,7 +325,7 @@ defmodule WraithWeb.McpTest do
 
     up =
       call!(conn, admin, "upload_base64", %{
-        data: Base.encode64(<<137, 80, 78, 71>>),
+        data: Base.encode64(png_fixture()),
         content_type: "image/png",
         name: "logo"
       })
