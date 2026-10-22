@@ -218,7 +218,7 @@ defmodule Wraith.Tools do
   # ---- resources: posts, settings, widget docs, readable as documents ------------------
 
   @impl true
-  def resources(_ctx) do
+  def resources(ctx) do
     base = Wraith.Config.site_url()
 
     [
@@ -235,7 +235,7 @@ defmodule Wraith.Tools do
         "description" => "How to write a Lua widget."
       }
     ] ++
-      for p <- Content.list_all_posts() |> Enum.take(200) do
+      for p <- listable_posts(ctx, []) |> Enum.take(200) do
         %{
           "uri" => "wraith://posts/#{p["slug"]}",
           "name" => p["title"],
@@ -246,14 +246,14 @@ defmodule Wraith.Tools do
   end
 
   @impl true
-  def read_resource(_ctx, "wraith://settings"),
+  def read_resource(ctx, "wraith://settings"),
     do:
       {:ok,
        [
          %{
            "uri" => "wraith://settings",
            "mimeType" => "application/json",
-           "text" => Jason.encode!(public_settings(Settings.get()), pretty: true)
+           "text" => Jason.encode!(settings_for(ctx, Settings.get()), pretty: true)
          }
        ]}
 
@@ -268,8 +268,8 @@ defmodule Wraith.Tools do
          }
        ]}
 
-  def read_resource(_ctx, "wraith://posts/" <> slug = uri) do
-    case find_post(slug) do
+  def read_resource(ctx, "wraith://posts/" <> slug = uri) do
+    case find_post(slug, ctx) do
       nil ->
         :error
 
@@ -279,7 +279,7 @@ defmodule Wraith.Tools do
            %{
              "uri" => uri,
              "mimeType" => "text/markdown",
-             "text" => "# #{p["title"]}\n\n#{p["markdown"]}"
+             "text" => "# #{p["title"]}\n\n#{markdown_for(ctx, p)}"
            }
          ]}
     end
@@ -668,6 +668,21 @@ defmodule Wraith.Tools do
 
   # ---- calls: site -----------------------------------------------------------------
 
+  # a Content key is public (it can sit in a page's source): the site as readers see it
+  defp do_call(%{"scope" => "content"}, "site_info", _a) do
+    json(%{
+      site: Settings.get() |> public_site(),
+      authors: Accounts.list_users() |> Enum.map(&Map.take(&1, ~w(id name slug))),
+      counts: %{published: Content.count_posts("published"), tags: length(Content.list_tags())},
+      widgets:
+        Widgets.list()
+        |> Enum.filter(&(&1["enabled"] != false))
+        |> Enum.map(&Map.take(&1, ~w(slug name description))),
+      themes: Wraith.Config.theme_infos() |> Enum.map(&Map.take(&1, [:name, :label])),
+      urls: %{site: Wraith.Config.site_url()}
+    })
+  end
+
   defp do_call(_ctx, "site_info", _a) do
     json(%{
       site: Settings.get() |> public_settings(),
@@ -700,10 +715,10 @@ defmodule Wraith.Tools do
 
   # ---- posts -----------------------------------------------------------------------
 
-  defp do_call(_ctx, "posts_list", a) do
+  defp do_call(ctx, "posts_list", a) do
     posts =
       if a["query"] in [nil, ""] do
-        Content.list_all_posts(type: a["type"])
+        listable_posts(ctx, type: a["type"])
         |> Enum.filter(&(is_nil(a["status"]) or &1["status"] == a["status"]))
       else
         Search.search(a["query"], a["limit"] || 50) |> Enum.map(& &1.post)
@@ -712,17 +727,27 @@ defmodule Wraith.Tools do
     json(%{posts: posts |> Enum.take(a["limit"] || 50) |> Enum.map(&summary/1)})
   end
 
-  defp do_call(_ctx, "post_get", %{"id" => id}) do
-    case find_post(id) do
+  defp do_call(ctx, "post_get", %{"id" => id}) do
+    # a draft is "no post" to a Content key, not "forbidden": its existence is private too
+    case find_post(id, ctx) do
       nil ->
         MCP.error("no post #{id}")
 
       p ->
-        json(%{
-          post: full(p),
-          revisions: length(Content.revisions(p["id"])),
-          url: Wraith.Config.site_url() <> "/" <> p["slug"]
-        })
+        if ctx["scope"] == "content" do
+          json(%{
+            post:
+              p |> Map.put("markdown", markdown_for(ctx, p)) |> full() |> Map.drop(["author_id"]),
+            access: not Content.gated?(p),
+            url: Wraith.Config.site_url() <> "/" <> p["slug"]
+          })
+        else
+          json(%{
+            post: full(p),
+            revisions: length(Content.revisions(p["id"])),
+            url: Wraith.Config.site_url() <> "/" <> p["slug"]
+          })
+        end
     end
   end
 
@@ -1346,6 +1371,30 @@ defmodule Wraith.Tools do
   defp find_post(id) when is_binary(id), do: Content.get_post(id) || Content.get_post_by_slug(id)
   defp find_post(_), do: nil
 
+  # What a Content key may see is what the public site shows: published posts,
+  # gated bodies cut at the paywall (it carries no member). Staff contexts are
+  # authorised per tool by `allowed?/3` and see posts whole.
+  defp find_post(id, %{"scope" => "content"}) do
+    case find_post(id) do
+      %{"status" => "published"} = p -> p
+      _ -> nil
+    end
+  end
+
+  defp find_post(id, _ctx), do: find_post(id)
+
+  defp listable_posts(%{"scope" => "content"}, opts) do
+    Content.list_all_posts(opts) |> Enum.filter(&(&1["status"] == "published"))
+  end
+
+  defp listable_posts(_ctx, opts), do: Content.list_all_posts(opts)
+
+  defp markdown_for(%{"scope" => "content"}, p), do: Content.readable_markdown(p, false)
+  defp markdown_for(_ctx, p), do: p["markdown"]
+
+  defp settings_for(%{"scope" => "content"}, s), do: public_site(s)
+  defp settings_for(_ctx, s), do: public_settings(s)
+
   defp find_member(id) when is_binary(id), do: Members.get(id) || Members.get_by_email(id)
   defp find_member(_), do: nil
 
@@ -1378,12 +1427,18 @@ defmodule Wraith.Tools do
   defp member_json(m),
     do: Map.take(m, ~w(id email name status labels note subscribed created_at last_seen_at))
 
-  defp public_settings(s),
-    do:
-      Map.drop(
-        s,
-        ~w(pk sk version created_at updated_at kiro_key_ciphertext kiro_key_hint stripe_secret_key stripe_webhook_secret)
-      )
+  # staff: everything but storage bookkeeping and ciphertext (hints stay, as in the UI)
+  defp public_settings(s) do
+    s
+    |> Map.drop(~w(pk sk version created_at updated_at kiro_key_hint))
+    |> Map.reject(fn {k, _} -> String.ends_with?(k, "_ciphertext") end)
+  end
+
+  # readers: what the public pages themselves render
+  @public_site ~w(title description lang timezone posts_per_page accent theme navigation
+                  footer members_enabled comments_enabled paid_price_label powered_by
+                  logo icon cover_image twitter facebook)
+  defp public_site(s), do: Map.take(s, @public_site)
 
   defp json(term), do: MCP.text(Jason.encode!(term, pretty: true))
 

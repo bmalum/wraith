@@ -250,36 +250,76 @@ Uniqueness (slugs, emails) is a conditional put inside a transaction
 ## Tests
 
 ```sh
-mix test                                              # 111 tests, in-memory store, fake agent, test mailer
+mix precommit                                         # warnings-as-errors, unused deps, format, the suite
+mix test                                              # 213 tests: in-memory store, fake agent, test mailer
 WRAITH_TEST_DYNAMO=http://127.0.0.1:8000 mix test     # the same suite on DynamoDB Local
 WRAITH_TEST_POSTGRES=postgres://postgres:postgres@127.0.0.1:5434/wraith_test mix test   # … on PostgreSQL
-mix compile --warnings-as-errors
 ```
+
+CI (`.github/workflows/ci.yml`) runs all three on every push and pull request.
 
 ## Security notes
 
-- Secrets (the Kiro key, Stripe secret and webhook secret) are encrypted at rest with
-  `Wraith.Vault` under `SECRET_KEY_BASE`; only hints are ever shown or exported.
-- Rate limits (`Wraith.RateLimit`, per IP / visitor / address): 5 logins a minute,
-  3 magic links per 15 min, 5 sign-ups an hour, 10 comments a minute, 60 widget
-  events a minute, 300 API/MCP calls a minute and 20 failed key attempts a minute.
-  Behind a proxy the first `x-forwarded-for` hop is the client.
-- Subscriptions are double opt-in: a sign-up is a member with `subscribed: false`
-  until the confirmation link is opened.
-- Sessions expire (60 days authors, 180 members); `Wraith.Janitor` deletes expired
-  ones hourly and DynamoDB tables get a TTL on `ttl`.
-- Widget HTML goes through an allowlist sanitiser (`Wraith.Widgets.sanitize/1`):
-  no scripts, handlers or `javascript:` URLs, whoever wrote the widget.
+- **Who may do what** is `Wraith.Policy` (owner, admin, editor, author,
+  contributor), checked inside every door: admin LiveViews, the Admin API
+  (`@policy` per action, per-post checks, `status`/`author_id` dropped for roles
+  that may not set them) and every MCP tool (`Wraith.Tools`, which refuses calls
+  with no resolved actor). An Admin API key acts as the owner; a signed-in
+  session on the Admin API is read-only (that pipeline has no CSRF token). A
+  Content API key reaches only the public read tools.
+- **The paywall** is one function, `Content.readable_markdown/2`; the post page,
+  feeds, search index, Content API and MCP all go through it. Locked
+  posts answer with `"access": false` and the public preview only.
+- **Secrets at rest** (the Kiro key, Stripe secret and webhook secret) are
+  encrypted with `Wraith.Vault` under `WRAITH_VAULT_KEY` (not `SECRET_KEY_BASE`,
+  so cookies can rotate without losing them); only hints are shown or exported.
+  Transcripts shown in the studio are scrubbed of key-shaped strings.
+- **Tokens**: sign-in, confirmation and reset links are single-use; a reset link
+  is bound to the password it replaces, and a password change ends every
+  session that predates it.
+- **Client IP** for rate limits: `TRUSTED_PROXIES` says how many proxies sit in
+  front (1 behind an ALB); the client is that many hops from the end of
+  `X-Forwarded-For`. With 0 (the default) only the socket address counts.
+- **Rate limits** (`Wraith.RateLimit`, per IP / visitor / address): 5 logins a
+  minute, 3 magic links and 3 password resets per 15 min, 5 sign-ups an hour,
+  10 comments a minute, 60 searches and 60 widget events a minute, 300 API/MCP
+  calls a minute and 20 failed key attempts a minute.
+- **Outbound fetches** (widget `wraith.fetch`, bookmark cards, upload-from-URL)
+  go through `Wraith.SafeHTTP`: http(s) only, private/loopback/link-local/CGNAT
+  addresses refused on every redirect hop, size and time capped.
+- **Uploads** are sniffed by magic bytes, not trusted by extension; SVGs with
+  scripts, handlers or `javascript:` links are refused, and `/uploads` is served
+  with `nosniff` and a sandboxing CSP.
+- **Widgets**: Lua runs in a supervised task with a heap cap, a time limit and
+  capped output; widget HTML goes through an allowlist sanitiser
+  (`Wraith.Widgets.sanitize/1`) and may only send `phx-click="widget"` events.
+- **Caching**: public pages are cacheable only when nothing is personalised and
+  no cookie is set (`Vary: Cookie`); otherwise `private, no-store`.
+- Subscriptions are double opt-in. Stripe webhooks are signature-checked and
+  applied once per event id.
+- Sessions expire (60 days authors, 180 members); `Wraith.Janitor` deletes
+  expired sessions and used-token markers hourly, and DynamoDB tables get a TTL
+  on `ttl`.
 - Code injection (Settings) is raw HTML by design — only the owner edits it.
 - HTTP/2 is disabled in prod (`http_2_options: [enabled: false]`) while bandit
   1.12.5's HTTP/2 advisory (EEF-CVE-2026-105659) has no fixed release.
-- `/health` (readiness: the store answers) and `/health/live` for load balancers.
+- `/health` (readiness) and `/health/live` answer `{"status": …}` only; details
+  go to the log. Both are exempt from the HTTPS redirect for load balancers.
 
 ## Deploy
 
-`Dockerfile` builds a release (`mix phx.gen.release --docker`). Needs
-`SECRET_KEY_BASE`, `PHX_HOST`, a store (`WRAITH_STORE=dynamo` + `WRAITH_TABLE`,
-`WRAITH_STORE=postgres` + `DATABASE_URL`, or `WRAITH_STORE=dsql` + `DSQL_ENDPOINT`),
-`AWS_REGION` and a task role allowed to read/write the table (and, for the
-studio, `lambda:*MicroVM*` plus the journal bucket). Run `mix wraith.table`
-once per environment.
+`Dockerfile` builds a release (`mix phx.gen.release --docker`). Required in prod
+(the release refuses to boot without them):
+
+| Variable | What |
+|---|---|
+| `SECRET_KEY_BASE` | signs cookies and tokens — `mix phx.gen.secret` |
+| `PHX_HOST` | the public hostname; every absolute URL (feeds, mail, API) is built from it |
+| `WRAITH_VAULT_KEY` | encrypts stored secrets — `mix phx.gen.secret`; changing it makes them unreadable |
+
+Plus a store (`WRAITH_STORE=dynamo` + `WRAITH_TABLE`, `WRAITH_STORE=postgres` +
+`DATABASE_URL`, or `WRAITH_STORE=dsql` + `DSQL_ENDPOINT`), `AWS_REGION`, and a
+task role allowed to read/write the table (and, for the studio,
+`lambda:*MicroVM*` plus the journal bucket). Set `TRUSTED_PROXIES=1` behind a
+single load balancer. Run `mix wraith.table` once per environment. Everything
+else is in `.env.example`.

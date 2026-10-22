@@ -127,4 +127,88 @@ defmodule WraithWeb.PaywallTest do
     :ok = Content.delete_post(Content.get_post(draft["id"]))
     assert Content.get_by_preview_token(token) == nil
   end
+
+  describe "MCP with a Content key (public, may sit in a page's source)" do
+    setup %{owner: owner} do
+      {:ok, draft} =
+        Content.create_post(%{
+          title: "Unpublished plans",
+          markdown: "DRAFT-ONLY-TEXT",
+          author_id: owner["id"]
+        })
+
+      {:ok, _} =
+        Wraith.Settings.update(%{
+          "stripe_secret_key" => "sk_test_abcdefgh12345678",
+          "code_injection_head" => "<!-- owner only -->"
+        })
+
+      {:ok, ctx: %{"scope" => "content"}, draft: draft}
+    end
+
+    defp text(%{"content" => parts}), do: Enum.map_join(parts, "", & &1["text"])
+
+    test "post_get serves published posts only, with the paywall applied",
+         %{ctx: ctx, draft: draft, gated: gated} do
+      got = Wraith.Tools.call(ctx, "post_get", %{"id" => gated["slug"]})
+      refute got["isError"]
+      refute text(got) =~ @secret
+      assert text(got) =~ "Free intro"
+
+      for id <- [draft["id"], draft["slug"]] do
+        got = Wraith.Tools.call(ctx, "post_get", %{"id" => id})
+        assert got["isError"], "a Content key read a draft by #{id}"
+        refute text(got) =~ "DRAFT-ONLY-TEXT"
+      end
+    end
+
+    test "posts_list lists published posts only", %{ctx: ctx} do
+      listed = Wraith.Tools.call(ctx, "posts_list", %{}) |> text()
+      assert listed =~ "Gated"
+      refute listed =~ "Unpublished plans"
+
+      # asking for drafts by status gets nothing either
+      refute Wraith.Tools.call(ctx, "posts_list", %{"status" => "draft"}) |> text() =~
+               "Unpublished plans"
+    end
+
+    test "site_info shows the public site, not secrets or private counts", %{ctx: ctx} do
+      info = Wraith.Tools.call(ctx, "site_info", %{}) |> text() |> Jason.decode!()
+      blob = Jason.encode!(info)
+
+      refute blob =~ "ciphertext"
+      refute blob =~ "sk_"
+      refute blob =~ "owner only"
+      refute Map.has_key?(info["counts"], "drafts")
+      refute Map.has_key?(info["counts"], "members")
+      assert info["site"]["title"]
+    end
+
+    test "resources: published posts only, gated bodies previewed", %{ctx: ctx, draft: draft} do
+      uris = Wraith.Tools.resources(ctx) |> Enum.map(& &1["uri"])
+      assert "wraith://posts/gated" in uris
+      refute "wraith://posts/#{draft["slug"]}" in uris
+
+      assert {:ok, [%{"text" => body}]} = Wraith.Tools.read_resource(ctx, "wraith://posts/gated")
+      refute body =~ @secret
+      assert :error = Wraith.Tools.read_resource(ctx, "wraith://posts/#{draft["slug"]}")
+
+      assert {:ok, [%{"text" => settings}]} =
+               Wraith.Tools.read_resource(ctx, "wraith://settings")
+
+      refute settings =~ "ciphertext"
+      refute settings =~ "owner only"
+    end
+
+    test "an Admin key still sees everything", %{draft: draft} do
+      admin = %{"as_owner" => true, "scope" => "admin"}
+      got = Wraith.Tools.call(admin, "post_get", %{"id" => draft["id"]})
+      assert text(got) =~ "DRAFT-ONLY-TEXT"
+
+      info = Wraith.Tools.call(admin, "site_info", %{}) |> text() |> Jason.decode!()
+      assert Map.has_key?(info["counts"], "drafts")
+      # the owner sees the hint, never the ciphertext
+      refute Jason.encode!(info) =~ "ciphertext"
+    end
+  end
 end
