@@ -51,6 +51,43 @@ defmodule Wraith.DataIntegrityTest do
     end
   end
 
+  describe "Store.count" do
+    test "counts what query/2 would return, with the same key conditions" do
+      for i <- 1..7 do
+        :ok =
+          Wraith.Store.put(%{
+            "pk" => "CNT",
+            "sk" => "A##{i}",
+            "gsi1pk" => "CNTIDX",
+            "gsi1sk" => "2026-10-0#{i}"
+          })
+      end
+
+      :ok = Wraith.Store.put(%{"pk" => "CNT", "sk" => "B#1"})
+
+      assert Wraith.Store.count("CNT") == 8
+      assert Wraith.Store.count("CNT", begins_with: "A#") == 7
+      assert Wraith.Store.count("CNTIDX", index: :gsi1) == 7
+
+      assert Wraith.Store.count("CNTIDX", index: :gsi1, between: {"2026-10-03", "2026-10-05"}) ==
+               3
+
+      assert Wraith.Store.count("NOPE") == 0
+    end
+
+    test "dashboard counts and member growth read only what they need", %{owner: owner} do
+      post_fixture(owner)
+      {:ok, _} = Wraith.Members.create(%{email: "g1@x.io"})
+      {:ok, _} = Wraith.Members.create(%{email: "g2@x.io"})
+
+      assert Wraith.Content.count_posts("published") == 1
+      assert Wraith.Content.count_posts("draft") == 0
+      assert Wraith.Members.count() == 2
+      assert Enum.sum(Enum.map(Wraith.Analytics.member_growth(3), & &1.members)) == 2
+      assert [%{"title" => "Hello World"}] = Wraith.Content.recent_posts(8)
+    end
+  end
+
   describe "redirects plug" do
     test "a bad rule never raises; good rules still redirect", %{conn: conn, owner: owner} do
       post_fixture(owner)

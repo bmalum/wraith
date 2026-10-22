@@ -45,7 +45,8 @@ defmodule Wraith.Studio.Server do
   # One studio per cluster: the name is registered with `:global`, so the second
   # node to boot finds it taken and runs no server of its own (calls go to the
   # owner over distribution). If the owning node dies, the next call on any
-  # node starts a fresh one there and reopens the conversation from the store.
+  # node starts a fresh one there — under `Wraith.Studio.Failover`, so it is
+  # supervised like the original — and reopens the conversation from the store.
   @name {:global, __MODULE__}
 
   def start_link(opts \\ []) do
@@ -55,13 +56,18 @@ defmodule Wraith.Studio.Server do
     end
   end
 
-  defp server do
+  defp server(attempts \\ 3) do
     case :global.whereis_name(__MODULE__) do
-      :undefined ->
-        case GenServer.start(__MODULE__, [], name: @name) do
+      :undefined when attempts > 0 ->
+        case DynamicSupervisor.start_child(Wraith.Studio.Failover, __MODULE__) do
           {:ok, pid} -> pid
           {:error, {:already_started, pid}} -> pid
+          # another node registered it between our lookup and our start
+          :ignore -> server(attempts - 1)
         end
+
+      :undefined ->
+        exit({:noproc, {__MODULE__, :server, []}})
 
       pid ->
         pid

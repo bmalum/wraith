@@ -148,6 +148,20 @@ defmodule Wraith.WidgetsTest do
     assert Markdown.to_text("Hi\n\n{{embed https://youtu.be/x}}\n\nthere") == "Hi there"
   end
 
+  test "embeds: rendering doesn't wait on the network; prefetch does" do
+    md = "{{embed https://unreachable.invalid/a}}\n\n{{embed https://youtu.be/abc}}"
+    assert Markdown.embed_urls(md) == ["https://unreachable.invalid/a", "https://youtu.be/abc"]
+
+    # a miss renders a plain card at once (the fetch goes to the background)
+    {micros, html} = :timer.tc(fn -> Markdown.to_html(md) end)
+    assert html =~ "is-bookmark"
+    assert micros < 1_000_000
+
+    # prefetch resolves it now; an unreachable page is cached as "nothing" (briefly)
+    :ok = Wraith.Embed.prefetch(md)
+    assert Wraith.Embed.metadata("https://unreachable.invalid/a") == %{}
+  end
+
   test "markdown segments and shortcode args" do
     md = """
     # Title

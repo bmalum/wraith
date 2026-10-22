@@ -109,8 +109,8 @@ defmodule Wraith.Store.Dynamo do
       |> Map.take(["pk", "sk"])
       |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
 
-  @impl Wraith.Store
-  def query(pk, opts) do
+  # the key condition shared by query/2 and count/2
+  defp key_condition(pk, opts) do
     index? = Keyword.get(opts, :index) == :gsi1
     {pk_name, sk_name} = if index?, do: {"gsi1pk", "gsi1sk"}, else: {"pk", "sk"}
 
@@ -130,17 +130,45 @@ defmodule Wraith.Store.Dynamo do
           {"#pk = :pk", %{pk: pk}, %{"#pk" => pk_name}}
       end
 
+    [
+      key_condition_expression: cond_expr,
+      expression_attribute_names: names,
+      expression_attribute_values: values
+    ]
+    |> then(fn p -> if index?, do: [{:index_name, "gsi1"} | p], else: p end)
+  end
+
+  @impl Wraith.Store
+  def count(pk, opts), do: count_pages(key_condition(pk, opts) ++ [select: :count], nil, 0)
+
+  # COUNT still pages at 1 MB of *read* items; follow LastEvaluatedKey
+  defp count_pages(params, start, acc) do
+    params_now = if start, do: [{:exclusive_start_key, start} | params], else: params
+
+    case Dynamo.query(table(), params_now) |> ExAws.request() do
+      {:ok, %{"Count" => n} = r} ->
+        case r["LastEvaluatedKey"] do
+          nil -> {:ok, acc + n}
+          lek -> count_pages(params, decode(lek), acc + n)
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @impl Wraith.Store
+  def query(pk, opts) do
+    index? = Keyword.get(opts, :index) == :gsi1
+
     params =
-      [
-        key_condition_expression: cond_expr,
-        expression_attribute_names: names,
-        expression_attribute_values: values,
-        scan_index_forward: Keyword.get(opts, :forward, true),
-        # one more than asked: whether a next page exists is then a fact, not
-        # DynamoDB's LastEvaluatedKey, which it also returns on the last full page
-        limit: Keyword.get(opts, :limit, 1_000) + 1
-      ]
-      |> then(fn p -> if index?, do: [{:index_name, "gsi1"} | p], else: p end)
+      (key_condition(pk, opts) ++
+         [
+           scan_index_forward: Keyword.get(opts, :forward, true),
+           # one more than asked: whether a next page exists is then a fact, not
+           # DynamoDB's LastEvaluatedKey, which it also returns on the last full page
+           limit: Keyword.get(opts, :limit, 1_000) + 1
+         ])
       |> then(fn p ->
         case opts[:start_key] do
           nil -> p

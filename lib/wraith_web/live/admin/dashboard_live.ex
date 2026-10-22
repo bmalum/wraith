@@ -17,7 +17,7 @@ defmodule WraithWeb.Admin.DashboardLive do
       scheduled: Content.count_posts("scheduled"),
       members: Members.count(),
       widgets: Widgets.list() |> length(),
-      recent: Content.list_all_posts() |> Enum.take(8),
+      recent: Content.recent_posts(8),
       views: Analytics.series(14),
       top:
         Analytics.top_posts(30, 5)
@@ -29,7 +29,15 @@ defmodule WraithWeb.Admin.DashboardLive do
   end
 
   @impl true
-  def handle_info({:content, _, _}, socket), do: {:noreply, load(socket)}
+  # an agent publishing twenty posts is twenty broadcasts: reload once per burst
+  def handle_info({:content, _, _}, socket) do
+    if socket.assigns[:reload_timer],
+      do: {:noreply, socket},
+      else: {:noreply, assign(socket, :reload_timer, Process.send_after(self(), :reload, 500))}
+  end
+
+  def handle_info(:reload, socket),
+    do: {:noreply, socket |> assign(:reload_timer, nil) |> load()}
 
   @impl true
   def render(assigns) do

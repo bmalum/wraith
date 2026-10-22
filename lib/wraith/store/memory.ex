@@ -70,6 +70,13 @@ defmodule Wraith.Store.Memory do
     {:ok, %{items: page, next: next}}
   end
 
+  @impl Wraith.Store
+  def count(pk, opts) do
+    index? = Keyword.get(opts, :index) == :gsi1
+    items = if index?, do: index_items(pk), else: table_items(pk)
+    {:ok, Enum.count(items, &sk_match?(sort_key(&1, index?), opts))}
+  end
+
   @impl true
   def cursor(item, true), do: {item["gsi1sk"], item["pk"], item["sk"]}
   def cursor(item, false), do: {item["sk"], item["pk"], item["sk"]}

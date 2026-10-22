@@ -37,6 +37,7 @@ defmodule Wraith.Store do
   @callback transact([op()]) :: :ok | {:error, term()}
   @callback batch_get([key()]) :: {:ok, [item()]} | {:error, term()}
   @callback cursor(item(), boolean()) :: term()
+  @callback count(String.t(), [query_opt()]) :: {:ok, non_neg_integer()} | {:error, term()}
 
   def impl, do: Application.get_env(:wraith, :store, __MODULE__.Memory)
 
@@ -67,6 +68,17 @@ defmodule Wraith.Store do
   """
   @spec cursor(item(), [query_opt()]) :: term()
   def cursor(item, opts \\ []), do: impl().cursor(item, opts[:index] == :gsi1)
+
+  @doc """
+  How many items a query would return (`begins_with:`/`between:`/`index:`
+  as for `query/2`), without reading them out: `SELECT count(*)` on SQL,
+  `Select: COUNT` on DynamoDB. For dashboards, not for paging.
+  """
+  @spec count(String.t(), [query_opt()]) :: non_neg_integer()
+  def count(pk, opts \\ []) do
+    {:ok, n} = impl().count(pk, opts)
+    n
+  end
 
   @doc "Every item of a query, pages followed. Use with care."
   @spec all(String.t(), [query_opt()]) :: [item()]

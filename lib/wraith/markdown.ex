@@ -48,6 +48,13 @@ defmodule Wraith.Markdown do
 
   def to_html(_), do: ""
 
+  @doc "The URLs of a body's `{{embed …}}` lines, in order."
+  @spec embed_urls(String.t()) :: [String.t()]
+  def embed_urls(markdown) when is_binary(markdown),
+    do: Regex.scan(@embed, markdown) |> Enum.map(fn [_, url | _] -> url end)
+
+  def embed_urls(_), do: []
+
   # the sanitizer must keep what the highlighter emits: inline colour styles,
   # `class`/`data-line`/`translate`/`tabindex` on pre/code/span, heading ids
   defp sanitize_options do

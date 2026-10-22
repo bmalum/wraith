@@ -237,7 +237,26 @@ defmodule Wraith.Content do
     |> Enum.sort_by(& &1["updated_at"], :desc)
   end
 
-  def count_posts(status), do: Store.all(Keys.posts_index(status), index: :gsi1) |> length()
+  def count_posts(status), do: Store.count(Keys.posts_index(status), index: :gsi1)
+
+  @doc """
+  What the dashboard lists as recent activity: the newest `n` of each status
+  index, merged by `updated_at`. Bounded reads instead of every post. A draft
+  sorts by its last save, so drafts are exact; a published post edited long
+  after it went out is ranked by its publish date and may not make the cut
+  (the posts list, sorted by edit time, still has it).
+  """
+  def recent_posts(n) do
+    @statuses
+    |> Enum.flat_map(fn status ->
+      {:ok, %{items: items}} =
+        Store.query(Keys.posts_index(status), index: :gsi1, forward: false, limit: n)
+
+      items
+    end)
+    |> Enum.sort_by(& &1["updated_at"], :desc)
+    |> Enum.take(n)
+  end
 
   @doc "Published posts carrying a tag, newest first."
   def posts_tagged(tag_slug, opts \\ []) do
@@ -500,6 +519,7 @@ defmodule Wraith.Content do
             new_tags = (post["tags"] || []) -- ((previous && previous["tags"]) || [])
             Enum.each(new_tags, &ensure_tag/1)
             if revision_ops(previous, post) != [], do: trim_revisions(post["id"])
+            Wraith.Embed.warm(saved["markdown"])
             broadcast(if(previous, do: :updated, else: :created), saved)
             {:ok, saved}
 

@@ -123,6 +123,8 @@ defmodule Wraith.Newsletter do
   end
 
   defp deliver_to_members(post) do
+    # the mail is rendered once and can't be re-rendered later: wait for bookmark cards
+    Wraith.Embed.prefetch(post["markdown"])
     recipients = Members.subscribed() |> Enum.filter(&Members.can_read?(&1, post["visibility"]))
     site = Settings.get()
     author = post["author_id"] && Accounts.get_user(post["author_id"])

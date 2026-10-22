@@ -43,7 +43,11 @@ defmodule Wraith.Members do
     %{members: items, next: next}
   end
 
-  def count, do: all() |> length()
+  def count, do: Store.count(Keys.members_index(), index: :gsi1)
+
+  @doc "Members who joined on or after `date` (ISO day), oldest first — a range read, not all."
+  def joined_since(date) when is_binary(date),
+    do: Store.all(Keys.members_index(), index: :gsi1, between: {date, "~"})
 
   @spec create(map()) :: {:ok, map()} | {:error, map()}
   def create(attrs) do

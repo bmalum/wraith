@@ -10,7 +10,6 @@ defmodule Wraith.Widgets.Fetch do
   @max_bytes 256 * 1024
 
   def get(url) do
-    ensure_table()
     now = System.monotonic_time(:millisecond)
 
     # the allowlist is checked by SafeHTTP on every hop — the first URL *and*
@@ -73,16 +72,6 @@ defmodule Wraith.Widgets.Fetch do
       :ets.select_delete(@table, [{{:_, :_, :"$1"}, [{:<, :"$1", cutoff}], [true]}])
 
       if :ets.info(@table, :size) > @max_cached, do: :ets.delete_all_objects(@table)
-    end
-  end
-
-  defp ensure_table do
-    if :ets.whereis(@table) == :undefined do
-      try do
-        :ets.new(@table, [:set, :named_table, :public, read_concurrency: true])
-      rescue
-        ArgumentError -> :ok
-      end
     end
   end
 end

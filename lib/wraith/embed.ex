@@ -2,13 +2,21 @@ defmodule Wraith.Embed do
   @moduledoc """
   `{{embed <url> "optional caption"}}` on its own line in a post. YouTube,
   Vimeo and X get their player/embed; anything else becomes a bookmark card
-  (title, description, image from the page's Open Graph tags, fetched once
-  and cached for a day). Fetching happens at render time with a 3 s cap;
-  a page that does not answer still gets a plain link card.
+  (title, description, image from the page's Open Graph tags, cached for a
+  day).
+
+  Rendering never waits on the network: a URL not yet cached renders as a
+  plain link card and is fetched in the background (`warm/1` runs after
+  every save, so readers normally find it cached). Code that renders once
+  and can't be re-rendered — the newsletter — calls `prefetch/1` first.
+  A page that does not answer is retried after five minutes, not a day.
   """
 
   @table :wraith_embed_cache
   @ttl_ms 24 * 60 * 60_000
+  @miss_ttl_ms 5 * 60_000
+  # a fetch in flight: other renders don't start a second one
+  @pending_ms 10_000
 
   def html(url, caption \\ nil) do
     figure(embed(URI.parse(url), url), caption)
@@ -47,6 +55,9 @@ defmodule Wraith.Embed do
 
   defp embed(_uri, url), do: bookmark(url)
 
+  @player_hosts ~w(youtube.com www.youtube.com youtu.be m.youtube.com vimeo.com www.vimeo.com
+                   twitter.com x.com www.twitter.com www.x.com)
+
   defp bookmark(url) do
     meta = metadata(url)
     host = URI.parse(url).host || url
@@ -58,20 +69,78 @@ defmodule Wraith.Embed do
       ~s(<small>#{esc(host)}</small></span></a>)
   end
 
-  @doc "Open Graph title/description/image of a page, cached for a day; `%{}` when unreachable."
+  @doc """
+  Open Graph title/description/image of a page from the cache; `%{}` (and a
+  background fetch) when it isn't there yet.
+  """
   def metadata(url) do
-    ensure_table()
+    case cached(url) do
+      {:ok, meta} ->
+        meta
+
+      :pending ->
+        %{}
+
+      :miss ->
+        mark_pending(url)
+        Task.Supervisor.start_child(Wraith.TaskSupervisor, fn -> fetch_and_cache(url) end)
+        %{}
+    end
+  end
+
+  @doc "Fetch, in the background, the metadata of every bookmark in a post body."
+  def warm(markdown) when is_binary(markdown) do
+    if bookmark_urls(markdown) != [] do
+      Task.Supervisor.start_child(Wraith.TaskSupervisor, fn -> prefetch(markdown) end)
+    end
+
+    :ok
+  end
+
+  def warm(_), do: :ok
+
+  @doc "Fetch the metadata of every not-yet-cached bookmark in a post body, now (4 at a time)."
+  def prefetch(markdown) when is_binary(markdown) do
+    markdown
+    |> bookmark_urls()
+    # pending ones too: the caller needs the answer now, not the warm-up's
+    |> Enum.reject(&match?({:ok, _}, cached(&1)))
+    |> Task.async_stream(&fetch_and_cache/1,
+      max_concurrency: 4,
+      timeout: 5_000,
+      on_timeout: :kill_task
+    )
+    |> Stream.run()
+  end
+
+  def prefetch(_), do: :ok
+
+  # the URLs a body embeds that would render as bookmark cards (players need no fetch)
+  defp bookmark_urls(markdown) do
+    markdown
+    |> Wraith.Markdown.embed_urls()
+    |> Enum.reject(&(URI.parse(&1).host in @player_hosts))
+    |> Enum.uniq()
+  end
+
+  defp cached(url) do
     now = System.monotonic_time(:millisecond)
 
     case :ets.lookup(@table, url) do
-      [{^url, meta, at}] when now - at < @ttl_ms ->
-        meta
-
-      _ ->
-        meta = fetch_metadata(url)
-        :ets.insert(@table, {url, meta, now})
-        meta
+      [{^url, :pending, at}] when now - at < @pending_ms -> :pending
+      [{^url, meta, at}] when meta == %{} and now - at < @miss_ttl_ms -> {:ok, meta}
+      [{^url, meta, at}] when is_map(meta) and meta != %{} and now - at < @ttl_ms -> {:ok, meta}
+      _ -> :miss
     end
+  end
+
+  defp mark_pending(url),
+    do: :ets.insert(@table, {url, :pending, System.monotonic_time(:millisecond)})
+
+  defp fetch_and_cache(url) do
+    meta = fetch_metadata(url)
+    :ets.insert(@table, {url, meta, System.monotonic_time(:millisecond)})
+    meta
   end
 
   defp fetch_metadata(url) do
@@ -142,14 +211,4 @@ defmodule Wraith.Embed do
       |> String.replace("&#39;", "'")
 
   defp esc(s), do: s |> to_string() |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
-
-  defp ensure_table do
-    if :ets.whereis(@table) == :undefined do
-      try do
-        :ets.new(@table, [:set, :named_table, :public, read_concurrency: true])
-      rescue
-        ArgumentError -> :ok
-      end
-    end
-  end
 end

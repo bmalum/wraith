@@ -64,8 +64,9 @@ defmodule Wraith.Analytics do
   def member_growth(days \\ 30) do
     since = Date.utc_today() |> Date.add(-(days - 1)) |> Date.to_iso8601()
 
+    # the members index sorts by join time: read only the window
     by_day =
-      Wraith.Members.all()
+      Wraith.Members.joined_since(since)
       |> Enum.map(&String.slice(&1["created_at"], 0, 10))
       |> Enum.filter(&(&1 >= since))
       |> Enum.frequencies()

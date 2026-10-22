@@ -204,20 +204,7 @@ defmodule Wraith.Store.SQL do
     dir = if forward?, do: "ASC", else: "DESC"
     cmp = if forward?, do: ">", else: "<"
 
-    {where, params} = {["#{pk_col} = $1"], [pk]}
-
-    {where, params} =
-      cond do
-        prefix = opts[:begins_with] ->
-          {where ++ ["left(#{sk_col}, $2) = $3"], params ++ [String.length(prefix), prefix]}
-
-        range = opts[:between] ->
-          {lo, hi} = range
-          {where ++ ["#{sk_col} BETWEEN $2 AND $3"], params ++ [lo, hi]}
-
-        true ->
-          {where, params}
-      end
+    {where, params} = key_where(pk_col, sk_col, pk, opts)
 
     # the cursor is the last row's (sort, pk, sk); the order is total so it resumes exactly
     {where, params} =
@@ -250,6 +237,35 @@ defmodule Wraith.Store.SQL do
       end
 
     {:ok, %{items: items, next: next}}
+  end
+
+  @impl Wraith.Store
+  def count(pk, opts) do
+    index? = Keyword.get(opts, :index) == :gsi1
+    {pk_col, sk_col} = if index?, do: {"gsi1pk", "gsi1sk"}, else: {"pk", "sk"}
+    {where, params} = key_where(pk_col, sk_col, pk, opts)
+
+    [[n]] =
+      q!("SELECT count(*) FROM #{table()} WHERE #{Enum.join(where, " AND ")}", params).rows
+
+    {:ok, n}
+  end
+
+  # the key condition shared by query/2 and count/2: `$1` is the partition key
+  defp key_where(pk_col, sk_col, pk, opts) do
+    where = ["#{pk_col} = $1"]
+
+    cond do
+      prefix = opts[:begins_with] ->
+        {where ++ ["left(#{sk_col}, $2) = $3"], [pk, String.length(prefix), prefix]}
+
+      range = opts[:between] ->
+        {lo, hi} = range
+        {where ++ ["#{sk_col} BETWEEN $2 AND $3"], [pk, lo, hi]}
+
+      true ->
+        {where, [pk]}
+    end
   end
 
   @impl true

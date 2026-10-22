@@ -20,6 +20,8 @@ defmodule Wraith.Application do
         {Phoenix.PubSub, name: Wraith.PubSub},
         # before anything that reads the site item (search boot, widget seeds)
         Wraith.Settings.Cache,
+        # embed and widget-fetch caches, owned for the app's lifetime
+        Wraith.CacheTables,
         {Task.Supervisor, name: Wraith.TaskSupervisor},
         # Lua widget runs: bounded so N concurrent renders can't multiply a
         # per-run heap cap into node memory exhaustion
@@ -30,7 +32,11 @@ defmodule Wraith.Application do
         store_children() ++
         [{Task, &Wraith.Widgets.seed_builtins/0}, Wraith.Search, Wraith.Analytics] ++
         runtime_children() ++
-        [Wraith.Studio.Server] ++
+        [
+          # where a node starts the studio when the node that owned it is gone
+          {DynamicSupervisor, name: Wraith.Studio.Failover, strategy: :one_for_one},
+          Wraith.Studio.Server
+        ] ++
         clock_children() ++
         [
           WraithWeb.Endpoint
