@@ -132,9 +132,11 @@ defmodule WraithWeb.FeedController do
       else: conn |> put_resp_content_type(content_type) |> send_resp(200, body)
   end
 
-  # feeds get the HTML with widgets replaced by a pointer to the live page
+  # feeds get the HTML with widgets replaced by a pointer to the live page.
+  # Feed readers are anonymous, so gated posts carry only their public preview.
   defp body_html(post) do
-    post["markdown"]
+    post
+    |> Content.readable_markdown(false)
     |> Markdown.segments(post["id"])
     |> Enum.map_join("\n", fn
       {:html, html} ->

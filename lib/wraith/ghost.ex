@@ -17,10 +17,21 @@ defmodule Wraith.Ghost do
 
   # ---- rendering ----------------------------------------------------------------------
 
+  @doc """
+  A post as Ghost's Content/Admin API would serialise it.
+
+  The body honours the paywall: unless `access: true` is passed (the caller
+  checked `Members.can_read?/2`, or is staff/export), a `members`/`paid` post
+  yields only the part above `<!--members-only-->` for `html`, `plaintext`
+  and `markdown`, and carries `"access" => false` like Ghost does.
+  """
   def post_json(post, opts \\ []) do
     authors = Keyword.get(opts, :authors, %{})
     tags = Keyword.get(opts, :tags, %{})
     base = WraithWeb.Endpoint.url()
+    access? = Keyword.get(opts, :access, false) == true
+    readable = Wraith.Content.readable_markdown(post, access?)
+    gated = Wraith.Content.gated?(post) and not access?
 
     people =
       (post["authors"] || List.wrap(post["author_id"]))
@@ -34,9 +45,10 @@ defmodule Wraith.Ghost do
       "uuid" => post["id"],
       "title" => post["title"],
       "slug" => post["slug"],
-      "html" => if(Keyword.get(opts, :html, true), do: body_html(post), else: nil),
-      "markdown" => if(Keyword.get(opts, :markdown, false), do: post["markdown"], else: nil),
-      "plaintext" => Markdown.to_text(post["markdown"]),
+      "html" => if(Keyword.get(opts, :html, true), do: body_html(post, readable), else: nil),
+      "markdown" => if(Keyword.get(opts, :markdown, false), do: readable, else: nil),
+      "plaintext" => Markdown.to_text(readable),
+      "access" => if(gated, do: false),
       "excerpt" => post["excerpt"],
       "custom_excerpt" => post["custom_excerpt"],
       "feature_image" => absolute(post["feature_image"], base),
@@ -53,13 +65,13 @@ defmodule Wraith.Ghost do
       "created_at" => post["created_at"],
       "updated_at" => post["updated_at"],
       "published_at" => post["published_at"],
-      "reading_time" => Markdown.reading_minutes(post["markdown"]),
+      "reading_time" => Markdown.reading_minutes(readable),
       "tags" => Enum.map(tag_list, &tag_json/1),
       "primary_tag" => tag_list |> List.first() |> then(&(&1 && tag_json(&1))),
       "authors" => Enum.map(people, &author_json/1),
       "primary_author" => people |> List.first() |> then(&(&1 && author_json(&1))),
       "widgets" =>
-        Markdown.widgets_in(post["markdown"])
+        Markdown.widgets_in(readable)
         |> Enum.map(fn {s, p} -> %{"slug" => s, "props" => p} end)
     }
     |> Enum.reject(fn {_, v} -> is_nil(v) end)
@@ -67,8 +79,8 @@ defmodule Wraith.Ghost do
   end
 
   # widgets cannot be static HTML; the API gets a marker element a client may hydrate
-  defp body_html(post) do
-    post["markdown"]
+  defp body_html(post, markdown) do
+    markdown
     |> Markdown.segments(post["id"])
     |> Enum.map_join("\n", fn
       {:html, h} ->

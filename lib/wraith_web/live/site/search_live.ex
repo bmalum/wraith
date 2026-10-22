@@ -20,7 +20,15 @@ defmodule WraithWeb.Site.SearchLive do
   @impl true
   def handle_params(params, _uri, socket) do
     q = params["q"] || ""
-    {:noreply, assign(socket, q: q, results: Search.search(q, 20))}
+
+    # 60 searches a minute per visitor (or IP); the index is a CPU cost per query
+    results =
+      case Wraith.RateLimit.check(:search, socket.assigns[:visitor] || socket.assigns[:client_ip]) do
+        :ok -> Search.search(q, 20)
+        {:error, _} -> []
+      end
+
+    {:noreply, assign(socket, q: q, results: results)}
   end
 
   @impl true

@@ -15,14 +15,20 @@ defmodule WraithWeb.Api.AdminController do
       |> Enum.filter(&(is_nil(params["status"]) or &1["status"] == params["status"]))
 
     json(conn, %{
-      "posts" => Enum.map(posts, &Ghost.post_json(&1, Keyword.put(ctx(), :markdown, true)))
+      "posts" =>
+        Enum.map(posts, &Ghost.post_json(&1, Keyword.merge(ctx(), markdown: true, access: true)))
     })
   end
 
   def post(conn, %{"id" => id}) do
     case find_post(id) do
-      nil -> not_found(conn, "post")
-      p -> json(conn, %{"posts" => [Ghost.post_json(p, Keyword.put(ctx(), :markdown, true))]})
+      nil ->
+        not_found(conn, "post")
+
+      p ->
+        json(conn, %{
+          "posts" => [Ghost.post_json(p, Keyword.merge(ctx(), markdown: true, access: true))]
+        })
     end
   end
 
@@ -33,7 +39,9 @@ defmodule WraithWeb.Api.AdminController do
       {:ok, p} ->
         conn
         |> put_status(201)
-        |> json(%{"posts" => [Ghost.post_json(p, Keyword.put(ctx(), :markdown, true))]})
+        |> json(%{
+          "posts" => [Ghost.post_json(p, Keyword.merge(ctx(), markdown: true, access: true))]
+        })
 
       {:error, errors} ->
         validation(conn, errors)
@@ -43,7 +51,9 @@ defmodule WraithWeb.Api.AdminController do
   def update_post(conn, %{"id" => id} = params) do
     with %{} = p <- find_post(id) || :missing,
          {:ok, p} <- Content.update_post(p, post_attrs(params)) do
-      json(conn, %{"posts" => [Ghost.post_json(p, Keyword.put(ctx(), :markdown, true))]})
+      json(conn, %{
+        "posts" => [Ghost.post_json(p, Keyword.merge(ctx(), markdown: true, access: true))]
+      })
     else
       :missing -> not_found(conn, "post")
       {:error, errors} -> validation(conn, errors)

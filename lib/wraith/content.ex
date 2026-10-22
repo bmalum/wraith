@@ -20,6 +20,7 @@ defmodule Wraith.Content do
   alias Wraith.Store
   alias Wraith.Store.Keys
   alias Wraith.Slug
+  alias Wraith.Markdown
 
   @statuses ~w(draft scheduled published)
   @types ~w(post page)
@@ -61,6 +62,29 @@ defmodule Wraith.Content do
     end
   end
 
+  # ---- the paywall --------------------------------------------------------------------
+
+  @doc """
+  The markdown a reader may see: the whole thing for public posts (and for a
+  reader with access), only the part above `<!--members-only-->` otherwise.
+  Every public-facing renderer — the page, feeds, the Content API, the search
+  index — goes through here, so the paywall has exactly one definition.
+
+  `access?` is the caller's answer to `Wraith.Members.can_read?/2` (or staff).
+  """
+  @spec readable_markdown(map(), boolean()) :: String.t()
+  def readable_markdown(post, access? \\ false)
+
+  def readable_markdown(%{"visibility" => v, "markdown" => md}, access?)
+      when v in ["members", "paid"] and access? != true,
+      do: Markdown.public_preview(md) || ""
+
+  def readable_markdown(%{"markdown" => md}, _access?), do: Markdown.strip_paywall(md || "")
+
+  @doc "Is the post gated at all?"
+  def gated?(%{"visibility" => v}), do: v in ["members", "paid"]
+  def gated?(_), do: false
+
   # ---- preview links ----------------------------------------------------------------
 
   @doc """
@@ -69,24 +93,49 @@ defmodule Wraith.Content do
   The token is random (128 bits) and never derived from the post.
   """
   @spec preview_token(map()) :: {:ok, String.t()} | {:error, term()}
-  def preview_token(%{"preview_token" => token}) when is_binary(token) and token != "",
-    do: {:ok, token}
-
-  def preview_token(%{"id" => id} = post) do
-    token = :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
-    {ppk, psk} = Keys.post_preview(token)
+  def preview_token(%{"id" => id}) do
     {pk, sk} = Keys.post(id)
+    fresh = :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
 
-    # the pointer first (conditionally, so a token is never reused), then the
-    # post remembers it so the link stays stable
-    with :ok <-
-           Store.transact([
-             {:put, %{"pk" => ppk, "sk" => psk, "post_id" => id}, condition: :not_exists}
-           ]),
-         {:ok, _} <- Store.update(pk, sk, &Map.put(&1, "preview_token", token)) do
-      _ = post
+    # Idempotent and race-free: the post is the single source of truth. The
+    # update keeps whatever token is already there (two tabs, editor + MCP),
+    # so exactly one token ever exists per post; only then is the pointer
+    # written. A crash between the two leaves a token with no pointer — a
+    # dead link, which is the harmless direction.
+    with {:ok, post} <-
+           Store.update(pk, sk, fn
+             %{"preview_token" => t} = p when is_binary(t) and t != "" -> p
+             p -> Map.put(p, "preview_token", fresh)
+           end),
+         token = post["preview_token"],
+         {ppk, psk} = Keys.post_preview(token),
+         :ok <- ensure_pointer(ppk, psk, id) do
       {:ok, token}
     end
+  end
+
+  defp ensure_pointer(ppk, psk, post_id) do
+    case Store.transact([
+           {:put, %{"pk" => ppk, "sk" => psk, "post_id" => post_id}, condition: :not_exists}
+         ]) do
+      :ok -> :ok
+      # already there from an earlier mint — fine
+      {:error, :exists} -> :ok
+      other -> other
+    end
+  end
+
+  @doc "Revoke a post's preview link: the pointer is deleted and the post forgets the token."
+  @spec revoke_preview(map()) :: :ok
+  def revoke_preview(%{"id" => id} = post) do
+    if token = post["preview_token"] do
+      {ppk, psk} = Keys.post_preview(token)
+      Store.delete(ppk, psk)
+    end
+
+    {pk, sk} = Keys.post(id)
+    _ = Store.update(pk, sk, &Map.delete(&1, "preview_token"))
+    :ok
   end
 
   @doc "The post behind a preview token, whatever its status; nil when unknown."
@@ -286,12 +335,18 @@ defmodule Wraith.Content do
   @doc "Publish now (or at `at`, which schedules it)."
   def publish_post(post, at \\ nil)
 
-  def publish_post(%{} = post, nil),
-    do:
-      update_post(post, %{
-        "status" => "published",
-        "published_at" => post["published_at"] || Store.now()
-      })
+  def publish_post(%{} = post, nil) do
+    # a draft's preview link stops working the moment the post is live —
+    # from here on the paywall decides who reads it. Re-read afterwards so the
+    # publish is conditioned on the version the revoke produced.
+    revoke_preview(post)
+    post = get_post(post["id"]) || post
+
+    update_post(post, %{
+      "status" => "published",
+      "published_at" => post["published_at"] || Store.now()
+    })
+  end
 
   def publish_post(%{} = post, %DateTime{} = at) do
     if DateTime.compare(at, DateTime.utc_now()) == :gt,
@@ -304,9 +359,16 @@ defmodule Wraith.Content do
   def delete_post(%{"id" => id} = post) do
     {pk, sk} = Keys.post(id)
 
+    preview_ops =
+      case post["preview_token"] do
+        t when is_binary(t) and t != "" -> [{:delete, elem(Keys.post_preview(t), 0), "POST"}]
+        _ -> []
+      end
+
     ops =
       [{:delete, pk, sk}] ++
         slug_ops(post, nil) ++
+        preview_ops ++
         for({tpk, tsk} <- membership_keys(post), do: {:delete, tpk, tsk}) ++
         for(r <- revisions(id), do: {:delete, r["pk"], r["sk"]})
 
@@ -371,8 +433,20 @@ defmodule Wraith.Content do
       _ ->
         post = derive(post)
 
+        # Optimistic concurrency: the put is conditioned on the version the
+        # caller started from. Two editors saving the same post can't silently
+        # overwrite each other, and the slug/tag/author pointer diffs below —
+        # computed against `previous` — can never be applied on top of a
+        # snapshot that is no longer current (which left orphan pointers).
+        put =
+          case previous do
+            %{"version" => v} when is_integer(v) -> {:put, post, condition: {:version, v}}
+            nil -> {:put, post, condition: :not_exists}
+            _ -> {:put, post}
+          end
+
         ops =
-          [{:put, post}] ++
+          [put] ++
             slug_ops(previous, post) ++
             membership_ops(previous, post) ++
             revision_ops(previous, post)
@@ -380,12 +454,19 @@ defmodule Wraith.Content do
         case Store.transact(ops) do
           :ok ->
             saved = get_post(post["id"])
-            Enum.each(post["tags"], &ensure_tag/1)
-            trim_revisions(post["id"])
+            # only tags that are new to this post need ensuring
+            new_tags = (post["tags"] || []) -- ((previous && previous["tags"]) || [])
+            Enum.each(new_tags, &ensure_tag/1)
+            if revision_ops(previous, post) != [], do: trim_revisions(post["id"])
             broadcast(if(previous, do: :updated, else: :created), saved)
             {:ok, saved}
 
-          {:error, e} when e in [:exists, :conflict] ->
+          # the post itself moved on since we read it
+          {:error, :conflict} ->
+            {:error, %{"base" => "this post was changed by someone else — reload and try again"}}
+
+          # a slug pointer (or, on create, the post id) already exists
+          {:error, :exists} ->
             {:error, %{"slug" => "is already taken"}}
 
           {:error, e} ->

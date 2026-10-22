@@ -48,19 +48,11 @@ defmodule WraithWeb.Api.ContentController do
   end
 
   def post(conn, %{"slug" => slug}) do
+    # Ghost.post_json honours the paywall: gated posts get the public preview
+    # and "access": false. The Content key never unlocks a member body.
     case Content.get_published(slug) || (uuid?(slug) && Content.get_post(slug)) do
-      %{"status" => "published", "visibility" => "public"} = p ->
-        json(conn, %{"posts" => [Ghost.post_json(p, ctx())]})
-
-      %{"status" => "published"} = p ->
-        json(conn, %{
-          "posts" => [
-            p |> Ghost.post_json(Keyword.put(ctx(), :html, false)) |> Map.put("access", false)
-          ]
-        })
-
-      _ ->
-        not_found(conn, "post")
+      %{"status" => "published"} = p -> json(conn, %{"posts" => [Ghost.post_json(p, ctx())]})
+      _ -> not_found(conn, "post")
     end
   end
 

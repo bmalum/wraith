@@ -71,19 +71,24 @@ defmodule WraithWeb.Site.PostLive do
            do: nil,
            else: post["meta_description"] || post["excerpt"]
          ),
-       locked:
-         not (socket.assigns.preview? or socket.assigns.current_user != nil or
-                Wraith.Members.can_read?(socket.assigns[:current_member], post["visibility"]))
+       locked: locked?(post, socket)
      )
      |> then(fn socket ->
-       body =
-         if socket.assigns.locked,
-           do: Markdown.public_preview(post["markdown"]) || "",
-           else: Markdown.strip_paywall(post["markdown"])
-
-       mount_widgets(socket, body, post["id"], post)
+       mount_widgets(socket, body_for(post, socket.assigns.locked), post["id"], post)
      end)}
   end
+
+  # The one place the paywall is decided for the page. A preview link unlocks a
+  # draft for its reviewer, but never a *published* post — once live, the token
+  # is just another way to reach a page that still asks for membership.
+  defp locked?(post, socket) do
+    preview_unlocks? = socket.assigns.preview? and post["status"] != "published"
+
+    not (preview_unlocks? or socket.assigns.current_user != nil or
+           Wraith.Members.can_read?(socket.assigns[:current_member], post["visibility"]))
+  end
+
+  defp body_for(post, locked?), do: Content.readable_markdown(post, not locked?)
 
   defp json_ld(post, author, url) do
     %{
@@ -108,7 +113,8 @@ defmodule WraithWeb.Site.PostLive do
     }
     |> Enum.reject(fn {_, v} -> is_nil(v) or v == "" end)
     |> Map.new()
-    |> Jason.encode!()
+    # :html_safe escapes < > & and U+2028/9 so a title can't close the <script>
+    |> Jason.encode!(escape: :html_safe)
   end
 
   # a signed-in author may read a draft at its URL
@@ -180,7 +186,18 @@ defmodule WraithWeb.Site.PostLive do
         {:content, :updated, %{"id" => id} = post},
         %{assigns: %{post: %{"id" => id}}} = socket
       ) do
-    {:noreply, socket |> assign(post: post) |> mount_widgets(post["markdown"], post["id"], post)}
+    # an unpublish while a non-staff reader has the page open: the page is gone
+    if post["status"] != "published" and is_nil(socket.assigns.current_user) and
+         not socket.assigns.preview? do
+      {:noreply, push_navigate(socket, to: ~p"/")}
+    else
+      locked = locked?(post, socket)
+
+      {:noreply,
+       socket
+       |> assign(post: post, locked: locked)
+       |> mount_widgets(body_for(post, locked), post["id"], post)}
+    end
   end
 
   def handle_info(

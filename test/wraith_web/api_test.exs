@@ -67,15 +67,29 @@ defmodule WraithWeb.ApiTest do
     assert json_response(get(conn, "/api/content/settings?key=#{key}"), 200)["settings"]["title"] ==
              "Wraith"
 
-    # members-only posts: metadata, no body
-    locked = post_fixture(owner, %{title: "Locked", visibility: "members"})
+    # members-only posts: the public preview, "access": false, never the gated text
+    locked =
+      post_fixture(owner, %{
+        title: "Locked",
+        visibility: "members",
+        markdown: "Free intro.\n\n<!--members-only-->\n\nSecret members text."
+      })
 
     locked_json =
       json_response(get(conn, "/api/content/posts/#{locked["slug"]}?key=#{key}"), 200)["posts"]
       |> hd()
 
     assert locked_json["access"] == false
-    refute Map.has_key?(locked_json, "html")
+    assert locked_json["html"] =~ "Free intro"
+    refute locked_json["html"] =~ "Secret members text"
+    refute locked_json["plaintext"] =~ "Secret members text"
+
+    # the listing is gated the same way
+    listing = json_response(get(conn, "/api/content/posts?key=#{key}"), 200)["posts"]
+    locked_in_list = Enum.find(listing, &(&1["slug"] == locked["slug"]))
+    assert locked_in_list["access"] == false
+    refute locked_in_list["html"] =~ "Secret members text"
+    refute locked_in_list["plaintext"] =~ "Secret members text"
   end
 
   test "admin api: bearer key or session, CRUD, html bodies become markdown", %{

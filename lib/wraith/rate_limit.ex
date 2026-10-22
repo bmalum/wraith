@@ -21,7 +21,8 @@ defmodule Wraith.RateLimit do
     widget_event: {60, 60_000},
     api: {300, 60_000},
     api_auth_fail: {20, 60_000},
-    forgot: {3, 15 * 60_000}
+    forgot: {3, 15 * 60_000},
+    search: {60, 60_000}
   }
 
   def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
