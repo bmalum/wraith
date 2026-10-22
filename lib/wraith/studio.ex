@@ -153,8 +153,24 @@ defmodule Wraith.Studio do
       prompt: prompt(site),
       tools: ["@builtin", "@wraith"],
       mcpServers: %{"wraith" => %{url: Bridge.url(), headers: Bridge.headers(), timeout: 120_000}},
-      permissions: %{rules: [%{capability: "mcp", effect: "allow", resource: "wraith/*"}]}
+      # Built-in tools need the agent to ask; our own write/destructive tools do
+      # too — the system prompt says "ask before deleting or publishing" but a
+      # prompt-injected comment shouldn't be able to walk straight into
+      # member_delete or newsletter_send. Reads stay frictionless: one explicit
+      # allow per read-only tool, then "ask" for everything else under wraith/.
+      permissions: %{
+        rules:
+          Enum.map(
+            read_tool_names(),
+            &%{capability: "mcp", effect: "allow", resource: "wraith/" <> &1}
+          ) ++
+            [%{capability: "mcp", effect: "ask", resource: "wraith/*"}]
+      }
     }
+  end
+
+  defp read_tool_names do
+    Wraith.Tools.catalogue() |> Enum.filter(&Wraith.Tools.read_only?/1) |> Enum.map(& &1["name"])
   end
 
   defp prompt(site) do

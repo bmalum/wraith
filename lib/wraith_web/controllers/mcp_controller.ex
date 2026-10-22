@@ -13,7 +13,7 @@ defmodule WraithWeb.McpController do
                                  "headers": {"Authorization": "Bearer <key>"}}}}
   """
   use WraithWeb, :controller
-  alias Wraith.{Accounts, ApiKeys}
+  alias Wraith.ApiKeys
   alias Wraith.Kiro.MCP
 
   def handle(conn, _params) do
@@ -62,20 +62,22 @@ defmodule WraithWeb.McpController do
   def close(conn, _params), do: send_resp(conn, 204, "")
 
   defp authenticate(conn) do
-    raw =
+    bearer =
       case get_req_header(conn, "authorization") do
         ["Bearer " <> raw] -> raw
-        _ -> conn.params["key"]
+        _ -> nil
       end
 
-    owner = Enum.find(Accounts.list_users(), &(&1["role"] == "owner"))
-
     cond do
-      match?({:ok, _}, ApiKeys.verify(raw, "admin")) ->
-        {:ok, %{"user_id" => owner && owner["id"], "scope" => "admin"}}
+      # an Admin key acts as the owner; Tools resolves that itself. Header only:
+      # a key in the URL ends up in access logs.
+      match?({:ok, _}, ApiKeys.verify(bearer, "admin")) ->
+        {:ok, %{"as_owner" => true, "scope" => "admin"}}
 
-      match?({:ok, _}, ApiKeys.verify(raw, "content")) ->
-        {:ok, %{"user_id" => owner && owner["id"], "scope" => "content"}}
+      # a Content key may also travel as ?key= (Ghost's convention); it only
+      # reaches public, paywall-honouring tools so the exposure is bounded
+      match?({:ok, _}, ApiKeys.verify(bearer || conn.params["key"], "content")) ->
+        {:ok, %{"scope" => "content"}}
 
       true ->
         :error

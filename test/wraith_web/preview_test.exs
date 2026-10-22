@@ -58,8 +58,8 @@ defmodule WraithWeb.PreviewTest do
     refute has_element?(view, "#editor-share")
   end
 
-  test "the MCP tool returns the same link", %{draft: draft} do
-    ctx = %{"user_id" => nil, "scope" => "admin"}
+  test "the MCP tool returns the same link", %{draft: draft, owner: owner} do
+    ctx = %{"user_id" => owner["id"], "scope" => "admin"}
     decode = fn %{"content" => [%{"text" => t}]} -> Jason.decode!(t) end
 
     first = Wraith.Tools.call(ctx, "post_preview_link", %{"id" => draft["id"]}) |> decode.()

@@ -17,8 +17,45 @@ defmodule Wraith.Studio.Transcript do
   @type entry :: map()
 
   def new_entry(kind, text, extra \\ %{}) do
-    Map.merge(%{"id" => id(), "kind" => kind, "text" => text, "at" => Wraith.Store.now()}, extra)
+    %{"id" => id(), "kind" => kind, "text" => text, "at" => Wraith.Store.now()}
+    |> Map.merge(extra)
+    |> redact()
   end
+
+  # Tool inputs and outputs are persisted and broadcast to every studio viewer.
+  # Secrets that pass through tools (a freshly minted API key, a Stripe secret
+  # in settings_update, a password in author_create) must not land there.
+  @secret_keys ~w(password secret key api_key stripe_secret_key stripe_webhook_secret kiro_api_key token)
+  @secret_patterns [
+    ~r/\b(ksk|wsk|sk)_[A-Za-z0-9_-]{8,}/,
+    ~r/\b[0-9a-f]{24}:[0-9a-f]{64}\b/,
+    ~r/\bwhsec_[A-Za-z0-9]{8,}/
+  ]
+
+  @doc "Scrub secret-looking values from an entry's `input`/`output` (and the text)."
+  def redact(entry) do
+    entry
+    |> Map.update("input", nil, &scrub/1)
+    |> Map.update("output", nil, &scrub/1)
+    |> Map.update("text", "", &scrub_text/1)
+  end
+
+  defp scrub(%{} = m) do
+    Map.new(m, fn {k, v} ->
+      if to_string(k) |> String.downcase() |> String.ends_with?(@secret_keys) and is_binary(v),
+        do: {k, "[redacted]"},
+        else: {k, scrub(v)}
+    end)
+  end
+
+  defp scrub(list) when is_list(list), do: Enum.map(list, &scrub/1)
+  defp scrub(s) when is_binary(s), do: scrub_text(s)
+  defp scrub(other), do: other
+
+  defp scrub_text(s) when is_binary(s),
+    do: Enum.reduce(@secret_patterns, s, &Regex.replace(&1, &2, "[redacted]"))
+
+  defp scrub_text(other), do: other
 
   @spec apply([entry()], map()) :: [entry()]
   def apply(
@@ -79,6 +116,7 @@ defmodule Wraith.Studio.Transcript do
           |> Map.put("status", u["status"] || e["status"])
           |> then(&if(output, do: Map.put(&1, "output", output), else: &1))
           |> then(&if(u["title"], do: Map.put(&1, "tool", u["title"]), else: &1))
+          |> redact()
         end)
     end
   end

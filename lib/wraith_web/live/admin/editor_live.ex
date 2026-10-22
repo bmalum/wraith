@@ -149,8 +149,25 @@ defmodule WraithWeb.Admin.EditorLive do
   def handle_event("clear-feature", _params, socket),
     do: {:noreply, save(socket, %{"feature_image" => nil})}
 
+  # The drawer edits metadata. Status and authorship are never set from here —
+  # publishing has its own button with its own policy check, and authorship
+  # reassignment is for editors and up — so a crafted change payload can't
+  # smuggle `post[status]=published` or `post[author_id]=…` past the checks.
+  @meta_fields ~w(slug custom_excerpt tags feature_image feature_image_alt visibility featured show_toc send_on_publish noindex unpublish_at canonical_url og_image meta_title meta_description)
+  @coauthor_fields ~w(authors)
+
   def handle_event("meta", %{"post" => attrs}, socket) do
-    {:noreply, save(socket, attrs)}
+    me = socket.assigns.current_user
+
+    allowed =
+      if Wraith.Policy.can?(me, :edit_post, %{
+           "author_id" => "someone-else",
+           "status" => "published"
+         }),
+         do: @meta_fields ++ @coauthor_fields,
+         else: @meta_fields
+
+    {:noreply, save(socket, Map.take(attrs, allowed))}
   end
 
   def handle_event("test-send", _params, socket) do
@@ -168,35 +185,41 @@ defmodule WraithWeb.Admin.EditorLive do
   end
 
   def handle_event("schedule", %{"at" => at}, socket) do
-    with {:ok, naive} <- NaiveDateTime.from_iso8601(at <> ":00"),
+    with true <-
+           Wraith.Policy.can?(socket.assigns.current_user, :publish_post, socket.assigns.post),
+         {:ok, naive} <- NaiveDateTime.from_iso8601(at <> ":00"),
          {:ok, dt} <- DateTime.from_naive(naive, "Etc/UTC"),
          {:ok, post} <- Content.publish_post(socket.assigns.post, dt) do
       {:noreply, socket |> assign(post: post) |> put_flash(:info, "Scheduled for #{at} UTC.")}
     else
-      {:error, %{} = errors} -> {:noreply, assign(socket, errors: errors)}
-      _ -> {:noreply, put_flash(socket, :error, "Give me a date and time.")}
+      false ->
+        {:noreply, put_flash(socket, :error, "Contributors cannot schedule; ask an editor.")}
+
+      {:error, %{} = errors} ->
+        {:noreply, assign(socket, errors: errors)}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Give me a date and time.")}
     end
   end
 
   def handle_event("send-newsletter", _params, socket) do
-    case Wraith.Newsletter.send_post(socket.assigns.post) do
-      {:ok, n} ->
-        {:noreply,
-         socket
-         |> assign(sent: Wraith.Newsletter.send_record(socket.assigns.post))
-         |> put_flash(:info, "Sent to #{n} member(s).")}
-
-      {:error, :already_sent} ->
-        {:noreply, put_flash(socket, :error, "This post already went out.")}
-
-      {:error, :not_published} ->
-        {:noreply, put_flash(socket, :error, "Publish first.")}
+    if not Wraith.Policy.can?(socket.assigns.current_user, :send_newsletter, socket.assigns.post) do
+      {:noreply, put_flash(socket, :error, "Your role cannot send newsletters.")}
+    else
+      send_newsletter(socket)
     end
   end
 
   def handle_event("unpublish", _params, socket) do
-    {:ok, post} = Content.unpublish_post(socket.assigns.post)
-    {:noreply, socket |> assign(post: post) |> put_flash(:info, "Back to draft.")}
+    with true <-
+           Wraith.Policy.can?(socket.assigns.current_user, :publish_post, socket.assigns.post),
+         {:ok, post} <- Content.unpublish_post(socket.assigns.post) do
+      {:noreply, socket |> assign(post: post) |> put_flash(:info, "Back to draft.")}
+    else
+      false -> {:noreply, put_flash(socket, :error, "Your role cannot unpublish.")}
+      {:error, %{} = errors} -> {:noreply, assign(socket, errors: errors)}
+    end
   end
 
   def handle_event("delete", _params, socket) do
@@ -232,6 +255,22 @@ defmodule WraithWeb.Admin.EditorLive do
 
       {:error, errors} ->
         {:noreply, assign(socket, errors: errors)}
+    end
+  end
+
+  defp send_newsletter(socket) do
+    case Wraith.Newsletter.send_post(socket.assigns.post) do
+      {:ok, n} ->
+        {:noreply,
+         socket
+         |> assign(sent: Wraith.Newsletter.send_record(socket.assigns.post))
+         |> put_flash(:info, "Sent to #{n} member(s).")}
+
+      {:error, :already_sent} ->
+        {:noreply, put_flash(socket, :error, "This post already went out.")}
+
+      {:error, :not_published} ->
+        {:noreply, put_flash(socket, :error, "Publish first.")}
     end
   end
 

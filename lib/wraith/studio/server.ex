@@ -288,7 +288,10 @@ defmodule Wraith.Studio.Server do
   def handle_info({:acp, conn, {:request, id, "bridge/http", params}}, state)
       when conn == state.bridge or (conn == state.acp and conn != nil) do
     if conn == state.bridge or acp().bridge_on_acp?() do
-      reply = Bridge.handle(state.session, params)
+      # tools act as the person who is prompting right now, not whoever
+      # happened to create the session record
+      session = Map.put(state.session, "user_id", state.user && state.user["id"])
+      reply = Bridge.handle(session, params)
       acp().respond(conn, id, reply)
     else
       acp().reject(conn, id, -32601, "bridge requests belong on the bridge")

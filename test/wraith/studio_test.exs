@@ -137,7 +137,12 @@ defmodule Wraith.StudioTest do
       "body" => Jason.encode!(%{jsonrpc: "2.0", id: 1, method: "tools/list"})
     }
 
+    # a session with no acting user lists nothing; with one, the user's tools
     assert %{status: 200, body: body} = Wraith.Kiro.Bridge.handle(%{}, ok)
+    assert body |> Jason.decode!() |> get_in(["result", "tools"]) == []
+
+    owner = Wraith.Accounts.list_users() |> Enum.find(&(&1["role"] == "owner"))
+    assert %{status: 200, body: body} = Wraith.Kiro.Bridge.handle(%{"user_id" => owner["id"]}, ok)
     names = body |> Jason.decode!() |> get_in(["result", "tools"]) |> Enum.map(& &1["name"])
     assert "widget_save" in names and "post_create" in names
   end

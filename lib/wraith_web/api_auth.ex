@@ -1,11 +1,23 @@
 defmodule WraithWeb.ApiAuth do
   @moduledoc """
-  API authentication plugs. `:content` reads `?key=` (Ghost's Content API
-  convention); `:admin` reads `Authorization: Bearer <id:secret>`, or
-  accepts a signed-in author's session. Failures are JSON 401s.
+  API authentication plugs. Failures are JSON 401s.
+
+  `:content` reads `?key=` (Ghost's Content API convention). A Content key is
+  semi-public — it ships in front-end code — and only ever reaches published,
+  paywall-honouring reads.
+
+  `:admin` resolves an **actor** into `conn.assigns.actor`, which every
+  controller action then checks with `Wraith.Policy`:
+
+    * `Authorization: Bearer <id:secret>` with an Admin API key acts as the
+      site owner (an Admin key is an owner-level credential by definition);
+    * a signed-in staff session acts as that user, with *their* role — but
+      only for safe (GET/HEAD) requests. The `/api/admin` pipeline has no
+      CSRF protection (it is a JSON API), so a browser session must never
+      be able to mutate through it; mutations need a Bearer key.
   """
   import Plug.Conn
-  alias Wraith.ApiKeys
+  alias Wraith.{Accounts, ApiKeys}
 
   def init(kind), do: kind
 
@@ -23,16 +35,51 @@ defmodule WraithWeb.ApiAuth do
         _ -> nil
       end
 
-    cond do
-      conn.assigns[:current_user] ->
+    case ApiKeys.verify(bearer, "admin") do
+      {:ok, key} ->
         conn
+        |> assign(:api_key, key)
+        |> assign(:actor, owner_actor(key))
 
-      match?({:ok, _}, ApiKeys.verify(bearer, "admin")) ->
-        assign(conn, :api_key, ApiKeys.verify(bearer, "admin") |> elem(1))
+      :error ->
+        cond do
+          # a browser session may read; writing needs a key (no CSRF on this pipeline)
+          conn.assigns[:current_user] && conn.method in ["GET", "HEAD"] ->
+            assign(conn, :actor, conn.assigns.current_user)
 
-      true ->
-        unauthorized(conn, "a valid Admin API key is required (Authorization: Bearer <key>)")
+          conn.assigns[:current_user] ->
+            forbidden(conn, "mutations need an Admin API key (Authorization: Bearer <key>)")
+
+          true ->
+            unauthorized(conn, "a valid Admin API key is required (Authorization: Bearer <key>)")
+        end
     end
+  end
+
+  # the owner's record when there is one, else a synthetic owner — an Admin
+  # key must never act with *less* than owner rights, and must never be nil
+  defp owner_actor(key) do
+    case Enum.find(Accounts.list_users(), &(&1["role"] == "owner")) do
+      %{} = owner -> Map.put(owner, "api_key_id", key["id"])
+      nil -> %{"id" => "api-key:" <> key["id"], "role" => "owner", "name" => key["label"]}
+    end
+  end
+
+  @doc "403 unless the actor may do `action` on `subject`."
+  def authorize(conn, action, subject \\ nil) do
+    if Wraith.Policy.can?(conn.assigns[:actor], action, subject),
+      do: conn,
+      else:
+        forbidden(conn, "your role may not #{action |> to_string() |> String.replace("_", " ")}")
+  end
+
+  defp forbidden(conn, msg) do
+    conn
+    |> put_status(403)
+    |> Phoenix.Controller.json(%{
+      "errors" => [%{"message" => msg, "type" => "NoPermissionError"}]
+    })
+    |> halt()
   end
 
   defp unauthorized(conn, msg) do

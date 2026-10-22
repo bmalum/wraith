@@ -105,17 +105,27 @@ defmodule WraithWeb.Admin.PostsLive do
   end
 
   def handle_event("publish", %{"id" => id}, socket) do
-    with %{} = post <- Content.get_post(id), {:ok, _} <- Content.publish_post(post) do
+    me = socket.assigns.current_user
+
+    with %{} = post <- Content.get_post(id),
+         true <- Wraith.Policy.can?(me, :publish_post, post),
+         {:ok, _} <- Content.publish_post(post) do
       {:noreply, socket |> put_flash(:info, "Published.") |> load()}
     else
+      false -> {:noreply, put_flash(socket, :error, "Your role cannot publish that post.")}
       _ -> {:noreply, put_flash(socket, :error, "Could not publish.")}
     end
   end
 
   def handle_event("unpublish", %{"id" => id}, socket) do
-    with %{} = post <- Content.get_post(id), {:ok, _} <- Content.unpublish_post(post) do
+    me = socket.assigns.current_user
+
+    with %{} = post <- Content.get_post(id),
+         true <- Wraith.Policy.can?(me, :publish_post, post),
+         {:ok, _} <- Content.unpublish_post(post) do
       {:noreply, socket |> put_flash(:info, "Back to draft.") |> load()}
     else
+      false -> {:noreply, put_flash(socket, :error, "Your role cannot unpublish that post.")}
       _ -> {:noreply, put_flash(socket, :error, "Could not unpublish.")}
     end
   end

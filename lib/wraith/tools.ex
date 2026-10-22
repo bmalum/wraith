@@ -45,45 +45,173 @@ defmodule Wraith.Tools do
     }
   end
 
+  # ---- who may call what ------------------------------------------------------------
+  #
+  # Two gates, in order:
+  #
+  # 1. A Content key (Ghost's semi-public `?key=`) sees only @public_tools — the
+  #    same things the public site shows an anonymous reader. "readOnlyHint" is
+  #    an annotation for agents, not an authorisation boundary: plenty of
+  #    read-only tools expose member PII, drafts, settings, or run Lua.
+  #
+  # 2. Every other call is checked against Wraith.Policy for the acting user,
+  #    with the post as subject where there is one. The actor is resolved from
+  #    ctx["user_id"]; an Admin key acts as the owner. No actor → refused.
+
+  @public_tools ~w(site_info posts_list post_get search tags_list widget_docs)
+
+  # tool → Policy action. Post tools are checked against the post inside call/3.
+  @policy %{
+    "site_info" => nil,
+    "search" => nil,
+    "tags_list" => nil,
+    "widget_docs" => nil,
+    "settings_get" => :manage_settings,
+    "settings_update" => :manage_settings,
+    "posts_list" => :edit_post,
+    "post_get" => :edit_post,
+    "post_revisions" => :edit_post,
+    "post_create" => :create_post,
+    "post_update" => :edit_post,
+    "post_publish" => :publish_post,
+    "post_unpublish" => :publish_post,
+    "post_preview_link" => :edit_post,
+    "post_delete" => :delete_post,
+    "post_restore_revision" => :edit_post,
+    "newsletter_send" => :send_newsletter,
+    "newsletter_status" => :edit_post,
+    "tag_upsert" => :manage_tags,
+    "tag_delete" => :manage_tags,
+    "author_create" => :manage_staff,
+    "author_update" => :manage_staff,
+    "authors_list" => :edit_post,
+    "members_list" => :manage_members,
+    "member_get" => :manage_members,
+    "member_create" => :manage_members,
+    "member_update" => :manage_members,
+    "member_delete" => :manage_members,
+    "members_export_csv" => :manage_members,
+    "members_import_csv" => :manage_members,
+    "member_send_login_link" => :manage_members,
+    "comments_list" => :manage_comments,
+    "comment_moderate" => :manage_comments,
+    "widgets_list" => :manage_widgets,
+    "widget_get" => :manage_widgets,
+    "widget_versions" => :manage_widgets,
+    "widget_test" => :manage_widgets,
+    "widget_save" => :manage_widgets,
+    "widget_rollback" => :manage_widgets,
+    "widget_enable" => :manage_widgets,
+    "widget_delete" => :manage_widgets,
+    "widget_state_get" => :manage_widgets,
+    "widget_state_reset" => :manage_widgets,
+    "uploads_list" => :create_post,
+    "upload_from_url" => :create_post,
+    "upload_base64" => :create_post,
+    "api_keys_list" => :manage_keys,
+    "api_key_create" => :manage_keys,
+    "api_key_delete" => :manage_keys,
+    "site_export" => :manage_settings,
+    "site_import" => :manage_settings,
+    "themes_list" => nil,
+    "analytics_summary" => :edit_post,
+    "audit_log" => :manage_settings
+  }
+
+  # post-shaped tools: the subject is the post named by args["id"]
+  @post_tools ~w(post_get post_revisions post_update post_publish post_unpublish post_preview_link post_delete post_restore_revision newsletter_send newsletter_status)
+
   @impl true
   def tools(ctx) do
     all = catalogue()
-    if ctx["scope"] == "content", do: Enum.filter(all, &read_only?/1), else: all
+
+    cond do
+      ctx["scope"] == "content" ->
+        Enum.filter(all, &(&1["name"] in @public_tools))
+
+      actor = actor(ctx) ->
+        # only what this user could actually call
+        Enum.filter(all, fn t -> allowed?(actor, t["name"], nil) != :forbidden end)
+
+      true ->
+        []
+    end
   end
 
   def read_only?(%{"annotations" => %{"readOnlyHint" => true}}), do: true
   def read_only?(_), do: false
 
-  def names(ctx \\ %{"scope" => "admin"}), do: tools(ctx) |> Enum.map(& &1["name"])
+  @doc "Tool names visible to `ctx`; with no ctx, every tool in the catalogue."
+  def names(ctx \\ nil)
+  def names(nil), do: catalogue() |> Enum.map(& &1["name"])
+  def names(ctx), do: tools(ctx) |> Enum.map(& &1["name"])
 
   @impl true
   def call(ctx, name, args) do
     tool = Enum.find(catalogue(), &(&1["name"] == name))
+    args = args || %{}
 
     cond do
       is_nil(tool) ->
         MCP.error("unknown tool #{name}")
 
-      ctx["scope"] == "content" and not read_only?(tool) ->
+      ctx["scope"] == "content" and name not in @public_tools ->
         MCP.error("#{name} needs an Admin key")
 
+      ctx["scope"] == "content" ->
+        safe_call(ctx, tool, name, args)
+
       true ->
-        try do
-          result = do_call(ctx, name, args || %{})
+        case actor(ctx) do
+          nil ->
+            MCP.error("#{name}: no acting user — sign in or use an Admin key")
 
-          unless read_only?(tool) or result["isError"],
-            do:
-              Wraith.Audit.log(
-                actor(ctx) || "agent",
-                name,
-                args["id"] || args["slug"] || args["email"],
-                %{"via" => ctx["via"] || "mcp"}
-              )
+          actor ->
+            subject = if name in @post_tools, do: find_post(args["id"]), else: nil
 
-          result
-        rescue
-          e -> MCP.error("#{name} failed: " <> Exception.message(e))
+            case allowed?(actor, name, subject) do
+              :ok -> safe_call(Map.put(ctx, "actor", actor), tool, name, args)
+              :forbidden -> MCP.error("#{name}: your role (#{actor["role"]}) may not do that")
+            end
         end
+    end
+  end
+
+  # nil action → anyone signed in; :edit_post etc. → Policy decides. For post
+  # tools without a loaded subject (listing, or an id that doesn't resolve),
+  # the check is "could this role edit *some* post" so the tool runs and then
+  # filters/404s itself.
+  defp allowed?(actor, name, subject) do
+    case Map.get(@policy, name, :manage_settings) do
+      nil ->
+        :ok
+
+      action when name in @post_tools and is_nil(subject) ->
+        if Wraith.Policy.can?(actor, action, %{"author_id" => actor["id"], "status" => "draft"}),
+          do: :ok,
+          else: :forbidden
+
+      action ->
+        if Wraith.Policy.can?(actor, action, subject), do: :ok, else: :forbidden
+    end
+  end
+
+  defp safe_call(ctx, tool, name, args) do
+    try do
+      result = do_call(ctx, name, args || %{})
+
+      unless read_only?(tool) or result["isError"],
+        do:
+          Wraith.Audit.log(
+            actor(ctx) || "agent",
+            name,
+            args["id"] || args["slug"] || args["email"],
+            %{"via" => ctx["via"] || "mcp"}
+          )
+
+      result
+    rescue
+      e -> MCP.error("#{name} failed: " <> Exception.message(e))
     end
   end
 
@@ -614,7 +742,10 @@ defmodule Wraith.Tools do
   end
 
   defp do_call(ctx, "post_create", a) do
-    attrs = a |> body_from_html() |> Map.put_new("author_id", ctx["user_id"])
+    me = actor(ctx)
+
+    attrs =
+      a |> body_from_html() |> constrain_post_attrs(me, nil) |> Map.put_new("author_id", me["id"])
 
     case Content.create_post(attrs) do
       {:ok, p} ->
@@ -630,9 +761,10 @@ defmodule Wraith.Tools do
     end
   end
 
-  defp do_call(_ctx, "post_update", %{"id" => id} = a) do
+  defp do_call(ctx, "post_update", %{"id" => id} = a) do
     with %{} = p <- find_post(id) || {:error, "no post #{id}"},
-         {:ok, p} <- Content.update_post(p, a |> Map.delete("id") |> body_from_html()) do
+         attrs = a |> Map.delete("id") |> body_from_html() |> constrain_post_attrs(actor(ctx), p),
+         {:ok, p} <- Content.update_post(p, attrs) do
       json(%{ok: true, post: full(p)})
     else
       {:error, %{} = e} -> MCP.error("post_update: " <> inspect(e))
@@ -1162,10 +1294,39 @@ defmodule Wraith.Tools do
 
   # ---- helpers -------------------------------------------------------------------------
 
-  defp actor(ctx),
-    do:
-      (ctx["user_id"] && Accounts.get_user(ctx["user_id"])) ||
-        Enum.find(Accounts.list_users(), &(&1["role"] == "owner"))
+  # Publishing-related fields need :publish_post on the post; handing a post to
+  # another author needs the right to edit posts one doesn't own (editor+).
+  @publish_fields ~w(status published_at unpublish_at send_on_publish)
+  @author_fields ~w(author_id authors)
+
+  defp constrain_post_attrs(attrs, actor, post) do
+    subject = post || %{"author_id" => actor["id"], "status" => "draft"}
+
+    attrs
+    |> then(fn a ->
+      if Wraith.Policy.can?(actor, :publish_post, subject),
+        do: a,
+        else: Map.drop(a, @publish_fields)
+    end)
+    |> then(fn a ->
+      if Wraith.Policy.can?(actor, :edit_post, %{
+           "author_id" => "someone-else",
+           "status" => "published"
+         }),
+         do: a,
+         else: Map.drop(a, @author_fields)
+    end)
+  end
+
+  # The acting user. An Admin API key carries "as_owner" and acts as the site
+  # owner; otherwise it's the user in ctx. Never falls back to anyone.
+  defp actor(%{"actor" => %{} = a}), do: a
+
+  defp actor(%{"as_owner" => true}),
+    do: Enum.find(Accounts.list_users(), &(&1["role"] == "owner"))
+
+  defp actor(%{"user_id" => id}) when is_binary(id), do: Accounts.get_user(id)
+  defp actor(_), do: nil
 
   defp find_post(id) when is_binary(id), do: Content.get_post(id) || Content.get_post_by_slug(id)
   defp find_post(_), do: nil

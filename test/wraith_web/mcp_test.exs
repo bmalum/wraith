@@ -349,7 +349,7 @@ defmodule WraithWeb.McpTest do
   end
 
   test "the catalogue is complete and consistent" do
-    names = Tools.names()
+    names = Tools.catalogue() |> Enum.map(& &1["name"])
     assert names == Enum.uniq(names), "duplicate tool names"
 
     # every admin screen's actions, by domain
@@ -368,7 +368,9 @@ defmodule WraithWeb.McpTest do
     end
 
     # every tool answers a call with missing arguments cleanly (no crash, an isError result)
-    ctx = %{"user_id" => nil, "scope" => "admin"}
+    # tools act as a resolved user; with none there is nothing to call
+    owner = Wraith.Accounts.list_users() |> Enum.find(&(&1["role"] == "owner"))
+    ctx = %{"user_id" => owner["id"], "scope" => "admin"}
 
     for name <- names do
       result = Tools.call(ctx, name, %{})
@@ -376,6 +378,13 @@ defmodule WraithWeb.McpTest do
     end
 
     # the studio agent sees the same registry
-    assert Wraith.Studio.Tools.tools(%{"user_id" => nil}) |> Enum.map(& &1["name"]) == names
+    assert Wraith.Studio.Tools.tools(%{"user_id" => owner["id"]}) |> Enum.map(& &1["name"]) ==
+             names
+
+    # and with no acting user, the MCP server offers nothing and refuses everything
+    assert Wraith.Studio.Tools.tools(%{"user_id" => nil}) == []
+
+    assert %{"isError" => true} =
+             Tools.call(%{"user_id" => nil, "scope" => "admin"}, "posts_list", %{})
   end
 end

@@ -1,18 +1,63 @@
 defmodule WraithWeb.Api.AdminController do
   @moduledoc """
-  The Admin API (`/api/admin/*`, Admin key or an author's session): CRUD on
-  posts, tags, members, widgets; settings; Ghost-compatible export and
-  import (`GET /api/admin/db`, `POST /api/admin/db`).
+  The Admin API (`/api/admin/*`): CRUD on posts, tags, members, widgets;
+  settings; Ghost-compatible export and import (`GET /api/admin/db`,
+  `POST /api/admin/db`).
+
+  Authentication and the acting user come from `WraithWeb.ApiAuth` (an Admin
+  key acts as the owner; a staff session acts as itself, reads only). Every
+  action is gated by `Wraith.Policy` — the same rules the admin UI applies —
+  so a contributor's session sees exactly their own drafts here too.
   """
   use WraithWeb, :controller
-  alias Wraith.{Accounts, Content, Ghost, Members, Settings, Widgets}
+  alias Wraith.{Accounts, Content, Ghost, Members, Policy, Settings, Widgets}
+  import WraithWeb.ApiAuth, only: [authorize: 2, authorize: 3]
+
+  # Every action names the Policy action it needs. Post actions also check the
+  # subject (an author may edit their own post, not someone else's) inside the
+  # action, once the post is loaded. `actor` is set by WraithWeb.ApiAuth.
+  @policy %{
+    posts: :edit_post,
+    post: :edit_post,
+    create_post: :create_post,
+    update_post: :edit_post,
+    delete_post: :delete_post,
+    tags: :manage_tags,
+    upsert_tag: :manage_tags,
+    delete_tag: :manage_tags,
+    members: :manage_members,
+    members_csv: :manage_members,
+    import_members: :manage_members,
+    create_member: :manage_members,
+    widgets: :manage_widgets,
+    upsert_widget: :manage_widgets,
+    settings: :manage_settings,
+    update_settings: :manage_settings,
+    users: :manage_staff,
+    export: :manage_settings,
+    import: :manage_settings
+  }
+
+  plug :authorize_action
+
+  defp authorize_action(conn, _opts) do
+    case Map.fetch(@policy, action_name(conn)) do
+      # post reads/edits are authorised per post below; listing is for anyone who can write
+      {:ok, action} when action in [:edit_post, :delete_post] -> conn
+      {:ok, action} -> authorize(conn, action)
+      :error -> authorize(conn, :manage_settings)
+    end
+  end
 
   # ---- posts -------------------------------------------------------------------------
 
   def posts(conn, params) do
+    actor = conn.assigns.actor
+
     posts =
       Content.list_all_posts(type: params["type"])
       |> Enum.filter(&(is_nil(params["status"]) or &1["status"] == params["status"]))
+      |> Enum.filter(&Policy.can?(actor, :edit_post, &1))
 
     json(conn, %{
       "posts" =>
@@ -21,19 +66,20 @@ defmodule WraithWeb.Api.AdminController do
   end
 
   def post(conn, %{"id" => id}) do
-    case find_post(id) do
-      nil ->
-        not_found(conn, "post")
-
-      p ->
-        json(conn, %{
-          "posts" => [Ghost.post_json(p, Keyword.merge(ctx(), markdown: true, access: true))]
-        })
+    with %{} = p <- find_post(id) || :missing,
+         %Plug.Conn{halted: false} = conn <- authorize(conn, :edit_post, p) do
+      json(conn, %{
+        "posts" => [Ghost.post_json(p, Keyword.merge(ctx(), markdown: true, access: true))]
+      })
+    else
+      :missing -> not_found(conn, "post")
+      %Plug.Conn{} = halted -> halted
     end
   end
 
   def create_post(conn, params) do
-    attrs = post_attrs(params) |> Map.put_new("author_id", actor_id(conn))
+    attrs = params |> post_attrs() |> constrain_for(conn.assigns.actor, nil)
+    attrs = Map.put(attrs, "author_id", attrs["author_id"] || actor_id(conn))
 
     case Content.create_post(attrs) do
       {:ok, p} ->
@@ -49,26 +95,52 @@ defmodule WraithWeb.Api.AdminController do
   end
 
   def update_post(conn, %{"id" => id} = params) do
+    actor = conn.assigns.actor
+
     with %{} = p <- find_post(id) || :missing,
-         {:ok, p} <- Content.update_post(p, post_attrs(params)) do
+         %Plug.Conn{halted: false} = conn <- authorize(conn, :edit_post, p),
+         attrs = params |> post_attrs() |> constrain_for(actor, p),
+         {:ok, p} <- Content.update_post(p, attrs) do
       json(conn, %{
         "posts" => [Ghost.post_json(p, Keyword.merge(ctx(), markdown: true, access: true))]
       })
     else
       :missing -> not_found(conn, "post")
+      %Plug.Conn{} = halted -> halted
       {:error, errors} -> validation(conn, errors)
     end
   end
 
   def delete_post(conn, %{"id" => id}) do
-    case find_post(id) do
-      nil ->
-        not_found(conn, "post")
-
-      p ->
-        :ok = Content.delete_post(p)
-        send_resp(conn, 204, "")
+    with %{} = p <- find_post(id) || :missing,
+         %Plug.Conn{halted: false} = conn <- authorize(conn, :delete_post, p) do
+      :ok = Content.delete_post(p)
+      send_resp(conn, 204, "")
+    else
+      :missing -> not_found(conn, "post")
+      %Plug.Conn{} = halted -> halted
     end
+  end
+
+  # What a caller may set on a post depends on who they are. Publishing-related
+  # fields need :publish_post on the post; reassigning authorship needs to be
+  # able to edit *anyone's* post (editor and up). Everything else is content.
+  @publish_fields ~w(status published_at)
+  @author_fields ~w(author_id authors)
+
+  defp constrain_for(attrs, actor, post) do
+    subject = post || %{"author_id" => actor["id"], "status" => "draft"}
+
+    attrs
+    |> then(fn a ->
+      if Policy.can?(actor, :publish_post, subject), do: a, else: Map.drop(a, @publish_fields)
+    end)
+    |> then(fn a ->
+      # may this actor edit a post they don't own? then they may hand one over
+      if Policy.can?(actor, :edit_post, %{"author_id" => "someone-else", "status" => "published"}),
+         do: a,
+         else: Map.drop(a, @author_fields)
+    end)
   end
 
   # Ghost wraps bodies as {"posts": [{...}]}; plain bodies work too
@@ -239,11 +311,8 @@ defmodule WraithWeb.Api.AdminController do
   defp find_post(id), do: Content.get_post(id) || Content.get_post_by_slug(id)
 
   # writes from an API key are attributed to the owner
-  defp actor(conn),
-    do:
-      conn.assigns[:current_user] || Enum.find(Accounts.list_users(), &(&1["role"] == "owner")) ||
-        hd(Accounts.list_users())
-
+  # set by WraithWeb.ApiAuth: the session user, or the owner for an Admin key
+  defp actor(conn), do: conn.assigns.actor
   defp actor_id(conn), do: actor(conn)["id"]
 
   defp validation(conn, errors),
