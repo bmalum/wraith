@@ -28,14 +28,22 @@ defmodule Wraith.Widgets.Lua do
   """
 
   @timeout_ms 250
-  @removed ~w(os io package require load loadfile loadstring dofile collectgarbage)
+  # the Lua process heap (words). A chunk that builds tables past this is
+  # killed by the VM, not by us running out of memory. 50M words ≈ 400 MB on
+  # 64-bit — generous for a widget, far below "take the node down".
+  @max_heap_words 50_000_000
+  # strings are refc binaries and live OFF the process heap, so max_heap_size
+  # can't see them; the string builders Lua offers are capped instead
+  @max_string_bytes 256 * 1024
+  @max_output_bytes 256 * 1024
+  @removed ~w(os io package require load loadfile loadstring dofile collectgarbage print eprint)
 
   @type result :: {:ok, term()} | {:error, String.t()}
 
   @spec call(String.t(), String.t(), [term()], map()) :: result()
   def call(source, function, args, meta \\ %{}) do
     task =
-      Task.async(fn ->
+      sandboxed(fn ->
         try do
           with {:ok, st} <- boot(source, meta) do
             case :luerl.call_function_dec(
@@ -48,7 +56,7 @@ defmodule Wraith.Widgets.Lua do
                 {:ok, {from_lua(a), from_lua(b)}}
 
               {:ok, [result | _], _st} ->
-                {:ok, from_lua(result)}
+                {:ok, result |> from_lua() |> capped_output()}
 
               {:ok, [], _st} ->
                 {:ok, nil}
@@ -78,7 +86,7 @@ defmodule Wraith.Widgets.Lua do
   @spec check(String.t()) :: :ok | {:error, String.t()}
   def check(source) do
     task =
-      Task.async(fn ->
+      sandboxed(fn ->
         with {:ok, st} <- boot(source, %{}) do
           missing =
             Enum.reject(~w(init render handle), fn f ->
@@ -99,8 +107,67 @@ defmodule Wraith.Widgets.Lua do
 
   # ---- the sandbox ------------------------------------------------------------------
 
+  # A Lua run is a supervised task with a hard heap ceiling; the kill is the
+  # VM's, so a runaway table allocation ends one widget render, not the node.
+  # Concurrency is bounded by the supervisor's max_children (set in
+  # Wraith.Application), which also caps the total memory N renders can take.
+  defp sandboxed(fun) do
+    Task.Supervisor.async_nolink(Wraith.Widgets.Sandbox, fun,
+      spawn_opt: [max_heap_size: %{size: @max_heap_words, kill: true, error_logger: false}]
+    )
+  end
+
+  # a render that returns megabytes of HTML would be broadcast to every reader
+  defp capped_output(html) when is_binary(html) and byte_size(html) > @max_output_bytes,
+    do: binary_part(html, 0, @max_output_bytes) <> "<!-- output truncated -->"
+
+  defp capped_output(other), do: other
+
+  # luerl's string.rep builds the whole result in one allocation and
+  # string.format has no size limit; both are shadowed with bounded versions.
+  # (string.rep("x", 2e9) is one 2 GB allocation in a few ms otherwise.)
+  defp cap_string_library(st) do
+    rep = fn
+      [s, n | rest], st ->
+        s = to_string(s)
+        n = n |> to_number() |> trunc() |> max(0)
+
+        sep =
+          case rest,
+            do: (
+              [sep | _] -> to_string(sep)
+              [] -> ""
+            )
+
+        total = n * (byte_size(s) + byte_size(sep))
+
+        if total > @max_string_bytes,
+          do: :luerl_lib.lua_error({:illegal_value, "string.rep", "result too large"}, st),
+          else: {[Enum.map_join(1..n//1, sep, fn _ -> s end)], st}
+
+      _, st ->
+        {[""], st}
+    end
+
+    {:ok, st} = :luerl.set_table_keys_dec(["string", "rep"], rep, st)
+    st
+  end
+
+  defp to_number(n) when is_number(n), do: n
+
+  defp to_number(b) when is_binary(b),
+    do:
+      case(Float.parse(b),
+        do: (
+          {f, _} -> f
+          _ -> 0
+        )
+      )
+
+  defp to_number(_), do: 0
+
   defp boot(source, meta) do
-    st = :luerl.init()
+    st = :luerl.init() |> cap_string_library()
 
     st =
       Enum.reduce(@removed, st, fn name, st ->

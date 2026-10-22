@@ -296,7 +296,12 @@ defmodule Wraith.Widgets do
 
   defp put_private(_slug, _instance, nil, _priv), do: :ok
 
+  # per-visitor state is reader-influenced (a widget echoing payloads into it);
+  # it gets the same cap as shared state so items can't grow to Dynamo's 400 KB
   defp put_private(slug, instance, visitor, priv) when is_map(priv) do
+    if byte_size(Jason.encode!(priv)) > @max_state_bytes,
+      do: throw({:refused, "widget private state would exceed #{div(@max_state_bytes, 1024)} KB"})
+
     {pk, sk} = Keys.widget_state(slug, instance <> "#" <> visitor)
     Store.put(%{"pk" => pk, "sk" => sk, "private" => priv})
   end
@@ -305,8 +310,10 @@ defmodule Wraith.Widgets do
 
   @doc "The refresh interval a Lua widget asks for (`tick = N` in its chunk), in seconds, or nil."
   def tick(%{"kind" => "lua", "source" => source}) do
+    # 5 s … 1 day; Process.send_after rejects anything past 2^32 ms, and a
+    # bad value here would crash every reader's mount
     case Regex.run(~r/^\s*tick\s*=\s*(\d+)/m, source) do
-      [_, n] -> max(String.to_integer(n), 5)
+      [_, n] -> n |> String.to_integer() |> max(5) |> min(86_400)
       _ -> nil
     end
   end
@@ -320,10 +327,11 @@ defmodule Wraith.Widgets do
 
   # ---- what a widget may emit ------------------------------------------------------
 
-  # Widget authors are admins (and, through MCP, anyone with an Admin key); their
-  # HTML still goes through an allowlist before it reaches every reader: no scripts,
-  # no event handlers, no javascript: URLs. Styling (class, style), structure,
-  # form controls and the `phx-*` / `data-*` / `aria-*` attributes stay.
+  # Widget authors are staff (and, through MCP, anyone the Policy lets manage
+  # widgets); their HTML still goes through an allowlist before it reaches every
+  # reader: no scripts, no event handlers, no javascript: URLs, and — because a
+  # widget renders *inside* the reader's LiveView — no way to fire the host
+  # page's own events: phx-click/phx-submit may only be "widget".
   @sanitize MDEx.Document.default_sanitize_options()
             |> Keyword.put(
               :add_tags,
@@ -333,12 +341,43 @@ defmodule Wraith.Widgets do
               :add_generic_attributes,
               ~w(class style id role title type name value disabled checked selected placeholder min max step tabindex datetime for width height viewBox fill stroke d cx cy r x y x1 y1 x2 y2 points transform)
             )
-            |> Keyword.put(:add_generic_attribute_prefixes, ~w(phx- data- aria-))
+            # phx-click is pinned to the widget event; any other phx-* (phx-hook,
+            # phx-submit, a phx-click naming the host LiveView's own handlers like
+            # comment-delete) is stripped — a widget may not drive the page it's on.
+            # data-* is limited to the widget's own namespace; phoenix_html's
+            # data-method/data-to would otherwise turn an <a> into a form POST.
+            |> Keyword.put(:add_generic_attribute_prefixes, ~w(aria- data-w-))
+            |> Keyword.put(:add_tag_attributes, %{
+              "button" => ~w(phx-click phx-value-instance phx-value-event phx-value-payload),
+              "a" => ~w(phx-click phx-value-instance phx-value-event phx-value-payload),
+              "form" => ~w(phx-submit phx-value-instance phx-value-event),
+              "input" => ~w(phx-value-instance phx-value-event),
+              "select" => ~w(phx-value-instance phx-value-event)
+            })
             |> Keyword.put(:rm_tags, ~w(script iframe object embed))
 
-  @doc "Allowlist-sanitise widget HTML (`MDEx.safe_html/2`, ammonia underneath)."
-  def sanitize(html) when is_binary(html),
-    do: MDEx.safe_html(html, sanitize: @sanitize, escape: [content: false])
+  @doc """
+  Allowlist-sanitise widget HTML: `MDEx.safe_html/2` (ammonia) for tags,
+  attributes and URLs, then a second pass that pins every `phx-click` /
+  `phx-submit` to the value `"widget"`. The sanitiser can allow an attribute
+  but not reliably constrain its value; a widget that could emit
+  `phx-click="comment-delete"` would be clicking the reader's own buttons.
+  """
+  def sanitize(html) when is_binary(html) do
+    html
+    |> MDEx.safe_html(sanitize: @sanitize, escape: [content: false])
+    |> pin_phx_events()
+  end
+
+  @phx_event_attrs ~w(phx-click phx-submit)
+
+  defp pin_phx_events(html) do
+    # cheap textual pass over attributes; the HTML is already well-formed from
+    # ammonia, so attribute boundaries are regular
+    Regex.replace(~r/\s(phx-(?:click|submit))="([^"]*)"/, html, fn whole, attr, value ->
+      if attr in @phx_event_attrs and value == "widget", do: whole, else: ""
+    end)
+  end
 
   # Lua gets meta as a plain table (atoms become strings), Elixir widgets the map
   defp meta_for(meta),

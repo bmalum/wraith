@@ -221,16 +221,32 @@ defmodule Wraith.WidgetsTest do
     refute msg =~ "allowlist"
   end
 
-  test "widget html is sanitised: scripts and handlers go, phx/data/style stay" do
+  test "widget html is sanitised: scripts, handlers, and host-page events go; widget actions stay" do
     html =
-      ~S|<div class="w-x" style="color:red" onclick="x()"><button phx-click="widget" phx-value-event="go" data-n="1" aria-label="go">go</button><script>alert(1)</script><img src="x" onerror="alert(1)"><a href="javascript:alert(1)">l</a></div>|
+      ~S|<div class="w-x" style="color:red" onclick="x()"><button phx-click="widget" phx-value-event="go" data-w-n="1" data-n="1" aria-label="go">go</button><script>alert(1)</script><img src="x" onerror="alert(1)"><a href="javascript:alert(1)">l</a></div>|
 
     out = Widgets.sanitize(html)
 
+    # the widget's own action survives, as does its namespaced data-w-*
     assert out =~ ~s(phx-click="widget") and out =~ ~s(phx-value-event="go") and
-             out =~ ~s(data-n="1") and out =~ ~s(style="color:red")
+             out =~ ~s(data-w-n="1") and out =~ ~s(style="color:red") and
+             out =~ ~s(aria-label="go")
 
+    # foreign data-* is gone (phoenix_html's data-method/data-to would POST as the reader)
+    refute out =~ ~s(data-n=)
     refute out =~ "onclick" or out =~ "<script" or out =~ "onerror" or out =~ "javascript:"
+
+    # a widget may not fire the host LiveView's own events, attach hooks, or
+    # submit the page's forms: anything but phx-click="widget" is stripped
+    hostile =
+      ~S|<button phx-click="comment-delete" phx-value-id="c1">x</button><div phx-hook="Editor" id="e">y</div><form phx-submit="comment"><button phx-click="widget">ok</button></form><a data-method="post" data-to="/api/admin/db">z</a>|
+
+    out = Widgets.sanitize(hostile)
+    refute out =~ "comment-delete"
+    refute out =~ "phx-hook"
+    refute out =~ ~s(phx-submit="comment")
+    refute out =~ "data-method" or out =~ "data-to"
+    assert out =~ ~s(phx-click="widget")
 
     src =
       "function init(p) return {} end function render(s,p,m) return '<b onmouseover=\"evil()\">hi</b><script>bad()</script>' end function handle(s,e,p,m) return s end"

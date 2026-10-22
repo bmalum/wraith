@@ -1213,11 +1213,14 @@ defmodule Wraith.Tools do
   end
 
   defp do_call(_ctx, "upload_from_url", %{"url" => url} = a) do
-    case Req.get(url, receive_timeout: 20_000, max_redirects: 3, decode_body: false) do
+    # SafeHTTP: public addresses only (no metadata endpoint, no VPC), each
+    # redirect re-checked, body streamed and cut at the upload size limit
+    case Wraith.SafeHTTP.get(url, max_bytes: Uploads.max_bytes(), timeout_ms: 20_000) do
       {:ok, %{status: 200, body: body, headers: h}} ->
         type =
           h
           |> Map.get("content-type", [])
+          |> List.wrap()
           |> List.first()
           |> to_string()
           |> String.split(";")
@@ -1241,8 +1244,8 @@ defmodule Wraith.Tools do
       {:ok, %{status: s}} ->
         MCP.error("fetching #{url} answered #{s}")
 
-      {:error, e} ->
-        MCP.error("could not fetch #{url}: #{Exception.message(e)}")
+      {:error, why} ->
+        MCP.error("could not fetch #{url}: #{why}")
     end
   end
 

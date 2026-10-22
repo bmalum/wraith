@@ -75,15 +75,15 @@ defmodule Wraith.Embed do
   end
 
   defp fetch_metadata(url) do
-    case Req.get(url,
-           receive_timeout: 3_000,
-           max_redirects: 3,
-           retry: false,
-           headers: [{"user-agent", "Mozilla/5.0 (compatible; Wraith/1.0)"}],
-           decode_body: false
+    # only the first 100 KB are needed for <head> metadata; SafeHTTP stops
+    # reading there and refuses private/internal addresses on every hop
+    case Wraith.SafeHTTP.get(url,
+           max_bytes: 100_000,
+           timeout_ms: 3_000,
+           headers: [{"user-agent", "Mozilla/5.0 (compatible; Wraith/1.0)"}]
          ) do
       {:ok, %{status: 200, body: html}} when is_binary(html) ->
-        head = binary_part(html, 0, min(byte_size(html), 100_000))
+        head = html
 
         %{
           "title" => og(head, "og:title") || tag(head, "title"),

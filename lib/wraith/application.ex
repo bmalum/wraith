@@ -19,6 +19,9 @@ defmodule Wraith.Application do
         {DNSCluster, query: Application.get_env(:wraith, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Wraith.PubSub},
         {Task.Supervisor, name: Wraith.TaskSupervisor},
+        # Lua widget runs: bounded so N concurrent renders can't multiply a
+        # per-run heap cap into node memory exhaustion
+        {Task.Supervisor, name: Wraith.Widgets.Sandbox, max_children: 64},
         WraithWeb.Presence,
         Wraith.RateLimit
       ] ++

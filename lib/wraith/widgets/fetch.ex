@@ -11,69 +11,70 @@ defmodule Wraith.Widgets.Fetch do
 
   def get(url) do
     ensure_table()
+    now = System.monotonic_time(:millisecond)
 
-    with {:ok, uri} <- parse(url),
-         :ok <- allowed(uri) do
-      now = System.monotonic_time(:millisecond)
-
-      case :ets.lookup(@table, url) do
-        [{^url, body, at}] when now - at < @ttl_ms -> {:ok, body}
-        _ -> fetch(url)
-      end
+    # the allowlist is checked by SafeHTTP on every hop — the first URL *and*
+    # anything it redirects to — along with the public-address rule
+    case :ets.lookup(@table, url) do
+      [{^url, body, at}] when now - at < @ttl_ms -> {:ok, body}
+      _ -> fetch(url)
     end
   end
 
   defp fetch(url) do
-    case Req.get(url,
-           receive_timeout: 5_000,
+    sweep()
+
+    case Wraith.SafeHTTP.get(url,
+           allow: allowlist(),
+           max_bytes: @max_bytes,
            max_redirects: 2,
-           retry: false,
+           timeout_ms: 5_000,
            headers: [{"user-agent", "Wraith widget"}]
          ) do
-      {:ok, %{status: s, body: body}} when s in 200..299 ->
-        body =
-          if is_binary(body) and byte_size(body) > @max_bytes,
-            do: binary_part(body, 0, @max_bytes),
-            else: body
-
+      {:ok, %{status: s, body: body, headers: h}} when s in 200..299 ->
+        body = maybe_json(body, h)
         :ets.insert(@table, {url, body, System.monotonic_time(:millisecond)})
         {:ok, body}
 
       {:ok, %{status: s}} ->
         {:error, "upstream answered #{s}"}
 
-      {:error, e} ->
-        {:error, "fetch failed: " <> Exception.message(e)}
+      {:error, why} ->
+        {:error, why}
     end
   end
 
-  defp parse(url) do
-    case URI.parse(url) do
-      %URI{scheme: scheme, host: host} = uri
-      when scheme in ["http", "https"] and is_binary(host) and host != "" ->
-        {:ok, uri}
+  # Req no longer decodes for us (streamed body); decode JSON when it says so
+  defp maybe_json(body, headers) do
+    ct = headers |> Map.get("content-type", []) |> List.wrap() |> List.first() |> to_string()
 
-      _ ->
-        {:error, "not an http(s) URL"}
+    if String.contains?(ct, "json") do
+      case Jason.decode(body) do
+        {:ok, decoded} -> decoded
+        _ -> body
+      end
+    else
+      body
     end
   end
 
-  defp allowed(%URI{host: host}) do
-    patterns =
-      Wraith.Settings.get()["widget_fetch_hosts"]
-      |> to_string()
-      |> String.split(~r/[,\s]+/, trim: true)
-
-    if Enum.any?(patterns, &host_matches?(host, &1)),
-      do: :ok,
-      else:
-        {:error, "#{host} is not in the widget fetch allowlist (Settings → widget fetch hosts)"}
+  defp allowlist do
+    Wraith.Settings.get()["widget_fetch_hosts"]
+    |> to_string()
+    |> String.split(~r/[,\s]+/, trim: true)
   end
 
-  defp host_matches?(host, "*." <> suffix),
-    do: String.ends_with?(host, "." <> suffix) or host == suffix
+  # the cache is keyed by full URL; a widget fetching unique query strings
+  # would grow it without bound. Drop expired rows now and then, and cap it.
+  @max_cached 2_000
+  defp sweep do
+    if :ets.info(@table, :size) > @max_cached do
+      cutoff = System.monotonic_time(:millisecond) - @ttl_ms
+      :ets.select_delete(@table, [{{:_, :_, :"$1"}, [{:<, :"$1", cutoff}], [true]}])
 
-  defp host_matches?(host, pattern), do: host == pattern
+      if :ets.info(@table, :size) > @max_cached, do: :ets.delete_all_objects(@table)
+    end
+  end
 
   defp ensure_table do
     if :ets.whereis(@table) == :undefined do
