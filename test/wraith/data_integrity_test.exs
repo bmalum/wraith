@@ -55,14 +55,10 @@ defmodule Wraith.DataIntegrityTest do
     test "a bad rule never raises; good rules still redirect", %{conn: conn, owner: owner} do
       post_fixture(owner)
       # bypass validation to simulate a value that got in some other way
-      {pk, sk} = Wraith.Store.Keys.site()
-
-      {:ok, _} =
-        Wraith.Store.update(pk, sk, &Map.put(&1, "redirects", ["garbage", %{"from" => 1}]))
-
+      {:ok, _} = Settings.write(&Map.put(&1, "redirects", ["garbage", %{"from" => 1}]))
       assert get(conn, ~p"/hello-world").status == 200
 
-      {:ok, _} = Wraith.Store.update(pk, sk, &Map.put(&1, "redirects", "not even a list"))
+      {:ok, _} = Settings.write(&Map.put(&1, "redirects", "not even a list"))
       assert get(conn, ~p"/hello-world").status == 200
 
       {:ok, _} = Settings.update(%{"redirects" => [%{"from" => "/old", "to" => "/hello-world"}]})

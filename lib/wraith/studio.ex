@@ -32,16 +32,13 @@ defmodule Wraith.Studio do
 
     with true <- Key.valid_format?(key) || {:error, :invalid},
          {:ok, _} <- Key.verify(key) do
-      {pk, sk} = Keys.site()
-
-      Store.update(
-        pk,
-        sk,
-        &Map.merge(&1 || %{}, %{
-          "kiro_key_ciphertext" => Vault.encrypt(key),
-          "kiro_key_hint" => Key.hint(key)
-        })
-      )
+      {:ok, _} =
+        Settings.write(
+          &Map.merge(&1 || %{}, %{
+            "kiro_key_ciphertext" => Vault.encrypt(key),
+            "kiro_key_hint" => Key.hint(key)
+          })
+        )
 
       :ok
     else
@@ -53,8 +50,7 @@ defmodule Wraith.Studio do
   end
 
   def clear_key do
-    {pk, sk} = Keys.site()
-    Store.update(pk, sk, &Map.drop(&1 || %{}, ["kiro_key_ciphertext", "kiro_key_hint"]))
+    {:ok, _} = Settings.write(&Map.drop(&1 || %{}, ["kiro_key_ciphertext", "kiro_key_hint"]))
     :ok
   end
 

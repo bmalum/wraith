@@ -21,6 +21,8 @@ defmodule Wraith.StoreCase do
   def reset do
     # pending page views from an earlier test must not land in this one's store
     if Process.whereis(Wraith.Analytics), do: Wraith.Analytics.flush()
+    # the previous test's settings must not outlive its store
+    Wraith.Settings.Cache.invalidate()
 
     case Wraith.Store.impl() do
       Wraith.Store.Memory ->

@@ -39,7 +39,8 @@ defmodule WraithWeb.Router do
         {WraithWeb.Locale, :put_locale},
         {WraithWeb.UserAuth, :mount_current_user},
         {WraithWeb.UserAuth, :mount_visitor},
-        {WraithWeb.MemberAuth, :mount_current_member}
+        {WraithWeb.MemberAuth, :mount_current_member},
+        {WraithWeb.SiteHooks, :site}
       ] do
       live "/", Site.HomeLive, :index
       live "/page/:page", Site.HomeLive, :page
@@ -236,7 +237,8 @@ defmodule WraithWeb.Router do
         {WraithWeb.Locale, :put_locale},
         {WraithWeb.UserAuth, :mount_current_user},
         {WraithWeb.UserAuth, :mount_visitor},
-        {WraithWeb.MemberAuth, :mount_current_member}
+        {WraithWeb.MemberAuth, :mount_current_member},
+        {WraithWeb.SiteHooks, :site}
       ] do
       # a shareable draft preview: anyone with the token, any status
       live "/preview/:token", Site.PostLive, :preview

@@ -1,13 +1,12 @@
 defmodule WraithWeb.Site.HomeLive do
   @moduledoc "The front page: the newest published posts, the first one large."
   use WraithWeb, :live_view
-  alias WraithWeb.Themes
 
-  alias Wraith.{Accounts, Content, Settings}
+  alias Wraith.{Accounts, Content}
 
   @impl true
   def mount(_params, _session, socket) do
-    site = Settings.get()
+    site = socket.assigns.site
 
     if not site["setup_done"] and not Accounts.any_users?() do
       {:ok, push_navigate(socket, to: ~p"/admin/setup")}
@@ -19,9 +18,6 @@ defmodule WraithWeb.Site.HomeLive do
 
       {:ok,
        assign(socket,
-         site: site,
-         theme: Themes.get(site["theme"]),
-         authors: authors(),
          page_title: nil,
          meta_description: site["description"]
        )}
@@ -52,8 +48,6 @@ defmodule WraithWeb.Site.HomeLive do
   def handle_info({:content, _event, _post}, socket),
     do: {:noreply, load(socket, socket.assigns.page)}
 
-  defp authors, do: Accounts.list_users() |> Map.new(&{&1["id"], &1})
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -67,23 +61,11 @@ defmodule WraithWeb.Site.HomeLive do
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:index}
-        assigns={page_assigns(assigns)}
+        assigns={WraithWeb.SiteComponents.page_assigns(assigns)}
       />
     </Layouts.site>
     """
   end
 
   # what the theme's template sees: everything but LiveView's own bookkeeping
-  defp page_assigns(assigns),
-    do:
-      Map.drop(assigns, [
-        :flash,
-        :theme,
-        :socket,
-        :__changed__,
-        :live_action,
-        :streams,
-        :uploads,
-        :myself
-      ])
 end

@@ -1,10 +1,9 @@
 defmodule WraithWeb.Site.PostLive do
   @moduledoc "One post or page, with its widgets alive."
   use WraithWeb, :live_view
-  alias WraithWeb.Themes
   import WraithWeb.WidgetHost
 
-  alias Wraith.{Accounts, Comments, Content, Markdown, Settings}
+  alias Wraith.{Accounts, Comments, Content, Markdown}
 
   @impl true
   def mount(%{"token" => token}, _session, socket) do
@@ -23,8 +22,6 @@ defmodule WraithWeb.Site.PostLive do
   end
 
   defp mount_post(post, socket, opts) do
-    site = Settings.get()
-
     if connected?(socket) do
       Content.subscribe()
       Comments.subscribe(post["id"])
@@ -38,8 +35,6 @@ defmodule WraithWeb.Site.PostLive do
     {:ok,
      socket
      |> assign(
-       site: site,
-       theme: Themes.get(site["theme"]),
        post: post,
        author: author && Accounts.public(author),
        authors: authors,
@@ -54,7 +49,7 @@ defmodule WraithWeb.Site.PostLive do
            else: []
          ),
        noindex: post["noindex"] == true or socket.assigns.preview?,
-       json_ld: json_ld(post, author, url),
+       json_ld: json_ld(post, author, url, socket.assigns.site),
        meta: %{
          type: "article",
          title: post["meta_title"] || post["title"],
@@ -90,7 +85,7 @@ defmodule WraithWeb.Site.PostLive do
 
   defp body_for(post, locked?), do: Content.readable_markdown(post, not locked?)
 
-  defp json_ld(post, author, url) do
+  defp json_ld(post, author, url, site) do
     %{
       "@context" => "https://schema.org",
       "@type" => if(post["type"] == "page", do: "WebPage", else: "BlogPosting"),
@@ -108,7 +103,7 @@ defmodule WraithWeb.Site.PostLive do
             "name" => author["name"],
             "url" => url(~p"/author/#{author["slug"]}")
           },
-      "publisher" => %{"@type" => "Organization", "name" => Settings.get()["title"]},
+      "publisher" => %{"@type" => "Organization", "name" => site["title"]},
       "isAccessibleForFree" => post["visibility"] == "public"
     }
     |> Enum.reject(fn {_, v} -> is_nil(v) or v == "" end)
@@ -223,23 +218,11 @@ defmodule WraithWeb.Site.PostLive do
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:post}
-        assigns={page_assigns(assigns)}
+        assigns={WraithWeb.SiteComponents.page_assigns(assigns)}
       />
     </Layouts.site>
     """
   end
 
   # what the theme's template sees: everything but LiveView's own bookkeeping
-  defp page_assigns(assigns),
-    do:
-      Map.drop(assigns, [
-        :flash,
-        :theme,
-        :socket,
-        :__changed__,
-        :live_action,
-        :streams,
-        :uploads,
-        :myself
-      ])
 end

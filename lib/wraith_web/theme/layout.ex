@@ -40,37 +40,37 @@ defmodule WraithWeb.Theme.Layout do
 
       embed_templates "templates/*"
 
+      # `assign/2`, not `Map.merge`: derived assigns must land in `__changed__`
+      # or the listing template never re-renders them after the first paint.
       def tag(assigns) do
         assigns
-        |> Map.merge(%{
+        |> assign(
           kicker: gettext("Tag"),
           heading: assigns.tag["name"],
           lede: assigns.tag["description"]
-        })
+        )
         |> listing()
       end
 
       def author(assigns) do
         assigns
-        |> Map.merge(%{
+        |> assign(
           kicker: gettext("Author"),
           heading: assigns.author["name"],
           lede: assigns.author["bio"]
-        })
+        )
         |> listing()
       end
 
       def search(assigns) do
-        posts = Enum.map(assigns.results, & &1.post)
-
         assigns
-        |> Map.merge(%{
+        |> assign(
           kicker: gettext("Search"),
           heading: if(assigns.q == "", do: gettext("Search"), else: "“#{assigns.q}”"),
           lede: nil,
-          posts: posts,
+          posts: Enum.map(assigns.results, & &1.post),
           search: true
-        })
+        )
         |> listing()
       end
 

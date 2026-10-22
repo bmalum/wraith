@@ -7,15 +7,28 @@ defmodule WraithWeb.SiteComponents do
 
   alias Wraith.Markdown
 
-  @doc "Render one of the theme's templates (`:index`, `:post`, …) with these assigns."
   attr :theme, :atom, required: true
   attr :page, :atom, required: true
   attr :assigns, :map, required: true
 
+  @doc """
+  Render the theme's `page` function component with the LiveView's assigns.
+
+  The assigns are passed **with** their `__changed__` map, so LiveView's
+  change tracking works inside theme templates: a comment arriving or a
+  reader joining re-sends only the dynamics that changed, not the whole post
+  body to every open page.
+  """
   def theme_page(%{theme: theme, page: page, assigns: page_assigns}) do
-    # a function component is a function: the theme's template, called with the page's assigns
-    apply(theme, page, [Map.put(page_assigns, :__changed__, nil)])
+    apply(theme, page, [page_assigns])
   end
+
+  @doc """
+  The LiveView's assigns, minus the ones a theme template must not see.
+  Keeps `__changed__` (see `theme_page/1`).
+  """
+  def page_assigns(assigns),
+    do: Map.drop(assigns, [:flash, :theme, :socket, :live_action, :streams, :uploads, :myself])
 
   @doc "The theme's layout around the page."
   attr :theme, :atom, required: true

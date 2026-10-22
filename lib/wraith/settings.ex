@@ -2,9 +2,15 @@ defmodule Wraith.Settings do
   @moduledoc """
   The site: one item, read on every public page. `get/0` returns the
   defaults merged with what was saved, so a fresh table is a working site.
+
+  Reads come from `Wraith.Settings.Cache`; every write goes through
+  `write/1` so the cache is refreshed on this node and, over PubSub, on the
+  others. Code that writes the site item directly (bypassing this module)
+  must call `Wraith.Settings.Cache.invalidate/0` afterwards.
   """
   alias Wraith.Store
   alias Wraith.Store.Keys
+  alias Wraith.Settings.Cache
 
   @defaults %{
     "title" => "Wraith",
@@ -30,12 +36,31 @@ defmodule Wraith.Settings do
   def defaults, do: @defaults
 
   @spec get() :: map()
-  def get do
+  def get, do: Cache.fetch(&load/0)
+
+  defp load do
     {pk, sk} = Keys.site()
 
     case Store.get(pk, sk) do
       {:ok, item} -> Map.merge(@defaults, item)
       :error -> Map.merge(@defaults, %{"pk" => pk, "sk" => sk})
+    end
+  end
+
+  @doc """
+  Change the site item with `fun` (current item or nil → new item) and
+  refresh the cache. The one write path for the site item; `update/1` is the
+  validated, allowlisted front of it, this is for internal state other
+  contexts keep on the item (the studio's key, the setup flag).
+  """
+  @spec write((map() | nil -> map())) :: {:ok, map()} | {:error, term()}
+  def write(fun) when is_function(fun, 1) do
+    {pk, sk} = Keys.site()
+
+    with {:ok, item} <- Store.update(pk, sk, fun) do
+      merged = Map.merge(@defaults, item)
+      Cache.put(merged)
+      {:ok, merged}
     end
   end
 
@@ -68,23 +93,12 @@ defmodule Wraith.Settings do
         {:error, errors}
 
       _ ->
-        {pk, sk} = Keys.site()
-
-        Store.update(pk, sk, fn current ->
-          Map.merge(current || %{}, normalize(attrs))
-        end)
-        |> case do
-          {:ok, item} -> {:ok, Map.merge(@defaults, item)}
-          error -> error
-        end
+        write(fn current -> Map.merge(current || %{}, normalize(attrs)) end)
     end
   end
 
   @doc "Flip the setup flag once the owner exists."
-  def mark_setup_done do
-    {pk, sk} = Keys.site()
-    Store.update(pk, sk, &Map.put(&1 || %{}, "setup_done", true))
-  end
+  def mark_setup_done, do: write(&Map.put(&1 || %{}, "setup_done", true))
 
   def setup_done?, do: get()["setup_done"] == true
 

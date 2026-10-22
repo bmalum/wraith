@@ -1,17 +1,12 @@
 defmodule WraithWeb.Site.MemberLive do
   @moduledoc "A member's account: sign in by mail, newsletter on/off, plan, sign out."
   use WraithWeb, :live_view
-  alias WraithWeb.Themes
-  alias Wraith.{Members, Newsletter, Settings}
+  alias Wraith.{Members, Newsletter}
 
   @impl true
   def mount(_params, _session, socket) do
-    site = Settings.get()
-
     {:ok,
      assign(socket,
-       site: site,
-       theme: Themes.get(site["theme"]),
        page_title: "Account",
        sent: false,
        form: to_form(%{"email" => ""})
@@ -64,22 +59,9 @@ defmodule WraithWeb.Site.MemberLive do
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:member}
-        assigns={page_assigns(assigns)}
+        assigns={WraithWeb.SiteComponents.page_assigns(assigns)}
       />
     </Layouts.site>
     """
   end
-
-  defp page_assigns(assigns),
-    do:
-      Map.drop(assigns, [
-        :flash,
-        :theme,
-        :socket,
-        :__changed__,
-        :live_action,
-        :streams,
-        :uploads,
-        :myself
-      ])
 end

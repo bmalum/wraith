@@ -1,19 +1,13 @@
 defmodule WraithWeb.Site.SearchLive do
   @moduledoc "Site search, as you type."
   use WraithWeb, :live_view
-  alias WraithWeb.Themes
-  alias Wraith.{Accounts, Search, Settings}
+  alias Wraith.Search
 
   @impl true
   def mount(_params, _session, socket) do
-    site = Settings.get()
-
     {:ok,
      assign(socket,
-       site: site,
-       theme: Themes.get(site["theme"]),
-       page_title: "Search",
-       authors: Accounts.list_users() |> Map.new(&{&1["id"], &1})
+       page_title: "Search"
      )}
   end
 
@@ -48,22 +42,9 @@ defmodule WraithWeb.Site.SearchLive do
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:search}
-        assigns={page_assigns(assigns)}
+        assigns={WraithWeb.SiteComponents.page_assigns(assigns)}
       />
     </Layouts.site>
     """
   end
-
-  defp page_assigns(assigns),
-    do:
-      Map.drop(assigns, [
-        :flash,
-        :theme,
-        :socket,
-        :__changed__,
-        :live_action,
-        :streams,
-        :uploads,
-        :myself
-      ])
 end

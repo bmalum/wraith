@@ -1,16 +1,13 @@
 defmodule WraithWeb.Site.SubscribeLive do
   @moduledoc "A reader signs up as a member."
   use WraithWeb, :live_view
-  alias WraithWeb.Themes
 
-  alias Wraith.{Members, Settings}
+  alias Wraith.Members
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       site: Settings.get(),
-       theme: Themes.current(),
        form: to_form(%{"email" => "", "name" => ""}),
        done: false,
        page_title: "Subscribe"
@@ -64,23 +61,9 @@ defmodule WraithWeb.Site.SubscribeLive do
       <WraithWeb.SiteComponents.theme_page
         theme={@theme}
         page={:subscribe}
-        assigns={page_assigns(assigns)}
+        assigns={WraithWeb.SiteComponents.page_assigns(assigns)}
       />
     </Layouts.site>
     """
   end
-
-  # what the theme's template sees: everything but LiveView's own bookkeeping
-  defp page_assigns(assigns),
-    do:
-      Map.drop(assigns, [
-        :flash,
-        :theme,
-        :socket,
-        :__changed__,
-        :live_action,
-        :streams,
-        :uploads,
-        :myself
-      ])
 end

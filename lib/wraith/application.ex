@@ -18,6 +18,8 @@ defmodule Wraith.Application do
         WraithWeb.Telemetry,
         {DNSCluster, query: Application.get_env(:wraith, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Wraith.PubSub},
+        # before anything that reads the site item (search boot, widget seeds)
+        Wraith.Settings.Cache,
         {Task.Supervisor, name: Wraith.TaskSupervisor},
         # Lua widget runs: bounded so N concurrent renders can't multiply a
         # per-run heap cap into node memory exhaustion
