@@ -36,6 +36,7 @@ defmodule Wraith.Store do
   @callback query(String.t(), [query_opt()]) :: {:ok, page()} | {:error, term()}
   @callback transact([op()]) :: :ok | {:error, term()}
   @callback batch_get([key()]) :: {:ok, [item()]} | {:error, term()}
+  @callback cursor(item(), boolean()) :: term()
 
   def impl, do: Application.get_env(:wraith, :store, __MODULE__.Memory)
 
@@ -58,6 +59,14 @@ defmodule Wraith.Store do
   """
   @spec query(String.t(), [query_opt()]) :: {:ok, page()} | {:error, term()}
   def query(pk, opts \\ []), do: impl().query(pk, opts)
+
+  @doc """
+  The `start_key` that resumes a query right after `item` — what `query/2`
+  returns as `next` when `item` is the last of a page. For callers that
+  filter a page down and need a cursor at the last item they kept.
+  """
+  @spec cursor(item(), [query_opt()]) :: term()
+  def cursor(item, opts \\ []), do: impl().cursor(item, opts[:index] == :gsi1)
 
   @doc "Every item of a query, pages followed. Use with care."
   @spec all(String.t(), [query_opt()]) :: [item()]

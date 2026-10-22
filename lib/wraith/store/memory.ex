@@ -70,8 +70,9 @@ defmodule Wraith.Store.Memory do
     {:ok, %{items: page, next: next}}
   end
 
-  defp cursor(item, true), do: {item["gsi1sk"], item["pk"], item["sk"]}
-  defp cursor(item, false), do: {item["sk"], item["pk"], item["sk"]}
+  @impl true
+  def cursor(item, true), do: {item["gsi1sk"], item["pk"], item["sk"]}
+  def cursor(item, false), do: {item["sk"], item["pk"], item["sk"]}
 
   defp sort_key(item, true), do: item["gsi1sk"]
   defp sort_key(item, false), do: item["sk"]

@@ -2,7 +2,7 @@ defmodule WraithWeb.McpTest do
   use WraithWeb.ConnCase, async: false
   import Swoosh.TestAssertions
 
-  alias Wraith.{ApiKeys, Content, Members, Settings, Tools, Widgets}
+  alias Wraith.{ApiKeys, Content, Members, Tools, Widgets}
 
   setup %{conn: conn} do
     set_swoosh_global()
@@ -260,8 +260,26 @@ defmodule WraithWeb.McpTest do
     call!(conn, admin, "member_send_login_link", %{id: "vip@x.io"})
     assert_received {:email, %Swoosh.Email{subject: "Sign in to Agent Site"}}
     assert call!(conn, admin, "members_list", %{status: "paid"})["members"] |> length() == 1
-    call!(conn, admin, "member_delete", %{id: "vip@x.io"})
+
+    # csv round trip: export is the file itself, import counts what it added
+    {false, csv} = call(conn, admin, "members_export_csv", %{})
+    assert csv =~ "email,name,status"
+    assert csv =~ "vip@x.io"
+
+    assert call!(conn, admin, "members_import_csv", %{
+             csv: "email,name\nnew1@x.io,New One\nvip@x.io,Dupe"
+           })["imported"] == 1
+
+    assert Members.get_by_email("new1@x.io")
+    assert {true, _} = call(conn, admin, "members_import_csv", %{csv: ""})
+
+    # erase takes their comments with them
+    {:ok, vip} = {:ok, Members.get_by_email("vip@x.io")}
+    {:ok, _} = Wraith.Comments.create(post, vip, "Before I go")
+
+    assert call!(conn, admin, "member_delete", %{id: "vip@x.io", erase: true})["erased"]
     assert Members.get_by_email("vip@x.io") == nil
+    assert Wraith.Comments.by_member(vip["id"]) == []
 
     # comments
     {:ok, member} = Members.create(%{email: "c@x.io", name: "C"})

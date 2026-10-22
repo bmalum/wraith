@@ -165,9 +165,15 @@ defmodule WraithWeb.MembersTest do
 
     body =
       Jason.encode!(%{
+        id: "evt_1",
         type: "checkout.session.completed",
         data: %{
-          object: %{customer: "cus_1", subscription: "sub_1", metadata: %{member_id: m["id"]}}
+          object: %{
+            customer: "cus_1",
+            subscription: "sub_1",
+            payment_status: "paid",
+            metadata: %{member_id: m["id"]}
+          }
         }
       })
 
@@ -191,6 +197,7 @@ defmodule WraithWeb.MembersTest do
 
     body =
       Jason.encode!(%{
+        id: "evt_2",
         type: "customer.subscription.deleted",
         data: %{object: %{id: "sub_1", customer: "cus_1", status: "canceled"}}
       })
@@ -203,6 +210,54 @@ defmodule WraithWeb.MembersTest do
 
     assert conn.status == 200
     assert Members.get(m["id"])["status"] == "free"
+
+    # Stripe retries evt_1 (the checkout) after the cancellation: it was
+    # applied once already, so the member stays free
+    replay =
+      Jason.encode!(%{
+        id: "evt_1",
+        type: "checkout.session.completed",
+        data: %{
+          object: %{customer: "cus_1", subscription: "sub_1", payment_status: "paid"}
+        }
+      })
+
+    conn =
+      build_conn()
+      |> put_req_header("content-type", "application/json")
+      |> put_req_header("stripe-signature", Billing.sign_for_test(replay, "whsec_test"))
+      |> post(~p"/webhooks/stripe", replay)
+
+    assert conn.status == 200
+    assert Members.get(m["id"])["status"] == "free"
+
+    # a completed session that isn't paid yet (delayed payment method) is not a paid member
+    unpaid =
+      Jason.encode!(%{
+        id: "evt_3",
+        type: "checkout.session.completed",
+        data: %{
+          object: %{
+            customer: "cus_1",
+            subscription: "sub_2",
+            payment_status: "unpaid",
+            metadata: %{member_id: m["id"]}
+          }
+        }
+      })
+
+    conn =
+      build_conn()
+      |> put_req_header("content-type", "application/json")
+      |> put_req_header("stripe-signature", Billing.sign_for_test(unpaid, "whsec_test"))
+      |> post(~p"/webhooks/stripe", unpaid)
+
+    assert conn.status == 200
+    assert Members.get(m["id"])["status"] == "free"
+    assert Members.get(m["id"])["stripe_subscription_id"] == "sub_2"
+
+    # the janitor retires the seen-event markers once they expire (not before)
+    assert Wraith.Janitor.sweep() == 0
   end
 
   test "comments: members comment and reply, live for other readers, moderation", %{
@@ -327,14 +382,13 @@ defmodule WraithWeb.MembersTest do
     {:ok, c} = Wraith.Comments.create(post, m, "Parent")
     {:ok, _} = Wraith.Comments.create(post, other, "Child", c["id"])
 
-    assert_email_sent(fn e ->
-      assert e.subject =~ "Other replied to your comment"
-      assert {"Payer", "pay@x.io"} in e.to
-      true
-    end)
+    # the notice is sent off the request (a supervised task): wait for it
+    assert_receive {:email, %Swoosh.Email{subject: subject, to: to}}, 1_000
+    assert subject =~ "Other replied to your comment"
+    assert {"Payer", "pay@x.io"} in to
 
     {:ok, _} = Wraith.Comments.create(post, m, "Self reply", c["id"])
-    refute_email_sent()
+    refute_receive {:email, _}, 200
 
     csv = Members.to_csv()
     assert csv =~ "email,name,status" and csv =~ "pay@x.io,Payer,free,true"

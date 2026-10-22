@@ -7,8 +7,6 @@ defmodule Wraith.Mailer do
     site = Wraith.Settings.get()
 
     {site["title"],
-     Application.get_env(:wraith, :mail_from) ||
-       "noreply@" <>
-         (Application.get_env(:wraith, WraithWeb.Endpoint)[:url][:host] || "localhost")}
+     Application.get_env(:wraith, :mail_from) || "noreply@" <> Wraith.Config.host()}
   end
 end

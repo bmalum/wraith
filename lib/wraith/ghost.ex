@@ -28,7 +28,7 @@ defmodule Wraith.Ghost do
   def post_json(post, opts \\ []) do
     authors = Keyword.get(opts, :authors, %{})
     tags = Keyword.get(opts, :tags, %{})
-    base = WraithWeb.Endpoint.url()
+    base = Wraith.Config.site_url()
     access? = Keyword.get(opts, :access, false) == true
     readable = Wraith.Content.readable_markdown(post, access?)
     gated = Wraith.Content.gated?(post) and not access?
@@ -92,7 +92,7 @@ defmodule Wraith.Ghost do
   end
 
   def author_json(user) do
-    base = WraithWeb.Endpoint.url()
+    base = Wraith.Config.site_url()
 
     %{
       "id" => user["id"],
@@ -117,7 +117,7 @@ defmodule Wraith.Ghost do
       "slug" => tag["slug"],
       "description" => tag["description"],
       "accent_color" => tag["accent"],
-      "url" => WraithWeb.Endpoint.url() <> "/tag/" <> tag["slug"],
+      "url" => Wraith.Config.site_url() <> "/tag/" <> tag["slug"],
       "visibility" => "public"
     }
     |> Enum.reject(fn {_, v} -> is_nil(v) end)
@@ -136,7 +136,7 @@ defmodule Wraith.Ghost do
       "navigation" => s["navigation"],
       "members_enabled" => s["members_enabled"],
       "comments_enabled" => s["comments_enabled"],
-      "url" => WraithWeb.Endpoint.url(),
+      "url" => Wraith.Config.site_url(),
       "theme" => s["theme"]
     }
   end

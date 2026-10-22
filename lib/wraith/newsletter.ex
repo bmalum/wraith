@@ -252,7 +252,7 @@ defmodule Wraith.Newsletter do
     ~s(<hr style="border:0;border-top:1px solid #eee;margin:2em 0"><p style="color:#999;font-size:.85em">#{esc(site["title"])} · <a href="#{unsubscribe_url(member)}" style="color:#999">Unsubscribe</a> · <a href="#{url("/members")}" style="color:#999">Manage</a></p>)
   end
 
-  defp url(path), do: WraithWeb.Endpoint.url() <> path
+  defp url(path), do: Wraith.Config.site_url() <> path
   defp absolute("/" <> _ = path), do: url(path)
   defp absolute(other), do: other
   defp esc(s), do: s |> to_string() |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()

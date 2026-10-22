@@ -219,7 +219,7 @@ defmodule Wraith.Tools do
 
   @impl true
   def resources(_ctx) do
-    base = WraithWeb.Endpoint.url()
+    base = Wraith.Config.site_url()
 
     [
       %{
@@ -680,8 +680,8 @@ defmodule Wraith.Tools do
         tags: length(Content.list_tags())
       },
       widgets: Widgets.list() |> Enum.map(&Map.take(&1, ~w(slug name kind enabled description))),
-      themes: WraithWeb.Themes.infos() |> Enum.map(&Map.take(&1, [:name, :label])),
-      urls: %{site: WraithWeb.Endpoint.url(), admin: WraithWeb.Endpoint.url() <> "/admin"}
+      themes: Wraith.Config.theme_infos() |> Enum.map(&Map.take(&1, [:name, :label])),
+      urls: %{site: Wraith.Config.site_url(), admin: Wraith.Config.site_url() <> "/admin"}
     })
   end
 
@@ -696,7 +696,7 @@ defmodule Wraith.Tools do
   end
 
   defp do_call(_ctx, "themes_list", _a),
-    do: json(%{themes: WraithWeb.Themes.infos(), active: Settings.get()["theme"]})
+    do: json(%{themes: Wraith.Config.theme_infos(), active: Settings.get()["theme"]})
 
   # ---- posts -----------------------------------------------------------------------
 
@@ -721,7 +721,7 @@ defmodule Wraith.Tools do
         json(%{
           post: full(p),
           revisions: length(Content.revisions(p["id"])),
-          url: WraithWeb.Endpoint.url() <> "/" <> p["slug"]
+          url: Wraith.Config.site_url() <> "/" <> p["slug"]
         })
     end
   end
@@ -752,7 +752,7 @@ defmodule Wraith.Tools do
         json(%{
           ok: true,
           post: full(p),
-          url: WraithWeb.Endpoint.url() <> "/" <> p["slug"],
+          url: Wraith.Config.site_url() <> "/" <> p["slug"],
           editor: "/admin/posts/" <> p["id"]
         })
 
@@ -775,7 +775,7 @@ defmodule Wraith.Tools do
   defp do_call(_ctx, "post_preview_link", %{"id" => id}) do
     with %{} = post <- find_post(id) || {:error, "no post #{id}"},
          {:ok, token} <- Content.preview_token(post) do
-      json(%{url: WraithWeb.Endpoint.url() <> "/preview/" <> token, status: post["status"]})
+      json(%{url: Wraith.Config.site_url() <> "/preview/" <> token, status: post["status"]})
     else
       {:error, why} -> MCP.error(inspect(why))
     end
@@ -798,7 +798,7 @@ defmodule Wraith.Tools do
     with {:ok, at} <- at,
          %{} = p <- find_post(id) || {:error, "no post #{id}"},
          {:ok, p} <- Content.publish_post(p, at) do
-      json(%{ok: true, post: summary(p), url: WraithWeb.Endpoint.url() <> "/" <> p["slug"]})
+      json(%{ok: true, post: summary(p), url: Wraith.Config.site_url() <> "/" <> p["slug"]})
     else
       :error -> MCP.error("`at` must be ISO-8601, e.g. 2027-01-01T10:00:00Z")
       {:error, %{} = e} -> MCP.error("post_publish: " <> inspect(e))
@@ -1017,14 +1017,26 @@ defmodule Wraith.Tools do
     end
   end
 
-  defp do_call(_ctx, "member_delete", %{"id" => id}) do
+  defp do_call(_ctx, "member_delete", %{"id" => id} = a) do
     case find_member(id) do
       nil ->
         MCP.error("no member #{id}")
 
       m ->
-        :ok = Members.delete(m)
-        json(%{ok: true})
+        # erase: their comments go too, not just the member row
+        :ok = if a["erase"] == true, do: Members.erase(m), else: Members.delete(m)
+        json(%{ok: true, erased: a["erase"] == true})
+    end
+  end
+
+  defp do_call(_ctx, "members_export_csv", _a) do
+    %{"content" => [%{"type" => "text", "text" => Members.to_csv()}]}
+  end
+
+  defp do_call(_ctx, "members_import_csv", %{"csv" => csv}) when is_binary(csv) do
+    case String.split(csv, ~r/\r?\n/, trim: true) do
+      [_header | _rows] -> json(%{ok: true, imported: Members.from_csv(csv)})
+      _ -> MCP.error("csv needs a header row (email,name,status,labels,subscribed)")
     end
   end
 
@@ -1232,7 +1244,7 @@ defmodule Wraith.Tools do
           {:ok, hosted} ->
             json(%{
               ok: true,
-              url: WraithWeb.Endpoint.url() <> hosted,
+              url: Wraith.Config.site_url() <> hosted,
               path: hosted,
               markdown: "![](#{hosted})"
             })
@@ -1254,7 +1266,7 @@ defmodule Wraith.Tools do
          {:ok, hosted} <- Uploads.store(bytes, type, name: a["name"] || "image") do
       json(%{
         ok: true,
-        url: WraithWeb.Endpoint.url() <> hosted,
+        url: Wraith.Config.site_url() <> hosted,
         path: hosted,
         markdown: "![](#{hosted})"
       })

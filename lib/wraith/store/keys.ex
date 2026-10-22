@@ -8,6 +8,7 @@ defmodule Wraith.Store.Keys do
   | site settings | `SITE` | `SETTINGS` | | |
   | user (author) | `USER#id` | `USER` | `USERS` | `email` |
   | user by email | `EMAIL#email` | `USER` | | |
+  | user by slug | `USLUG#slug` | `USER` | | |
   | auth session | `TOKEN#hash` | `SESSION` | `SESSIONS#user_id` | `created_at` |
   | post | `POST#id` | `POST` | `POSTS#status` | `sort_at#id` |
   | post by slug | `SLUG#slug` | `POST` | | |
@@ -25,16 +26,25 @@ defmodule Wraith.Store.Keys do
   """
 
   def site, do: {"SITE", "SETTINGS"}
+  # written once, with the owner, in the same transaction: a second setup can't race the first
+  def owner_claim, do: {"SITE", "OWNER"}
 
   def user(id), do: {"USER#" <> id, "USER"}
   def user_email(email), do: {"EMAIL#" <> String.downcase(email), "USER"}
+  # `/author/<slug>` must name one person: the slug is claimed like the email
+  def user_slug(slug), do: {"USLUG#" <> slug, "USER"}
   def users_index, do: "USERS"
 
   def session(token_hash), do: {"TOKEN#" <> token_hash, "SESSION"}
   # a presented single-use token (sign-in, confirm, reset); carries a TTL
   def used_token(token_hash), do: {"USED#" <> token_hash, "TOKEN"}
+  # a Stripe event already applied (Stripe retries; carries a TTL)
+  def stripe_event(id), do: {"STRIPE_EVENT#" <> id, "EVENT"}
   # every session (author and member) on one index, sorted by expiry: the janitor's query
   def sessions_index, do: "SESSIONS"
+  # short-lived markers (used tokens, seen Stripe events) share that index so one
+  # sweep retires them on SQL and in memory, where there is no table TTL
+  def expiring_index, do: sessions_index()
 
   def post(id), do: {"POST#" <> id, "POST"}
   def post_slug(slug), do: {"SLUG#" <> slug, "POST"}

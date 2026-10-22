@@ -14,7 +14,8 @@ defmodule Wraith.Billing do
 
   `Wraith.Billing.API` is the HTTP seam (swapped for a fake in tests).
   """
-  alias Wraith.{Members, Settings}
+  alias Wraith.{Members, Settings, Store}
+  alias Wraith.Store.Keys
 
   @callback post(String.t(), map(), String.t()) :: {:ok, map()} | {:error, term()}
 
@@ -84,10 +85,39 @@ defmodule Wraith.Billing do
 
     with :ok <- verify_signature(raw_body, signature_header, secret),
          {:ok, event} <- Jason.decode(raw_body) do
-      apply_event(event)
+      # Stripe retries until it sees a 2xx, and a retry of an old event must
+      # not undo a newer one (a `deleted` replayed after a fresh `created`)
+      if claim_event(event["id"]), do: apply_event(event)
       {:ok, event["type"]}
     end
   end
+
+  # three days: longer than Stripe's retry window
+  @event_ttl 3 * 86_400
+
+  defp claim_event(id) when is_binary(id) and id != "" do
+    {pk, sk} = Keys.stripe_event(id)
+    now = System.system_time(:second)
+    expires_at = DateTime.from_unix!(now + @event_ttl) |> DateTime.to_iso8601()
+
+    case Store.put(
+           %{
+             "pk" => pk,
+             "sk" => sk,
+             "gsi1pk" => Keys.expiring_index(),
+             "gsi1sk" => expires_at <> "#" <> id,
+             "expires_at" => expires_at,
+             "ttl" => now + @event_ttl
+           },
+           condition: :not_exists
+         ) do
+      :ok -> true
+      {:error, :exists} -> false
+    end
+  end
+
+  # no id (hand-rolled payloads in tests, or a malformed body): apply as before
+  defp claim_event(_), do: true
 
   @tolerance 300
 
@@ -125,12 +155,18 @@ defmodule Wraith.Billing do
   defp apply_event(%{"type" => "checkout.session.completed", "data" => %{"object" => session}}) do
     member_id = get_in(session, ["metadata", "member_id"]) || session["client_reference_id"]
 
+    # the session completing is not the money arriving: with delayed payment
+    # methods Stripe sends `unpaid` here and the real answer later, as a
+    # subscription event. Remember the customer either way; flip only on paid.
+    paid? = session["payment_status"] in [nil, "paid", "no_payment_required"]
+
     with %{} = member <- member_id && Members.get(member_id) do
-      Members.update(member, %{
-        status: "paid",
+      attrs = %{
         stripe_customer_id: session["customer"],
         stripe_subscription_id: session["subscription"]
-      })
+      }
+
+      Members.update(member, if(paid?, do: Map.put(attrs, :status, "paid"), else: attrs))
     end
   end
 

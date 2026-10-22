@@ -94,7 +94,14 @@ defmodule Wraith.Comments do
 
         :ok = Store.put(item)
         broadcast(post_id)
-        if parent_id, do: notify_parent(post, item, parent_id)
+
+        # the notice is a mail round trip (SES); the commenter shouldn't wait on it
+        if parent_id do
+          Task.Supervisor.start_child(Wraith.TaskSupervisor, fn ->
+            notify_parent(post, item, parent_id)
+          end)
+        end
+
         {:ok, Store.get(pk, sk) |> elem(1)}
     end
   end

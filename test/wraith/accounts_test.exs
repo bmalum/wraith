@@ -25,6 +25,51 @@ defmodule Wraith.AccountsTest do
              })
   end
 
+  test "a second setup racing the first loses on the owner claim" do
+    # the first setup's claim is in, its user not yet visible to the second's any_users? check
+    {cpk, csk} = Wraith.Store.Keys.owner_claim()
+    :ok = Wraith.Store.put(%{"pk" => cpk, "sk" => csk})
+
+    assert {:error, %{"base" => "the site already has an owner"}} =
+             Accounts.setup_owner(%{
+               email: "x@example.com",
+               name: "X",
+               password: "a long password"
+             })
+
+    assert Accounts.list_users() == []
+  end
+
+  test "author slugs are unique, follow renames, and free up on delete" do
+    {:ok, a} =
+      Accounts.create_user(%{email: "a@b.co", name: "Sam Lee", password: "long enough pw"})
+
+    {:ok, b} =
+      Accounts.create_user(%{email: "b@b.co", name: "Sam Lee", password: "long enough pw"})
+
+    assert a["slug"] == "sam-lee"
+    assert b["slug"] == "sam-lee-2"
+    assert Accounts.get_user_by_slug("sam-lee")["id"] == a["id"]
+    assert Accounts.get_user_by_slug("sam-lee-2")["id"] == b["id"]
+    refute Map.has_key?(Accounts.get_user_by_slug("sam-lee"), "password_hash")
+
+    # renaming onto a taken name gets the next free suffix, and frees the old slug
+    {:ok, b} = Accounts.update_profile(b, %{name: "Kim Park"})
+    assert b["slug"] == "kim-park"
+    assert Accounts.get_user_by_slug("sam-lee-2") == nil
+    assert Accounts.get_user_by_slug("kim-park")["id"] == b["id"]
+
+    {:ok, b} = Accounts.update_profile(b, %{name: "Sam Lee"})
+    assert b["slug"] == "sam-lee-2"
+
+    # a profile edit that keeps the name keeps the slug
+    {:ok, b} = Accounts.update_profile(b, %{bio: "hi"})
+    assert b["slug"] == "sam-lee-2"
+
+    :ok = Accounts.delete_user(b)
+    assert Accounts.get_user_by_slug("sam-lee-2") == nil
+  end
+
   test "create_user validates and keeps emails unique" do
     assert {:error, %{"email" => _, "password" => _}} =
              Accounts.create_user(%{email: "nope", name: "N", password: "short"})

@@ -82,8 +82,17 @@ defmodule Wraith.Analytics do
 
   @impl true
   def init(_opts) do
+    # trap exits so a supervisor shutdown reaches terminate/2 and the last
+    # minute of views is written instead of dropped with the process
+    Process.flag(:trap_exit, true)
     Process.send_after(self(), :flush, @flush_ms)
     {:ok, %{pending: %{}}}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    write(state.pending)
+    :ok
   end
 
   @impl true
@@ -121,6 +130,10 @@ defmodule Wraith.Analytics do
     Process.send_after(self(), :flush, @flush_ms)
     {:noreply, %{state | pending: %{}}}
   end
+
+  # trapping exits means linked exits arrive as messages; nothing links to us
+  # on purpose, so they are noise
+  def handle_info({:EXIT, _pid, _reason}, state), do: {:noreply, state}
 
   defp write(pending) do
     for {{day, post_id}, {n, visitors}} <- pending do

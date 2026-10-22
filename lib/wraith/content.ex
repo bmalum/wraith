@@ -157,21 +157,52 @@ defmodule Wraith.Content do
   """
   def list_posts(status \\ "published", opts \\ []) when status in @statuses do
     limit = Keyword.get(opts, :limit, 20)
+    query = [index: :gsi1, forward: false, limit: limit]
+    pk = Keys.posts_index(status)
 
-    {:ok, %{items: items, next: next}} =
-      Store.query(Keys.posts_index(status),
-        index: :gsi1,
-        forward: false,
-        limit: limit,
-        start_key: opts[:cursor]
-      )
+    case post_filter(opts) do
+      nil ->
+        {:ok, %{items: items, next: next}} =
+          Store.query(pk, Keyword.put(query, :start_key, opts[:cursor]))
 
-    posts =
-      items
-      |> Enum.filter(&(is_nil(opts[:type]) or &1["type"] == opts[:type]))
-      |> Enum.filter(&(not Keyword.get(opts, :featured, false) or &1["featured"] == true))
+        %{posts: items, next: next}
 
-    %{posts: posts, next: next}
+      filter ->
+        # the store pages before the filter sees the items, so one page can
+        # come back short (or empty) while posts remain; keep paging until
+        # `limit` survive and cut the cursor at the last one kept
+        filtered_page(pk, query, filter, opts[:cursor], limit, [])
+    end
+  end
+
+  defp post_filter(opts) do
+    type = opts[:type]
+    featured? = Keyword.get(opts, :featured, false)
+
+    if is_nil(type) and not featured?,
+      do: nil,
+      else: fn p ->
+        (is_nil(type) or p["type"] == type) and (not featured? or p["featured"] == true)
+      end
+  end
+
+  defp filtered_page(pk, query, filter, cursor, limit, acc) do
+    {:ok, %{items: items, next: next}} = Store.query(pk, Keyword.put(query, :start_key, cursor))
+    acc = acc ++ Enum.filter(items, filter)
+
+    cond do
+      length(acc) >= limit ->
+        posts = Enum.take(acc, limit)
+        # `next` may point at a page the filter empties; `page/3` tolerates that
+        more? = length(acc) > limit or not is_nil(next)
+        %{posts: posts, next: if(more?, do: Store.cursor(List.last(posts), query), else: nil)}
+
+      is_nil(next) ->
+        %{posts: acc, next: nil}
+
+      true ->
+        filtered_page(pk, query, filter, next, limit, acc)
+    end
   end
 
   @doc """
@@ -180,7 +211,7 @@ defmodule Wraith.Content do
   above); cursors are walked from the start, which is fine for a blog.
   Returns `%{posts, page, has_next}`.
   """
-  def page(fetch, n, per_page) when is_function(fetch, 1) and n >= 1 do
+  def page(fetch, n, per_page) when is_function(fetch, 1) and is_integer(n) and n >= 1 do
     Enum.reduce_while(1..n, {nil, nil}, fn i, {_result, cursor} ->
       result = fetch.(limit: per_page, cursor: cursor)
 
@@ -194,6 +225,9 @@ defmodule Wraith.Content do
       %{posts: posts, page: n, has_next: not is_nil(next)}
     end)
   end
+
+  # `?page=0`, `?page=-3`, `?page=abc` from a caller that forgot to clamp: page 1
+  def page(fetch, _n, per_page) when is_function(fetch, 1), do: page(fetch, 1, per_page)
 
   @doc "Every post of every status for the admin list, newest activity first."
   def list_all_posts(opts \\ []) do

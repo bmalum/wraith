@@ -31,8 +31,11 @@ defmodule WraithWeb.Themes do
   @doc "Themes grouped by layout, for the picker."
   def by_layout, do: infos() |> Enum.group_by(& &1.layout_name)
 
-  @doc "Tell `Wraith.Settings` which names are valid (called at boot)."
-  def register, do: Application.put_env(:wraith, :themes, names())
+  @doc "Hand the core (`Wraith.Config`) the installed names and infos (called at boot)."
+  def register do
+    Application.put_env(:wraith, :themes, names())
+    Application.put_env(:wraith, :theme_infos, infos())
+  end
 
   @spec get(String.t() | nil) :: module()
   def get(name), do: Enum.find(@themes, hd(@themes), &(&1.info().name == name))

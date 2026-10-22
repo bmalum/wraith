@@ -159,7 +159,7 @@ defmodule Wraith.Store.Dynamo do
         # Memory and SQL adapters produce, so pagination behaves identically
         next =
           if length(items) > limit,
-            do: page |> List.last() |> cursor_of(index?),
+            do: page |> List.last() |> cursor(index?),
             else: nil
 
         {:ok, %{items: page, next: next}}
@@ -189,12 +189,13 @@ defmodule Wraith.Store.Dynamo do
     end
   end
 
+  # ExclusiveStartKey needs every key attribute of the index being queried
+  @impl true
+  def cursor(item, true), do: Map.take(item, ["pk", "sk", "gsi1pk", "gsi1sk"])
+  def cursor(item, false), do: Map.take(item, ["pk", "sk"])
+
   # an item is a map of typed values; the Decoder knows it as an `M`
   @doc false
-  # ExclusiveStartKey needs every key attribute of the index being queried
-  defp cursor_of(item, true), do: Map.take(item, ["pk", "sk", "gsi1pk", "gsi1sk"])
-  defp cursor_of(item, false), do: Map.take(item, ["pk", "sk"])
-
   def decode(item) when is_map(item), do: Dynamo.Decoder.decode(%{"M" => item})
 
   # ---- conditions ----------------------------------------------------------------

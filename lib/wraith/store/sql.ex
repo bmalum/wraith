@@ -252,6 +252,10 @@ defmodule Wraith.Store.SQL do
     {:ok, %{items: items, next: next}}
   end
 
+  @impl true
+  def cursor(item, true), do: {item["gsi1sk"], item["pk"], item["sk"]}
+  def cursor(item, false), do: {item["sk"], item["pk"], item["sk"]}
+
   # ---- writes --------------------------------------------------------------------
 
   defp do_put(conn, %{"pk" => pk, "sk" => sk} = item, opts) do

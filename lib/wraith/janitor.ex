@@ -1,10 +1,11 @@
 defmodule Wraith.Janitor do
   @moduledoc """
-  Housekeeping once an hour: expired author and member sessions are deleted
-  (they sit on the `SESSIONS` index sorted by expiry, so one range query
-  finds them). On DynamoDB the table's TTL on `ttl` does the same on its
-  own; this keeps SQL and the memory store honest too. Not started in tests;
-  `sweep/0` runs one pass.
+  Housekeeping once an hour: expired author and member sessions, used
+  single-use tokens and seen Stripe events are deleted (they sit on the
+  `SESSIONS` index sorted by expiry, so one range query finds them). On
+  DynamoDB the table's TTL on `ttl` does the same on its own; this keeps SQL
+  and the memory store honest too. Not started in tests; `sweep/0` runs one
+  pass.
   """
   use GenServer
   require Logger
@@ -15,7 +16,7 @@ defmodule Wraith.Janitor do
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
-  @doc "Delete every session whose expiry is in the past. Returns how many."
+  @doc "Delete every expiring item whose expiry is in the past. Returns how many."
   def sweep do
     now = Store.now()
 
@@ -36,7 +37,7 @@ defmodule Wraith.Janitor do
     try do
       case sweep() do
         0 -> :ok
-        n -> Logger.info("janitor: dropped #{n} expired session(s)")
+        n -> Logger.info("janitor: dropped #{n} expired item(s)")
       end
     rescue
       e -> Logger.warning("janitor: #{Exception.message(e)}")

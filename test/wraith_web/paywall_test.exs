@@ -69,7 +69,7 @@ defmodule WraithWeb.PaywallTest do
   end
 
   test "the Content API gates listing and single post, html and plaintext",
-       %{conn: conn, owner: owner} do
+       %{conn: conn} do
     {:ok, key, _rec} = Wraith.ApiKeys.create("t", "content")
 
     body = json_response(get(conn, "/api/content/posts?key=#{key}"), 200)

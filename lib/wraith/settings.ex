@@ -114,7 +114,7 @@ defmodule Wraith.Settings do
         end
 
       {"theme", t}, acc ->
-        if t in Application.get_env(:wraith, :themes, [t]),
+        if t in Wraith.Config.theme_names(),
           do: acc,
           else: Map.put(acc, "theme", "is not an installed theme")
 

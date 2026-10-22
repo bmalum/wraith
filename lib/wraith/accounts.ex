@@ -32,9 +32,17 @@ defmodule Wraith.Accounts do
     end
   end
 
-  def get_user_by_slug(slug) do
-    Enum.find(list_users(), &(&1["slug"] == slug))
+  def get_user_by_slug(slug) when is_binary(slug) do
+    {pk, sk} = Keys.user_slug(slug)
+
+    case Store.get(pk, sk) do
+      {:ok, %{"user_id" => id}} -> get_user(id) |> then(&(&1 && public(&1)))
+      # users created before slugs were claimed have no pointer
+      :error -> Enum.find(list_users(), &(&1["slug"] == slug))
+    end
   end
+
+  def get_user_by_slug(_), do: nil
 
   def list_users, do: Store.all(Keys.users_index(), index: :gsi1) |> Enum.map(&public/1)
 
@@ -43,7 +51,10 @@ defmodule Wraith.Accounts do
 
   @doc "Create a user. The email is unique (a transaction with the email item)."
   @spec create_user(map()) :: {:ok, map()} | {:error, map()}
-  def create_user(attrs) do
+  def create_user(attrs), do: create_user(attrs, [])
+
+  # `extra_ops` join the create transaction (the owner claim at setup)
+  defp create_user(attrs, extra_ops) do
     attrs = stringify(attrs)
     email = attrs["email"] |> to_string() |> String.trim() |> String.downcase()
     name = attrs["name"] |> to_string() |> String.trim()
@@ -65,6 +76,8 @@ defmodule Wraith.Accounts do
       id = Store.id()
       {pk, sk} = Keys.user(id)
       {epk, esk} = Keys.user_email(email)
+      slug = free_slug(Slug.slugify(name), nil)
+      {spk, ssk} = Keys.user_slug(slug)
 
       user = %{
         "pk" => pk,
@@ -74,32 +87,76 @@ defmodule Wraith.Accounts do
         "id" => id,
         "email" => email,
         "name" => name,
-        "slug" => Slug.slugify(name),
+        "slug" => slug,
         "role" => if(attrs["role"] in Wraith.Policy.roles(), do: attrs["role"], else: "author"),
         "bio" => attrs["bio"] || "",
         "password_hash" => Bcrypt.hash_pwd_salt(password)
       }
 
-      case Store.transact([
-             {:put, user, condition: :not_exists},
-             {:put, %{"pk" => epk, "sk" => esk, "user_id" => id}, condition: :not_exists}
-           ]) do
-        :ok -> {:ok, Store.get(pk, sk) |> elem(1)}
-        {:error, e} when e in [:exists, :conflict] -> {:error, %{"email" => "is already taken"}}
-        {:error, e} -> {:error, %{"base" => inspect(e)}}
+      case Store.transact(
+             [
+               {:put, user, condition: :not_exists},
+               {:put, %{"pk" => epk, "sk" => esk, "user_id" => id}, condition: :not_exists},
+               {:put, %{"pk" => spk, "sk" => ssk, "user_id" => id}, condition: :not_exists}
+             ] ++ extra_ops
+           ) do
+        :ok ->
+          {:ok, Store.get(pk, sk) |> elem(1)}
+
+        {:error, e} when e in [:exists, :conflict] ->
+          # the transaction says *something* was taken; the email is the usual answer
+          if get_user_by_email(email),
+            do: {:error, %{"email" => "is already taken"}},
+            else: {:error, %{"name" => "someone claimed that name just now; try again"}}
+
+        {:error, e} ->
+          {:error, %{"base" => inspect(e)}}
       end
     end
   end
 
-  @doc "Create the owner and mark setup done. Refused once any user exists."
+  # the first of `base`, `base-2`, `base-3`… no other author has (a slug taken
+  # by `own_id` counts as free). Races are caught by the pointer's `:not_exists`.
+  defp free_slug(base, own_id) do
+    taken =
+      list_users()
+      |> Enum.reject(&(&1["id"] == own_id))
+      |> MapSet.new(& &1["slug"])
+
+    Enum.find([base | Enum.map(2..99, &"#{base}-#{&1}")], &(not MapSet.member?(taken, &1))) ||
+      base <> "-" <> String.slice(Store.id(), -6, 6)
+  end
+
+  @doc """
+  Create the owner and mark setup done. Refused once any user exists — and
+  two setups submitted at once can't both win: the owner claim item is put
+  with `:not_exists` in the same transaction as the user.
+  """
   def setup_owner(attrs) do
-    if any_users?() do
-      {:error, %{"base" => "the site already has an owner"}}
-    else
-      with {:ok, user} <- create_user(Map.put(stringify(attrs), "role", "owner")) do
-        {:ok, _} = Wraith.Settings.mark_setup_done()
-        {:ok, user}
-      end
+    {cpk, csk} = Keys.owner_claim()
+
+    cond do
+      any_users?() or match?({:ok, _}, Store.get(cpk, csk)) ->
+        {:error, %{"base" => "the site already has an owner"}}
+
+      true ->
+        claim = {:put, %{"pk" => cpk, "sk" => csk}, condition: :not_exists}
+
+        case create_user(Map.put(stringify(attrs), "role", "owner"), [claim]) do
+          {:ok, user} ->
+            {:ok, _} = Wraith.Settings.mark_setup_done()
+            {:ok, user}
+
+          # nothing can be "taken" on an empty site: the claim lost the race
+          {:error, %{"email" => "is already taken"}} ->
+            {:error, %{"base" => "the site already has an owner"}}
+
+          {:error, %{"name" => "someone claimed" <> _}} ->
+            {:error, %{"base" => "the site already has an owner"}}
+
+          error ->
+            error
+        end
     end
   end
 
@@ -114,16 +171,43 @@ defmodule Wraith.Accounts do
       nil ->
         {pk, sk} = Keys.user(id)
 
-        Store.update(pk, sk, fn u ->
-          u = Map.merge(u, attrs)
-
-          if attrs["name"] in [nil, ""],
-            do: u,
-            else: Map.put(u, "slug", Slug.slugify(attrs["name"]))
-        end)
+        with {:ok, u} <- Store.get(pk, sk) |> found() do
+          case new_slug(u, attrs["name"]) do
+            nil -> Store.update(pk, sk, &Map.merge(&1, attrs))
+            slug -> rename(u, Map.merge(u, attrs), slug)
+          end
+        end
 
       field ->
         {:error, %{field => "must be an http(s) URL"}}
+    end
+  end
+
+  defp found({:ok, u}), do: {:ok, u}
+  defp found(:error), do: {:error, %{"base" => "no such user"}}
+
+  # nil when the name doesn't move the slug (unchanged, or already ours as `-2`)
+  defp new_slug(_u, name) when name in [nil, ""], do: nil
+
+  defp new_slug(u, name) do
+    slug = free_slug(Slug.slugify(name), u["id"])
+    if slug == u["slug"], do: nil, else: slug
+  end
+
+  # claim the new slug, release the old one and save the user — or none of it
+  defp rename(u, merged, slug) do
+    {npk, nsk} = Keys.user_slug(slug)
+    {opk, osk} = Keys.user_slug(u["slug"] || "")
+    merged = Map.put(merged, "slug", slug)
+
+    case Store.transact([
+           {:put, %{"pk" => npk, "sk" => nsk, "user_id" => u["id"]}, condition: :not_exists},
+           {:delete, opk, osk},
+           {:put, merged, condition: {:version, u["version"]}}
+         ]) do
+      :ok -> {:ok, Store.get(u["pk"], u["sk"]) |> elem(1)}
+      {:error, e} when e in [:exists, :conflict] -> {:error, %{"name" => "is taken; try again"}}
+      {:error, e} -> {:error, %{"base" => inspect(e)}}
     end
   end
 
@@ -156,10 +240,11 @@ defmodule Wraith.Accounts do
   @doc "Remove a staff member (never the owner). Their posts stay, attributed to them."
   def delete_user(%{"role" => "owner"}), do: {:error, %{"base" => "the owner cannot be removed"}}
 
-  def delete_user(%{"id" => id, "email" => email}) do
+  def delete_user(%{"id" => id, "email" => email} = u) do
     {pk, sk} = Keys.user(id)
     {epk, esk} = Keys.user_email(email)
-    Store.transact([{:delete, pk, sk}, {:delete, epk, esk}])
+    {spk, ssk} = Keys.user_slug(u["slug"] || "")
+    Store.transact([{:delete, pk, sk}, {:delete, epk, esk}, {:delete, spk, ssk}])
   end
 
   @doc "Change the password: the current one must match, the new one must be long enough."

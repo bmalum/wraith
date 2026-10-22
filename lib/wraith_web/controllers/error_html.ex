@@ -23,7 +23,13 @@ defmodule WraithWeb.ErrorHTML do
       {:ok, site, theme} ->
         Gettext.put_locale(WraithWeb.Gettext, WraithWeb.Locale.locale())
         {title, copy} = copy(status, template)
-        themed(status, title, copy, site, theme)
+
+        # a theme template that raises here would turn a 404 into a crash loop
+        try do
+          themed(status, title, copy, site, theme)
+        rescue
+          _ -> plain(status, title, copy)
+        end
 
       :error ->
         {title, copy} = copy(status, template)

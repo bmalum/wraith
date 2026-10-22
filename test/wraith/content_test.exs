@@ -108,6 +108,42 @@ defmodule Wraith.ContentTest do
     assert Enum.map(page2, & &1["title"]) == ["Post 1"]
   end
 
+  test "type/featured filters page by what survives the filter", %{owner: o} do
+    # newest first: 4 pages on top of 3 posts — one store page of 3 is all pages
+    for {title, type, i} <- [
+          {"Post A", "post", 1},
+          {"Post B", "post", 2},
+          {"Post C", "post", 3},
+          {"Page 1", "page", 4},
+          {"Page 2", "page", 5},
+          {"Page 3", "page", 6},
+          {"Page 4", "page", 7}
+        ] do
+      p = draft(o, %{title: title, type: type})
+      {:ok, _} = Content.publish_post(p, DateTime.utc_now() |> DateTime.add(-100 + i, :second))
+    end
+
+    %{posts: first, next: next} = Content.list_posts("published", type: "post", limit: 2)
+    assert Enum.map(first, & &1["title"]) == ["Post C", "Post B"]
+    assert next
+
+    %{posts: rest, next: nil} =
+      Content.list_posts("published", type: "post", limit: 2, cursor: next)
+
+    assert Enum.map(rest, & &1["title"]) == ["Post A"]
+
+    # and through page/3, the way the home page and the Content API page
+    fetch = &Content.list_posts("published", Keyword.put(&1, :type, "post"))
+    assert %{posts: [_, _], has_next: true} = Content.page(fetch, 1, 2)
+    assert %{posts: [%{"title" => "Post A"}], has_next: false} = Content.page(fetch, 2, 2)
+
+    {:ok, _} =
+      Content.update_post(Content.get_published("post-a"), %{featured: true})
+
+    assert %{posts: [%{"title" => "Post A"}]} =
+             Content.list_posts("published", featured: true, limit: 1)
+  end
+
   test "scheduling and publish_due", %{owner: o} do
     p = draft(o)
     {:ok, p} = Content.publish_post(p, DateTime.utc_now() |> DateTime.add(1, :hour))

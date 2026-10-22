@@ -54,14 +54,18 @@ defmodule Wraith.Tokens do
       {pk, sk} = Keys.used_token(hash(token))
       ttl = System.system_time(:second) + @ttl[purpose] + 60
 
+      expires_at =
+        DateTime.utc_now() |> DateTime.add(@ttl[purpose] + 60) |> DateTime.to_iso8601()
+
       case Store.put(
              %{
                "pk" => pk,
                "sk" => sk,
+               "gsi1pk" => Keys.expiring_index(),
+               "gsi1sk" => expires_at <> "#" <> sk,
                "purpose" => Atom.to_string(purpose),
                "used_at" => Store.now(),
-               "expires_at" =>
-                 DateTime.utc_now() |> DateTime.add(@ttl[purpose] + 60) |> DateTime.to_iso8601(),
+               "expires_at" => expires_at,
                "ttl" => ttl
              },
              condition: :not_exists

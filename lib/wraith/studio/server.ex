@@ -377,7 +377,10 @@ defmodule Wraith.Studio.Server do
     else
       {:error, reason} ->
         why = if(is_binary(reason), do: reason, else: inspect(reason))
-        Logger.warning("studio boot: #{why}")
+        # no key yet is how every fresh install starts; only a failed boot warns
+        if is_nil(key),
+          do: Logger.info("studio boot: #{why}"),
+          else: Logger.warning("studio boot: #{why}")
 
         %{state | phase: :error, error: why}
         |> add(Transcript.new_entry("status", "Could not start: " <> why, %{"level" => "error"}))

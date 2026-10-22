@@ -226,6 +226,9 @@ if config_env() == :prod do
 
   config :wraith, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # the origin every absolute URL the core builds starts with (see Wraith.Config)
+  config :wraith, :site_url, "https://#{host}"
+
   config :wraith, WraithWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
