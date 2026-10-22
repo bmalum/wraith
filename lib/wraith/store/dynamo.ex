@@ -71,18 +71,43 @@ defmodule Wraith.Store.Dynamo do
     keys
     |> Enum.chunk_every(100)
     |> Enum.reduce_while({:ok, []}, fn chunk, {:ok, acc} ->
-      req = %{table() => [keys: Enum.map(chunk, fn {pk, sk} -> %{pk: pk, sk: sk} end)]}
-
-      case Dynamo.batch_get_item(req) |> ExAws.request() do
-        {:ok, %{"Responses" => resp}} ->
-          items = resp |> Map.get(table(), []) |> Enum.map(&decode/1)
-          {:cont, {:ok, acc ++ items}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
+      case batch_get_chunk(Enum.map(chunk, fn {pk, sk} -> %{pk: pk, sk: sk} end), [], 0) do
+        {:ok, items} -> {:cont, {:ok, [items | acc]}}
+        {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
+    |> case do
+      {:ok, chunks} -> {:ok, chunks |> Enum.reverse() |> List.flatten()}
+      error -> error
+    end
   end
+
+  # DynamoDB may return part of a batch and list the rest under UnprocessedKeys
+  # (throttling, size); dropping them silently loses posts from tag/author
+  # pages. Re-request with backoff, a few times.
+  defp batch_get_chunk([], acc, _attempt), do: {:ok, acc}
+  defp batch_get_chunk(_keys, acc, attempt) when attempt >= 5, do: {:ok, acc}
+
+  defp batch_get_chunk(keys, acc, attempt) do
+    if attempt > 0, do: Process.sleep(50 * Integer.pow(2, attempt - 1))
+
+    case Dynamo.batch_get_item(%{table() => [keys: keys]}) |> ExAws.request() do
+      {:ok, %{"Responses" => resp} = body} ->
+        items = resp |> Map.get(table(), []) |> Enum.map(&decode/1)
+        left = get_in(body, ["UnprocessedKeys", table(), "Keys"]) || []
+        batch_get_chunk(Enum.map(left, &decode_key/1), acc ++ items, attempt + 1)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp decode_key(raw),
+    do:
+      raw
+      |> decode()
+      |> Map.take(["pk", "sk"])
+      |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
 
   @impl Wraith.Store
   def query(pk, opts) do
@@ -111,7 +136,9 @@ defmodule Wraith.Store.Dynamo do
         expression_attribute_names: names,
         expression_attribute_values: values,
         scan_index_forward: Keyword.get(opts, :forward, true),
-        limit: Keyword.get(opts, :limit, 1_000)
+        # one more than asked: whether a next page exists is then a fact, not
+        # DynamoDB's LastEvaluatedKey, which it also returns on the last full page
+        limit: Keyword.get(opts, :limit, 1_000) + 1
       ]
       |> then(fn p -> if index?, do: [{:index_name, "gsi1"} | p], else: p end)
       |> then(fn p ->
@@ -121,15 +148,21 @@ defmodule Wraith.Store.Dynamo do
         end
       end)
 
-    case Dynamo.query(table(), params) |> ExAws.request() do
-      {:ok, %{"Items" => items} = resp} ->
-        next =
-          case resp["LastEvaluatedKey"] do
-            nil -> nil
-            key -> decode(key)
-          end
+    limit = Keyword.get(opts, :limit, 1_000)
 
-        {:ok, %{items: Enum.map(items, &decode/1), next: next}}
+    case Dynamo.query(table(), params) |> ExAws.request() do
+      {:ok, %{"Items" => raw}} ->
+        items = Enum.map(raw, &decode/1)
+        page = Enum.take(items, limit)
+
+        # the cursor is the last item's key attributes — the same shape the
+        # Memory and SQL adapters produce, so pagination behaves identically
+        next =
+          if length(items) > limit,
+            do: page |> List.last() |> cursor_of(index?),
+            else: nil
+
+        {:ok, %{items: page, next: next}}
 
       {:error, reason} ->
         {:error, reason}
@@ -158,6 +191,10 @@ defmodule Wraith.Store.Dynamo do
 
   # an item is a map of typed values; the Decoder knows it as an `M`
   @doc false
+  # ExclusiveStartKey needs every key attribute of the index being queried
+  defp cursor_of(item, true), do: Map.take(item, ["pk", "sk", "gsi1pk", "gsi1sk"])
+  defp cursor_of(item, false), do: Map.take(item, ["pk", "sk"])
+
   def decode(item) when is_map(item), do: Dynamo.Decoder.decode(%{"M" => item})
 
   # ---- conditions ----------------------------------------------------------------

@@ -109,10 +109,68 @@ defmodule Wraith.Settings do
           do: acc,
           else: Map.put(acc, "accent", "must be a hex colour")
 
+      {"accent", _}, acc ->
+        Map.put(acc, "accent", "must be a hex colour")
+
+      # these are evaluated on every request (Redirects plug, nav in every
+      # layout); a malformed value would 500 the whole site, admin included
+      {"redirects", rules}, acc ->
+        if is_list(rules) and Enum.all?(rules, &redirect_rule?/1),
+          do: acc,
+          else: Map.put(acc, "redirects", "must be a list of {from, to} with /paths, from ≠ to")
+
+      {"navigation", items}, acc ->
+        if is_list(items) and Enum.all?(items, &nav_item?/1),
+          do: acc,
+          else: Map.put(acc, "navigation", "must be a list of {label, url}")
+
+      {"widget_fetch_hosts", hosts}, acc ->
+        if is_binary(hosts) and Regex.match?(~r/\A[\w.*,\s-]*\z/u, hosts),
+          do: acc,
+          else: Map.put(acc, "widget_fetch_hosts", "hostnames only, comma or space separated")
+
+      {"lang", l}, acc ->
+        if is_binary(l) and Regex.match?(~r/\A[a-zA-Z]{2,3}([-_][a-zA-Z0-9]{2,8})*\z/, l),
+          do: acc,
+          else: Map.put(acc, "lang", "must be a language tag like en or pt-BR")
+
+      {field, url}, acc when field in ~w(logo icon cover_image facebook) ->
+        if url in [nil, ""] or web_or_local_url?(url),
+          do: acc,
+          else: Map.put(acc, field, "must be an http(s) URL or an upload path")
+
       _, acc ->
         acc
     end)
   end
+
+  defp redirect_rule?(%{"from" => from, "to" => to} = r) do
+    is_binary(from) and is_binary(to) and String.starts_with?(from, "/") and
+      (String.starts_with?(to, "/") or web_or_local_url?(to)) and
+      String.trim_trailing(from, "*") != to and
+      (not Map.has_key?(r, "permanent") or
+         r["permanent"] in [true, false, "true", "false", "on", nil])
+  end
+
+  defp redirect_rule?(_), do: false
+
+  defp nav_item?(%{"label" => l, "url" => u}),
+    do:
+      is_binary(l) and l != "" and is_binary(u) and
+        (String.starts_with?(u, "/") or web_or_local_url?(u))
+
+  defp nav_item?(_), do: false
+
+  defp web_or_local_url?("/" <> _), do: true
+
+  defp web_or_local_url?(url) when is_binary(url) do
+    case URI.new(url) do
+      {:ok, %URI{scheme: s, host: h}} when s in ["http", "https"] -> is_binary(h) and h != ""
+      _ -> false
+    end
+  end
+
+  defp web_or_local_url?(_), do: false
 
   defp normalize(attrs) do
     attrs

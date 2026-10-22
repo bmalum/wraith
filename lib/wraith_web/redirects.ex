@@ -27,23 +27,35 @@ defmodule WraithWeb.Redirects do
   def call(conn, _opts), do: conn
 
   @doc false
-  def match(path, rules) do
-    Enum.find_value(rules, fn %{"from" => from, "to" => to} = r ->
-      permanent? = r["permanent"] in [true, "true", "on", nil]
+  def match(path, rules) when is_list(rules) do
+    Enum.find_value(rules, fn
+      %{"from" => from, "to" => to} = r when is_binary(from) and is_binary(to) ->
+        match_rule(path, from, to, r)
 
-      cond do
-        from == path ->
-          {to, permanent?}
-
-        String.ends_with?(from, "*") and
-            String.starts_with?(path, String.trim_trailing(from, "*")) ->
-          rest = String.replace_prefix(path, String.trim_trailing(from, "*"), "")
-          {String.replace(to, "*", rest), permanent?}
-
-        true ->
-          nil
-      end
+      # Settings validates the shape; this is the last line of defence so a
+      # bad value can never 500 every GET on the site
+      _ ->
+        nil
     end)
+  end
+
+  def match(_path, _rules), do: nil
+
+  defp match_rule(path, from, to, r) do
+    permanent? = r["permanent"] in [true, "true", "on", nil]
+
+    cond do
+      from == path ->
+        {to, permanent?}
+
+      String.ends_with?(from, "*") and
+          String.starts_with?(path, String.trim_trailing(from, "*")) ->
+        rest = String.replace_prefix(path, String.trim_trailing(from, "*"), "")
+        {String.replace(to, "*", rest), permanent?}
+
+      true ->
+        nil
+    end
   end
 
   @doc "Parse the settings textarea: one `from to [permanent|temporary]` per line."

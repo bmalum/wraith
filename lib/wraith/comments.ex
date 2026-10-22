@@ -145,8 +145,11 @@ defmodule Wraith.Comments do
 
   @doc "Every comment a member wrote (any status)."
   def by_member(member_id) do
-    (recent("published", 10_000) ++ recent("hidden", 10_000))
-    |> Enum.filter(&(&1["member_id"] == member_id))
+    # every comment, every page — an erase that misses one is not an erase
+    for status <- ~w(published hidden),
+        c <- Store.all(Keys.comments_index(status), index: :gsi1),
+        c["member_id"] == member_id,
+        do: c
   end
 
   @doc "Newest comments across the site, for moderation."

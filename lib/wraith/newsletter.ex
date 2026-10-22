@@ -87,51 +87,81 @@ defmodule Wraith.Newsletter do
   def send_post(post, opts \\ [])
 
   def send_post(%{"status" => "published", "id" => id} = post, opts) do
-    if sent?(post) and not Keyword.get(opts, :force, false) do
-      {:error, :already_sent}
-    else
-      recipients = Members.subscribed() |> Enum.filter(&Members.can_read?(&1, post["visibility"]))
-      site = Settings.get()
-      author = post["author_id"] && Accounts.get_user(post["author_id"])
-      body = body_html(post)
-
-      sent =
-        recipients
-        |> Enum.chunk_every(@batch)
-        |> Enum.map(fn batch ->
-          batch
-          |> Enum.map(fn m ->
-            mail(m["email"], m["name"], post["title"], """
-            <p style="color:#777;font-size:.9em">#{esc(site["title"])}#{if author, do: " · " <> esc(author["name"]), else: ""}</p>
-            <h1 style="font-size:1.8em;line-height:1.15;margin:.2em 0 .6em"><a href="#{url("/" <> post["slug"])}" style="color:#111;text-decoration:none">#{esc(post["title"])}</a></h1>
-            #{if post["custom_excerpt"], do: "<p style=\"font-size:1.1em;color:#555\">#{esc(post["custom_excerpt"])}</p>", else: ""}
-            #{if post["feature_image"], do: "<p><img src=\"#{absolute(post["feature_image"])}\" alt=\"\" style=\"max-width:100%;border-radius:8px\"></p>", else: ""}
-            #{body}
-            <p><a href="#{url("/" <> post["slug"])}">Read on the site →</a></p>
-            #{footer(m)}
-            """)
-            |> deliver()
-          end)
-          |> Enum.count(&match?({:ok, _}, &1))
-        end)
-        |> Enum.sum()
-
-      {pk, sk} = Keys.newsletter_send(id)
-
-      :ok =
-        Store.put(%{
-          "pk" => pk,
-          "sk" => sk,
-          "post_id" => id,
-          "sent_at" => Store.now(),
-          "recipients" => sent
-        })
-
-      {:ok, sent}
+    # Claim first, send second. A conditional put of the send record is the
+    # lock: two nodes (or a retry) racing to send the same post can't both
+    # win it, so members never get a newsletter twice. `force` re-sends on
+    # purpose and re-claims unconditionally.
+    case claim(id, Keyword.get(opts, :force, false)) do
+      :ok -> {:ok, deliver_to_members(post)}
+      :already_sent -> {:error, :already_sent}
     end
   end
 
   def send_post(_post, _opts), do: {:error, :not_published}
+
+  defp claim(id, force?) do
+    {pk, sk} = Keys.newsletter_send(id)
+
+    record = %{
+      "pk" => pk,
+      "sk" => sk,
+      "post_id" => id,
+      "sent_at" => Store.now(),
+      "recipients" => 0,
+      "status" => "sending"
+    }
+
+    if force? do
+      :ok = Store.put(record)
+      :ok
+    else
+      case Store.put(record, condition: :not_exists) do
+        :ok -> :ok
+        {:error, :exists} -> :already_sent
+      end
+    end
+  end
+
+  defp deliver_to_members(post) do
+    recipients = Members.subscribed() |> Enum.filter(&Members.can_read?(&1, post["visibility"]))
+    site = Settings.get()
+    author = post["author_id"] && Accounts.get_user(post["author_id"])
+    body = body_html(post)
+
+    sent =
+      recipients
+      |> Enum.chunk_every(@batch)
+      |> Enum.map(fn batch ->
+        batch
+        |> Enum.map(fn m ->
+          mail(m["email"], m["name"], post["title"], """
+          <p style="color:#777;font-size:.9em">#{esc(site["title"])}#{if author, do: " · " <> esc(author["name"]), else: ""}</p>
+          <h1 style="font-size:1.8em;line-height:1.15;margin:.2em 0 .6em"><a href="#{url("/" <> post["slug"])}" style="color:#111;text-decoration:none">#{esc(post["title"])}</a></h1>
+          #{if post["custom_excerpt"], do: "<p style=\"font-size:1.1em;color:#555\">#{esc(post["custom_excerpt"])}</p>", else: ""}
+          #{if post["feature_image"], do: "<p><img src=\"#{esc(absolute(post["feature_image"]))}\" alt=\"\" style=\"max-width:100%;border-radius:8px\"></p>", else: ""}
+          #{body}
+          <p><a href="#{url("/" <> post["slug"])}">Read on the site →</a></p>
+          #{footer(m)}
+          """)
+          |> deliver()
+        end)
+        |> Enum.count(&match?({:ok, _}, &1))
+      end)
+      |> Enum.sum()
+
+    {pk, sk} = Keys.newsletter_send(post["id"])
+
+    {:ok, _} =
+      Store.update(pk, sk, fn r ->
+        Map.merge(r || %{"pk" => pk, "sk" => sk, "post_id" => post["id"]}, %{
+          "sent_at" => Store.now(),
+          "recipients" => sent,
+          "status" => "sent"
+        })
+      end)
+
+    sent
+  end
 
   @doc "Someone replied to a member's comment."
   def send_reply_notice(%{"email" => email} = member, post, reply) do
@@ -200,10 +230,12 @@ defmodule Wraith.Newsletter do
       |> String.replace(~r/\n{3,}/, "\n\n")
       |> String.trim()
 
+    # names and subjects come from readers (the subscribe form, comments);
+    # a CR/LF there would start a new mail header
     new()
-    |> to({to_name || "", to_email})
+    |> to({header_safe(to_name), to_email})
     |> from(Mailer.from())
-    |> subject(subject)
+    |> subject(header_safe(subject))
     |> html_body(
       ~s(<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:40em;margin:0 auto;padding:1.5em;color:#111;line-height:1.55">#{html}</div>)
     )
@@ -222,4 +254,16 @@ defmodule Wraith.Newsletter do
   defp absolute("/" <> _ = path), do: url(path)
   defp absolute(other), do: other
   defp esc(s), do: s |> to_string() |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
+  # one line, no control characters, bounded — safe inside an RFC 5322 header
+  defp header_safe(nil), do: ""
+
+  defp header_safe(v) when is_binary(v),
+    do:
+      v
+      |> String.replace(~r/[\r\n\t\x00-\x1f\x7f]+/, " ")
+      |> String.trim()
+      |> String.slice(0, 200)
+
+  defp header_safe(v), do: header_safe(to_string(v))
 end

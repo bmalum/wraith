@@ -390,10 +390,17 @@ defmodule Wraith.Content do
   def publish_due do
     now = Store.now()
 
+    # The scheduled index is sorted by published_at#id, so "everything due" is
+    # one range query from the start up to now — not the newest N, which with
+    # many scheduled posts would be the ones furthest in the future.
+    {:ok, %{items: due}} =
+      Store.query(Keys.posts_index("scheduled"), index: :gsi1, between: {"0", now <> "#~"})
+
     published =
-      list_posts("scheduled", limit: 100).posts
-      |> Enum.filter(&(&1["published_at"] && &1["published_at"] <= now))
+      due
       |> Enum.map(fn p ->
+        # update_post is OCC-conditioned: on a multi-node cluster exactly one
+        # node's update wins, and only that node sends the newsletter
         with {:ok, p} <- update_post(p, %{"status" => "published"}) do
           if p["send_on_publish"], do: Wraith.Newsletter.send_post(p)
           {:ok, p}
@@ -402,7 +409,8 @@ defmodule Wraith.Content do
       |> Enum.count(&match?({:ok, _}, &1))
 
     unpublished =
-      list_posts("published", limit: 500).posts
+      Keys.posts_index("published")
+      |> Store.all(index: :gsi1)
       |> Enum.filter(&(&1["unpublish_at"] && &1["unpublish_at"] <= now))
       |> Enum.map(&update_post(&1, %{"status" => "draft", "unpublish_at" => nil}))
       |> Enum.count(&match?({:ok, _}, &1))

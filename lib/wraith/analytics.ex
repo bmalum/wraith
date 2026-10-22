@@ -65,7 +65,7 @@ defmodule Wraith.Analytics do
     since = Date.utc_today() |> Date.add(-(days - 1)) |> Date.to_iso8601()
 
     by_day =
-      Wraith.Members.list(limit: 100_000).members
+      Wraith.Members.all()
       |> Enum.map(&String.slice(&1["created_at"], 0, 10))
       |> Enum.filter(&(&1 >= since))
       |> Enum.frequencies()

@@ -43,7 +43,7 @@ defmodule Wraith.Members do
     %{members: items, next: next}
   end
 
-  def count, do: Store.all(Keys.members_index(), index: :gsi1) |> length()
+  def count, do: all() |> length()
 
   @spec create(map()) :: {:ok, map()} | {:error, map()}
   def create(attrs) do
@@ -102,13 +102,46 @@ defmodule Wraith.Members do
 
     {pk, sk} = Keys.member(id)
 
-    with {:ok, m} <- Store.update(pk, sk, &Map.merge(&1, attrs)) do
-      if cid = attrs["stripe_customer_id"] do
-        {spk, ssk} = Keys.stripe_customer(cid)
-        Store.put(%{"pk" => spk, "sk" => ssk, "member_id" => id})
-      end
+    with {:ok, m} <-
+           Store.update(pk, sk, fn cur ->
+             cur = cur || %{}
+             new_cid = attrs["stripe_customer_id"]
 
+             cur
+             |> then(fn c ->
+               if is_binary(new_cid) and is_binary(c["stripe_customer_id"]) and
+                    c["stripe_customer_id"] != new_cid,
+                  do: Map.put(c, "previous_stripe_customer_id", c["stripe_customer_id"]),
+                  else: c
+             end)
+             |> Map.merge(attrs)
+           end) do
+      :ok = sync_stripe_pointer(m, attrs["stripe_customer_id"])
       {:ok, m}
+    end
+  end
+
+  # STRIPE#<customer> → member is how webhooks find us. Keep exactly one
+  # pointer per member: write the new one and remove a previous one if the
+  # customer id changed.
+  defp sync_stripe_pointer(_member, nil), do: :ok
+
+  defp sync_stripe_pointer(%{"id" => id} = member, cid) do
+    {spk, ssk} = Keys.stripe_customer(cid)
+
+    ops =
+      [{:put, %{"pk" => spk, "sk" => ssk, "member_id" => id}}] ++
+        case member["previous_stripe_customer_id"] do
+          old when is_binary(old) and old != cid ->
+            [{:delete, elem(Keys.stripe_customer(old), 0), ssk}]
+
+          _ ->
+            []
+        end
+
+    case Store.transact(ops) do
+      :ok -> :ok
+      {:error, why} -> raise "stripe pointer for member #{id}: #{inspect(why)}"
     end
   end
 
@@ -134,9 +167,12 @@ defmodule Wraith.Members do
     :ok
   end
 
+  @doc "Every member, pages followed (one DynamoDB page caps at 1 MB)."
+  def all, do: Store.all(Keys.members_index(), index: :gsi1)
+
   @doc "Every member as CSV (email, name, status, subscribed, labels, created_at)."
   def to_csv do
-    rows = list(limit: 100_000).members
+    rows = all()
 
     header = "email,name,status,subscribed,labels,created_at\n"
 
