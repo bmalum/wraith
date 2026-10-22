@@ -200,15 +200,11 @@ main:focus { outline: none; }
 .preview-banner-edit:hover { text-decoration: underline; }
 
 /* ---- forms take the theme's shape --------------------------------------
-   app.css gives .input/.btn-* a fixed 8px radius for the admin; on the
-   public site they follow --radius so a square skin gets square fields. */
-.site .input, .l-grid .input, .l-list .input, .l-mag .input, .l-min .input, .l-jrn .input,
-.site .btn-accent, .l-grid .btn-accent, .l-list .btn-accent, .l-mag .btn-accent, .l-min .btn-accent, .l-jrn .btn-accent,
-.site .btn-ghost, .l-grid .btn-ghost, .l-list .btn-ghost, .l-mag .btn-ghost, .l-min .btn-ghost, .l-jrn .btn-ghost,
-.site .btn-danger, .l-grid .btn-danger, .l-list .btn-danger, .l-mag .btn-danger, .l-min .btn-danger, .l-jrn .btn-danger {
-  border-radius: var(--radius);
-  font-family: var(--body);
-}
+   app.css draws fields and buttons with --field-radius / --field-font (8px
+   and the surrounding font in the admin). Each layout root hands them the
+   theme's own, so a square skin gets square fields; skins still restyle
+   `.input` directly where they want more than the shape. */
+.site, .l-grid, .l-list, .l-mag, .l-min, .l-jrn { --field-radius: var(--radius); --field-font: var(--body); }
 .t-form label { font-family: var(--body); color: var(--ink-2); font-size: .85rem; }
 .t-form .input { padding: .7rem .9rem; font-size: 1rem; }
 .t-form .btn-accent { align-self: flex-start; padding: .7rem 1.4rem; font-size: 1rem; }

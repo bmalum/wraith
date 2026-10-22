@@ -67,7 +67,6 @@ defmodule WraithWeb.ErrorHTML do
     <!DOCTYPE html>
     <html
       lang={@site["lang"] || "en"}
-      data-theme="wraith"
       data-layout={@theme.info().layout_name}
       data-skin={@theme.info().name}
       data-scheme={@theme.info().tokens["--scheme"] || "light"}

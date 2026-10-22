@@ -163,7 +163,7 @@ defmodule WraithWeb.Admin.PostsLive do
       <div :if={@posts != []} class="bulk-bar">
         <label class="nav-page"><input
           type="checkbox"
-          class="checkbox checkbox-sm"
+          class="checkbox"
           phx-click="select-all"
           checked={MapSet.size(@selected) == length(@posts)}
         /> all</label>
@@ -188,7 +188,7 @@ defmodule WraithWeb.Admin.PostsLive do
         <li :for={p <- @posts} class="row" id={"post-" <> p["id"]}>
           <input
             type="checkbox"
-            class="checkbox checkbox-sm"
+            class="checkbox"
             phx-click="select"
             phx-value-id={p["id"]}
             checked={MapSet.member?(@selected, p["id"])}

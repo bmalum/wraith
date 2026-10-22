@@ -1,0 +1,92 @@
+# The suite on every store adapter: the in-memory store most tests are
+# written against, plus DynamoDB Local and PostgreSQL, where the real
+# adapters (paging cursors, conditional writes, transactions, COUNT) run.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.store }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # the same toolchain the release Dockerfile builds with
+    container: docker.io/hexpm/elixir:1.20.4-erlang-29.1.2-debian-trixie-20261005-slim
+
+    strategy:
+      fail-fast: false
+      matrix:
+        store: [memory, dynamo, postgres]
+
+    # both services run for every leg; each leg points the suite at one (or none)
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wraith_test
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      MIX_ENV: test
+
+    steps:
+      - name: System packages
+        # git for the heroicons dependency (fetched from GitHub), a C toolchain for NIFs
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential git ca-certificates
+
+      - uses: actions/checkout@v4
+
+      - name: Point the suite at the store
+        run: |
+          case "${{ matrix.store }}" in
+            dynamo)   echo "WRAITH_TEST_DYNAMO=http://dynamodb:8000" >> "$GITHUB_ENV" ;;
+            postgres) echo "WRAITH_TEST_POSTGRES=postgres://postgres:postgres@postgres:5432/wraith_test" >> "$GITHUB_ENV" ;;
+          esac
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+          restore-keys: mix-${{ runner.os }}-
+
+      - name: Dependencies
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      # static checks once; they don't depend on the store
+      - name: Format, unused deps, warnings
+        if: matrix.store == 'memory'
+        run: |
+          mix format --check-formatted
+          mix deps.unlock --check-unused
+          mix compile --warnings-as-errors
+
+      - name: Create the table
+        if: matrix.store != 'memory'
+        run: mix wraith.table
+
+      - name: Test
+        run: mix test --warnings-as-errors

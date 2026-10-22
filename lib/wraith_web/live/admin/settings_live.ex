@@ -182,7 +182,7 @@ defmodule WraithWeb.Admin.SettingsLive do
                   name="site[nav_pages][]"
                   value={p["slug"]}
                   checked={p["slug"] in @picked}
-                  class="checkbox checkbox-sm"
+                  class="checkbox"
                 /> {p["title"]} <span class="row-sub">/{p["slug"]}</span>
               </label>
             </fieldset>

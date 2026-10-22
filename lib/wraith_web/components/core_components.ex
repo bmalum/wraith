@@ -9,12 +9,10 @@ defmodule WraithWeb.CoreComponents do
   them in any way you want, based on your application growth and needs.
 
   The foundation for styling is Tailwind CSS, a utility-first CSS framework,
-  augmented with daisyUI, a Tailwind CSS plugin that provides UI components
-  and themes. Here are useful references:
-
-    * [daisyUI](https://daisyui.com/docs/intro/) - a good place to get
-      started and see the available components.
-
+  plus Wraith's own component classes in `assets/css/app.css` (`.input`,
+  `.select`, `.field`, `.btn-accent`, `.flash-toast`, …) — no component
+  library. Fields take their radius and font from `--field-radius` and
+  `--field-font`, which each theme's layout sets. Useful references:
     * [Tailwind CSS](https://tailwindcss.com) - the foundational framework
       we build on. You will use it for layout, sizing, flexbox, grid, and
       spacing.
@@ -63,25 +61,18 @@ defmodule WraithWeb.CoreComponents do
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class={["flash-toast", @kind == :error && "is-error"]}
       {@rest}
     >
-      <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
-        @kind == :info && "alert-info",
-        @kind == :error && "alert-error"
-      ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
-        <div>
-          <p :if={@title} class="font-semibold">{@title}</p>
-          <p>{msg}</p>
-        </div>
-        <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer" aria-label={gettext("close")}>
-          <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
-        </button>
+      <.icon :if={@kind == :info} name="hero-information-circle" class="flash-icon" />
+      <.icon :if={@kind == :error} name="hero-exclamation-circle" class="flash-icon" />
+      <div class="flash-body">
+        <p :if={@title} class="flash-title">{@title}</p>
+        <p>{msg}</p>
       </div>
+      <button type="button" class="flash-close" aria-label={gettext("close")}>
+        <.icon name="hero-x-mark" class="size-5" />
+      </button>
     </div>
     """
   end
@@ -101,12 +92,8 @@ defmodule WraithWeb.CoreComponents do
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
-    variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
-
-    assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+    variants = %{"primary" => "btn-accent", nil => "btn-ghost"}
+    assigns = assign_new(assigns, :class, fn -> Map.fetch!(variants, assigns[:variant]) end)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""
@@ -212,7 +199,7 @@ defmodule WraithWeb.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="field">
       <label for={@id}>
         <input
           type="hidden"
@@ -221,14 +208,14 @@ defmodule WraithWeb.CoreComponents do
           disabled={@rest[:disabled]}
           form={@rest[:form]}
         />
-        <span class="label">
+        <span class="field-check">
           <input
             type="checkbox"
             id={@id}
             name={@name}
             value="true"
             checked={@checked}
-            class={@class || "checkbox checkbox-sm"}
+            class={@class || "checkbox"}
             {@rest}
           />{@label}
         </span>
@@ -240,13 +227,13 @@ defmodule WraithWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="field">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="field-label">{@label}</span>
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={[@class || "w-full select", @errors != [] && (@error_class || "is-invalid")]}
           multiple={@multiple}
           {@rest}
         >
@@ -261,15 +248,15 @@ defmodule WraithWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="field">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="field-label">{@label}</span>
         <textarea
           id={@id}
           name={@name}
           class={[
             @class || "w-full textarea",
-            @errors != [] && (@error_class || "textarea-error")
+            @errors != [] && (@error_class || "is-invalid")
           ]}
           {@rest}
         >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
@@ -282,9 +269,9 @@ defmodule WraithWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="field">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="field-label">{@label}</span>
         <input
           type={@type}
           name={@name}
@@ -292,7 +279,7 @@ defmodule WraithWeb.CoreComponents do
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
             @class || "w-full input",
-            @errors != [] && (@error_class || "input-error")
+            @errors != [] && (@error_class || "is-invalid")
           ]}
           {@rest}
         />
@@ -305,8 +292,8 @@ defmodule WraithWeb.CoreComponents do
   # Helper used by inputs to generate form errors
   defp error(assigns) do
     ~H"""
-    <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
-      <.icon name="hero-exclamation-circle" class="size-5" />
+    <p class="form-error">
+      <.icon name="hero-exclamation-circle" class="size-4" />
       {render_slot(@inner_block)}
     </p>
     """
@@ -326,7 +313,7 @@ defmodule WraithWeb.CoreComponents do
         <h1 class="text-lg font-semibold leading-8">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="text-sm text-(--ink-2)">
           {render_slot(@subtitle)}
         </p>
       </div>
@@ -367,7 +354,7 @@ defmodule WraithWeb.CoreComponents do
       end
 
     ~H"""
-    <table class="table table-zebra">
+    <table class="data-table">
       <thead>
         <tr>
           <th :for={col <- @col}>{col[:label]}</th>
@@ -414,12 +401,10 @@ defmodule WraithWeb.CoreComponents do
 
   def list(assigns) do
     ~H"""
-    <ul class="list">
-      <li :for={item <- @item} class="list-row">
-        <div class="list-col-grow">
-          <div class="font-bold">{item.title}</div>
-          <div>{render_slot(item)}</div>
-        </div>
+    <ul class="data-list">
+      <li :for={item <- @item}>
+        <div class="data-list-title">{item.title}</div>
+        <div>{render_slot(item)}</div>
       </li>
     </ul>
     """
