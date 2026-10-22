@@ -98,7 +98,9 @@ defmodule WraithWeb.SecurityTest do
 
   test "/health answers 200 with the store and 503 without" do
     conn = get(build_conn(), ~p"/health")
-    assert %{"status" => "ok", "store" => "ok", "version" => _} = json_response(conn, 200)
+    # ok/degraded only — no version, node name or backend error text for the internet
+    assert %{"status" => "ok"} = json_response(conn, 200)
+    refute Map.has_key?(json_response(conn, 200), "version")
     conn = get(build_conn(), ~p"/health/live")
     assert response(conn, 200) == "ok"
   end

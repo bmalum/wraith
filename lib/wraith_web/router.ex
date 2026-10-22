@@ -53,7 +53,8 @@ defmodule WraithWeb.Router do
     get "/members/login/:token", MemberController, :login
     get "/members/confirm/:token", MemberController, :confirm
     get "/members/unsubscribe/:token", MemberController, :unsubscribe
-    get "/members/logout", MemberController, :logout
+    post "/members/logout", MemberController, :logout
+    delete "/members/logout", MemberController, :logout
     get "/members/upgrade", MemberController, :upgrade
     get "/members/portal", MemberController, :portal
     post "/members/delete", MemberController, :delete_account
@@ -151,22 +152,29 @@ defmodule WraithWeb.Router do
   end
 
   scope "/admin", WraithWeb.Admin do
-    pipe_through [:browser, :redirect_if_user_is_authenticated, :login_limit]
+    pipe_through [:browser, :redirect_if_user_is_authenticated]
 
-    live_session :auth, on_mount: [{WraithWeb.UserAuth, :mount_current_user}] do
+    live_session :auth,
+      on_mount: [{WraithWeb.UserAuth, :mount_current_user}, {WraithWeb.UserAuth, :mount_visitor}] do
       live "/setup", SetupLive, :new
       live "/login", LoginLive, :new
       live "/forgot", ResetLive, :forgot
       live "/reset/:token", ResetLive, :reset
     end
+  end
 
+  # only the attempt is rate-limited, not viewing the form
+  scope "/admin", WraithWeb.Admin do
+    pipe_through [:browser, :redirect_if_user_is_authenticated, :login_limit]
     post "/login", SessionController, :create
   end
 
+  # state changes are never GETs: a prefetcher, a link scanner or any site
+  # that can make a staff browser navigate must not be able to sign them out
   scope "/admin", WraithWeb.Admin do
     pipe_through :browser
     delete "/logout", SessionController, :delete
-    get "/logout", SessionController, :delete
+    post "/logout", SessionController, :delete
   end
 
   # ---- the admin --------------------------------------------------------------------
@@ -174,7 +182,8 @@ defmodule WraithWeb.Router do
   scope "/admin", WraithWeb.Admin do
     pipe_through [:browser, :require_authenticated_user]
 
-    get "/posts/new", PostController, :new
+    # creates a draft — a POST, so a crawled or prefetched link can't litter drafts
+    post "/posts/new", PostController, :new
 
     live_session :admin, on_mount: [{WraithWeb.UserAuth, :require_authenticated_user}] do
       live "/", DashboardLive, :index

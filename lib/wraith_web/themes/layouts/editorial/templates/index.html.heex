@@ -5,7 +5,7 @@
 <div :if={@posts == []} class="t-empty">
   <p>{gettext("Nothing published yet.")}</p>
   <p :if={@current_user}>
-    <.link navigate={~p"/admin/posts/new"}>{gettext("Write the first post →")}</.link>
+    <.link href={~p"/admin/posts/new"} method="post">{gettext("Write the first post →")}</.link>
   </p>
 </div>
 <section class="feed">

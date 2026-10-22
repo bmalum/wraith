@@ -118,9 +118,9 @@ defmodule WraithWeb.Layouts do
             class={["admin-user", @active == :profile && "is-active"]}
             title="Your profile"
           >{@current_user["name"]}</.link>
-          <a href={~p"/admin/logout"} class="admin-signout" title="Sign out">
+          <.link href={~p"/admin/logout"} method="delete" class="admin-signout" title="Sign out">
             <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" />
-          </a>
+          </.link>
         </div>
       </aside>
 

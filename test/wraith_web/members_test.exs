@@ -56,7 +56,7 @@ defmodule WraithWeb.MembersTest do
       assert html =~ "Sign out"
       assert html =~ "Account", "the masthead switches to Account"
 
-      conn = get(conn, ~p"/members/logout")
+      conn = post(conn, ~p"/members/logout")
       assert redirected_to(conn) == ~p"/"
       true
     end)

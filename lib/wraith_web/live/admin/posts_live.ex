@@ -143,7 +143,7 @@ defmodule WraithWeb.Admin.PostsLive do
       title={@page_title}
     >
       <:actions>
-        <.link navigate={~p"/admin/posts/new?type=#{@type}"} class="btn-accent"><.icon
+        <.link href={~p"/admin/posts/new?type=#{@type}"} method="post" class="btn-accent"><.icon
           name="hero-plus"
           class="size-4"
         /> New {@type}</.link>

@@ -211,7 +211,9 @@ defmodule Wraith.Newsletter do
 
   def send_password_reset(%{"email" => email, "id" => id} = user) do
     site = Settings.get()
-    link = url("/admin/reset/" <> Tokens.sign(:password_reset, id))
+
+    link =
+      url("/admin/reset/" <> Tokens.sign(:password_reset, {id, Accounts.reset_binding(user)}))
 
     mail(email, user["name"], "Reset your #{site["title"]} password", """
     <p>Someone (hopefully you) asked to reset the password for <strong>#{esc(email)}</strong> on #{esc(site["title"])}.</p>

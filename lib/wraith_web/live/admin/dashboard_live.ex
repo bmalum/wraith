@@ -36,7 +36,7 @@ defmodule WraithWeb.Admin.DashboardLive do
     ~H"""
     <Layouts.admin flash={@flash} current_user={@current_user} active={:dashboard} title="Dashboard">
       <:actions>
-        <.link navigate={~p"/admin/posts/new"} class="btn-accent"><.icon
+        <.link href={~p"/admin/posts/new"} method="post" class="btn-accent"><.icon
           name="hero-plus"
           class="size-4"
         /> New post</.link>
@@ -92,7 +92,7 @@ defmodule WraithWeb.Admin.DashboardLive do
           <h2>Recent activity</h2>
         </header>
         <div :if={@recent == []} class="panel-empty">
-          No posts yet. <.link navigate={~p"/admin/posts/new"}>Write one</.link>
+          No posts yet. <.link href={~p"/admin/posts/new"} method="post">Write one</.link>
           or ask the <.link navigate={~p"/admin/studio"}>agent</.link>.
         </div>
         <ul class="row-list">

@@ -1,27 +1,29 @@
 defmodule WraithWeb.HealthController do
   @moduledoc "`/health` (readiness: the store answers) and `/health/live` (the VM is up)."
   use WraithWeb, :controller
+  require Logger
 
   def ready(conn, _params) do
-    store =
+    # the detail (what failed, which node, which version) goes to the log; the
+    # anonymous caller learns only ok / degraded
+    ok? =
       try do
         {pk, sk} = Wraith.Store.Keys.site()
         _ = Wraith.Store.get(pk, sk)
-        "ok"
+        true
       rescue
-        e -> "error: " <> Exception.message(e)
+        e ->
+          Logger.warning("health: store check failed: #{Exception.message(e)}")
+          false
       catch
-        :exit, reason -> "error: " <> inspect(reason)
+        :exit, reason ->
+          Logger.warning("health: store check exited: #{inspect(reason)}")
+          false
       end
 
-    body = %{
-      "status" => if(store == "ok", do: "ok", else: "degraded"),
-      "store" => store,
-      "version" => to_string(Application.spec(:wraith, :vsn)),
-      "node" => to_string(node())
-    }
-
-    conn |> put_status(if(store == "ok", do: 200, else: 503)) |> json(body)
+    conn
+    |> put_status(if(ok?, do: 200, else: 503))
+    |> json(%{"status" => if(ok?, do: "ok", else: "degraded")})
   end
 
   def live(conn, _params), do: text(conn, "ok")

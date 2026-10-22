@@ -172,23 +172,45 @@ defmodule Wraith.Accounts do
         {:error, %{"password" => "must be at least 10 characters"}}
 
       true ->
-        {pk, sk} = Keys.user(id)
-        Store.update(pk, sk, &Map.put(&1, "password_hash", Bcrypt.hash_pwd_salt(new)))
+        set_password(id, new)
     end
   end
 
+  # A new password invalidates every existing session (a stolen cookie must
+  # not survive a reset) and every outstanding reset link (bound to the old
+  # hash). Sessions carry created_at; user_by_session compares it to this.
+  defp set_password(id, new) do
+    {pk, sk} = Keys.user(id)
+
+    Store.update(pk, sk, fn u ->
+      u
+      |> Map.put("password_hash", Bcrypt.hash_pwd_salt(new))
+      |> Map.put("sessions_valid_from", Store.now())
+    end)
+  end
+
+  @doc "What a reset token is bound to: changes whenever the password does."
+  def reset_binding(%{"password_hash" => h}) when is_binary(h),
+    do: :crypto.hash(:sha256, h) |> Base.url_encode64(padding: false) |> binary_part(0, 16)
+
+  def reset_binding(_), do: "none"
+
   @doc "Set a new password from a reset link (`Wraith.Tokens` `:password_reset`)."
   def reset_password(token, new) do
-    with {:ok, id} <- Wraith.Tokens.verify(:password_reset, token),
+    # verify first (stateless), validate the new password, and only *then*
+    # consume the token — a typo in the new password must not burn the link
+    with {:ok, {id, binding}} <- Wraith.Tokens.verify(:password_reset, token),
          %{} = user <- get_user(id) || {:error, :invalid},
+         true <- binding == reset_binding(user) || {:error, :invalid},
          true <-
            String.length(to_string(new)) >= 10 ||
-             {:error, %{"password" => "must be at least 10 characters"}} do
-      {pk, sk} = Keys.user(user["id"])
-      Store.update(pk, sk, &Map.put(&1, "password_hash", Bcrypt.hash_pwd_salt(new)))
+             {:error, %{"password" => "must be at least 10 characters"}},
+         {:ok, _} <- Wraith.Tokens.consume(:password_reset, token) do
+      set_password(user["id"], new)
     else
       {:error, %{} = errors} -> {:error, errors}
       {:error, :expired} -> {:error, %{"token" => "has expired"}}
+      {:error, :used} -> {:error, %{"token" => "has already been used"}}
       _ -> {:error, %{"token" => "is not valid"}}
     end
   end
@@ -249,16 +271,25 @@ defmodule Wraith.Accounts do
   def user_by_session(token) when is_binary(token) do
     {pk, sk} = Keys.session(hash(token))
 
-    with {:ok, %{"user_id" => id, "expires_at" => exp}} <- Store.get(pk, sk),
+    with {:ok, %{"user_id" => id, "expires_at" => exp} = session} <- Store.get(pk, sk),
          {:ok, exp, _} <- DateTime.from_iso8601(exp),
-         :gt <- DateTime.compare(exp, DateTime.utc_now()) do
-      get_user(id)
+         :gt <- DateTime.compare(exp, DateTime.utc_now()),
+         %{} = user <- get_user(id),
+         true <- session_still_valid?(session, user) do
+      user
     else
       _ -> nil
     end
   end
 
   def user_by_session(_), do: nil
+
+  # sessions minted before the last password change are dead
+  defp session_still_valid?(%{"created_at" => at}, %{"sessions_valid_from" => from})
+       when is_binary(at) and is_binary(from),
+       do: at >= from
+
+  defp session_still_valid?(_session, _user), do: true
 
   def delete_session(token) when is_binary(token) do
     {pk, sk} = Keys.session(hash(token))

@@ -71,7 +71,11 @@ defmodule WraithWeb.Themes.Shared do
         <p :if={@current_member["stripe_customer_id"]}>
           <a href={~p"/members/portal"} class="btn-ghost">{gettext("Manage billing")}</a>
         </p>
-        <p><a href={~p"/members/logout"} class="btn-ghost">{gettext("Sign out")}</a></p>
+        <p>
+          <.link href={~p"/members/logout"} method="post" class="btn-ghost">
+            {gettext("Sign out")}
+          </.link>
+        </p>
         <form
           action={~p"/members/delete"}
           method="post"

@@ -5,7 +5,8 @@ defmodule WraithWeb.MemberController do
   alias WraithWeb.MemberAuth
 
   def login(conn, %{"token" => token}) do
-    with {:ok, id} <- Tokens.verify(:member_login, token),
+    # single use: a forwarded or scanner-fetched link can't sign in twice
+    with {:ok, id} <- Tokens.consume(:member_login, token),
          %{} = member <- Members.get(id) do
       conn
       |> put_flash(:info, "Signed in as #{member["email"]}.")
@@ -16,13 +17,18 @@ defmodule WraithWeb.MemberController do
         |> put_flash(:error, "That sign-in link has expired. Ask for a new one.")
         |> redirect(to: ~p"/members")
 
+      {:error, :used} ->
+        conn
+        |> put_flash(:error, "That sign-in link was already used. Ask for a new one.")
+        |> redirect(to: ~p"/members")
+
       _ ->
         conn |> put_flash(:error, "That sign-in link is not valid.") |> redirect(to: ~p"/members")
     end
   end
 
   def confirm(conn, %{"token" => token}) do
-    with {:ok, id} <- Tokens.verify(:confirm, token),
+    with {:ok, id} <- Tokens.consume(:confirm, token),
          %{} = member <- Members.get(id),
          {:ok, member} <- Members.confirm(member) do
       if is_nil(member["welcomed_at"]) do

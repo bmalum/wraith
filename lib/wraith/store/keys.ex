@@ -31,6 +31,8 @@ defmodule Wraith.Store.Keys do
   def users_index, do: "USERS"
 
   def session(token_hash), do: {"TOKEN#" <> token_hash, "SESSION"}
+  # a presented single-use token (sign-in, confirm, reset); carries a TTL
+  def used_token(token_hash), do: {"USED#" <> token_hash, "TOKEN"}
   # every session (author and member) on one index, sorted by expiry: the janitor's query
   def sessions_index, do: "SESSIONS"
 

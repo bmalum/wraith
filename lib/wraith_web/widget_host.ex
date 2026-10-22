@@ -33,6 +33,19 @@ defmodule WraithWeb.WidgetHost do
   def widget_info(socket, %Phoenix.Socket.Broadcast{event: "presence_diff"}),
     do: presence_changed(socket)
 
+  # `tick = N` widgets re-render every N seconds while the page is open; the
+  # timer only re-arms if the instance is still on the page
+  def widget_info(socket, {:widget_tick, instance, secs}) do
+    case socket.assigns.widgets[instance] do
+      nil ->
+        socket
+
+      _ ->
+        Process.send_after(self(), {:widget_tick, instance, secs}, secs * 1_000)
+        render_one(socket, instance)
+    end
+  end
+
   def widget_info(socket, _other), do: socket
 
   @doc "Split `markdown`, load every widget and its state, subscribe. `scope` seeds instance ids."
@@ -57,17 +70,27 @@ defmodule WraithWeb.WidgetHost do
       |> Enum.uniq()
       |> Map.new(&{&1, Widgets.get(&1)})
 
+    previous = Map.keys(socket.assigns[:widgets] || %{})
+    current = for {:widget, _, _, instance} <- segments, do: instance
+    connected? = Phoenix.LiveView.connected?(socket)
+
+    if connected? do
+      for gone <- previous -- current, do: Widgets.unsubscribe(gone)
+    end
+
     widgets =
       for {:widget, slug, props, instance} <- segments, into: %{} do
-        if Phoenix.LiveView.connected?(socket), do: Widgets.subscribe(instance)
+        if connected? and instance not in previous, do: Widgets.subscribe(instance)
         widget = defs[slug]
         state = if widget, do: Widgets.state(widget, instance, props), else: %{}
         {instance, %{widget: widget, slug: slug, props: props, state: state, html: nil}}
       end
 
-    # widgets with `tick = N` get re-rendered every N seconds while the page is open
-    if Phoenix.LiveView.connected?(socket) do
+    # widgets with `tick = N` get re-rendered every N seconds while the page is
+    # open; arm the timer once per instance (a re-mount keeps the running one)
+    if connected? do
       for {instance, %{widget: w}} <- widgets,
+          instance not in previous,
           secs = Widgets.tick(w),
           do: Process.send_after(self(), {:widget_tick, instance, secs}, secs * 1_000)
     end

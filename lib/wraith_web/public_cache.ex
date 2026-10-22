@@ -34,7 +34,12 @@ defmodule WraithWeb.PublicCache do
     register_before_send(conn, fn conn ->
       # Phoenix's browser pipeline already set `max-age=0, private,
       # must-revalidate`; for the public site we know better and replace it.
-      if personalised?(conn) do
+      # The response is still personalised by cookie (session, visitor id), so
+      # any cache must key on Cookie — and a response that *sets* a cookie is
+      # for this browser only, never for a shared cache.
+      conn = put_resp_header(conn, "vary", "Cookie")
+
+      if personalised?(conn) or get_resp_header(conn, "set-cookie") != [] do
         put_resp_header(conn, "cache-control", "private, no-store")
       else
         put_resp_header(

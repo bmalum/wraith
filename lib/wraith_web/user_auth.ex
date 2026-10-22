@@ -52,13 +52,24 @@ defmodule WraithWeb.UserAuth do
     assign(conn, :current_user, user)
   end
 
-  @doc "Give every browser a stable anonymous id (for polls, reactions)."
+  @doc """
+  Give every browser a stable anonymous id (for polls, reactions, rate limits).
+
+  The cookie is **signed**: an unsigned value could be forged to impersonate
+  another visitor's private widget state or rotated to dodge per-visitor
+  limits. The session is only written when something actually changed — a
+  `Set-Cookie` on every anonymous page would make the page uncacheable (and
+  dangerous to cache: a shared cache could hand one visitor's session to all).
+  """
   def fetch_visitor(conn, _opts) do
-    conn = conn |> fetch_cookies() |> put_session(:ip, WraithWeb.RateLimitPlug.client_ip(conn))
+    conn = fetch_cookies(conn, signed: [@visitor_cookie])
+    ip = WraithWeb.RateLimitPlug.client_ip(conn)
+    conn = if get_session(conn, :ip) == ip, do: conn, else: put_session(conn, :ip, ip)
 
     case conn.cookies[@visitor_cookie] do
       id when is_binary(id) and byte_size(id) >= 16 ->
-        conn |> assign(:visitor, id) |> put_session(:visitor, id)
+        conn = assign(conn, :visitor, id)
+        if get_session(conn, :visitor) == id, do: conn, else: put_session(conn, :visitor, id)
 
       _ ->
         id = :crypto.strong_rand_bytes(12) |> Base.url_encode64(padding: false)
@@ -67,7 +78,8 @@ defmodule WraithWeb.UserAuth do
         |> put_resp_cookie(@visitor_cookie, id,
           max_age: @visitor_max_age,
           same_site: "Lax",
-          http_only: true
+          http_only: true,
+          sign: true
         )
         |> assign(:visitor, id)
         |> put_session(:visitor, id)

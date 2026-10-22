@@ -24,7 +24,7 @@ defmodule WraithWeb.AdminTest do
 
     assert redirected_to(conn) == ~p"/admin/login"
 
-    conn = build_conn() |> log_in(owner) |> get(~p"/admin/logout")
+    conn = build_conn() |> log_in(owner) |> delete(~p"/admin/logout")
     assert redirected_to(conn) == ~p"/"
   end
 
@@ -36,7 +36,7 @@ defmodule WraithWeb.AdminTest do
   end
 
   test "editor: new post, type, publish", %{conn: conn} do
-    conn = get(conn, ~p"/admin/posts/new")
+    conn = post(conn, ~p"/admin/posts/new")
     assert "/admin/posts/" <> id = redirected_to(conn)
     {:ok, view, _} = live(conn, ~p"/admin/posts/#{id}")
 

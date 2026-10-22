@@ -93,16 +93,13 @@ defmodule Wraith.SandboxTest do
       {:ok, listener} = :gen_tcp.listen(0, [:binary, active: false, reuseaddr: true])
       {:ok, port} = :inet.port(listener)
 
+      # the refusal happens before any connection is made; the acceptor just
+      # needs to exist and go away quietly when the listener closes
       spawn(fn ->
-        {:ok, sock} = :gen_tcp.accept(listener)
-        :gen_tcp.recv(sock, 0)
-
-        :gen_tcp.send(
-          sock,
-          "HTTP/1.1 302 Found\r\nLocation: http://169.254.169.254/\r\nContent-Length: 0\r\n\r\n"
-        )
-
-        :gen_tcp.close(sock)
+        case :gen_tcp.accept(listener) do
+          {:ok, sock} -> :gen_tcp.close(sock)
+          _ -> :ok
+        end
       end)
 
       # 127.0.0.1 itself is refused up front, so test the redirect rule by

@@ -191,6 +191,7 @@ defmodule Wraith.Widgets do
 
   def topic(instance), do: "widget:" <> instance
   def subscribe(instance), do: Phoenix.PubSub.subscribe(Wraith.PubSub, topic(instance))
+  def unsubscribe(instance), do: Phoenix.PubSub.unsubscribe(Wraith.PubSub, topic(instance))
 
   @doc "The state of an instance (initialised from props when it has none)."
   def state(%{"slug" => slug} = widget, instance, props) do
