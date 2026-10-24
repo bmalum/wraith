@@ -289,7 +289,7 @@ defmodule Wraith.Tools do
 
   # ---- the catalogue -----------------------------------------------------------------
 
-  @doc false
+  @doc "Every MCP tool: name, description, JSON schema and MCP annotations."
   def catalogue do
     [
       # site

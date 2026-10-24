@@ -10,6 +10,9 @@
 # Where 3rd-party dependencies like ExDoc output generated docs.
 /doc/
 
+# The project site, built by `mix wraith.site` (GitHub Pages deploys it from CI).
+/_site/
+
 # Ignore .fetch files in case you like to edit your project deps locally.
 /.fetch
 

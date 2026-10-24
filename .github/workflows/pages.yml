@@ -1,0 +1,64 @@
+# The project site: `mix wraith.site` builds the landing page, the theme
+# screenshots and the docs into _site/, and GitHub Pages serves it.
+# Enable once in the repo: Settings → Pages → Source: GitHub Actions.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: docker.io/hexpm/elixir:1.20.4-erlang-29.1.2-debian-trixie-20261005-slim
+    env:
+      # ex_doc is a dev dependency
+      MIX_ENV: dev
+    steps:
+      - name: System packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential git ca-certificates
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: site-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+          restore-keys: site-${{ runner.os }}-
+
+      - name: Build the site
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+          mix wraith.site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

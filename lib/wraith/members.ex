@@ -5,7 +5,7 @@ defmodule Wraith.Members do
   (newsletter), `stripe_customer_id`, `last_seen_at`. Emails are unique.
 
   Members sign in with a magic link (`Wraith.Tokens` `:member_login`,
-  mailed by `Wraith.Newsletter.send_login_link/2`); `create_session/1`
+  mailed by `Wraith.Newsletter.send_login_link/1`); `create_session/1`
   mints the cookie token once the link is opened (`WraithWeb.MemberAuth`).
   """
 

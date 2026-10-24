@@ -33,7 +33,7 @@ widgets and runs the site with you.
 | Search: in-memory inverted index over published posts, `/search` as you type | `Wraith.Search` |
 | Author profiles: avatar, bio, socials, password change, reset by mail | `WraithWeb.Admin.{ProfileLive,ResetLive}` |
 | Redirects (exact and `/old/*`), navigation picker for pages | `WraithWeb.Redirects`, Settings |
-| **MCP server**: every admin action as a tool (49), posts as resources, at `/mcp` for any agent — Kiro CLI, Claude, Cursor; the studio agent uses the same registry | `Wraith.Tools`, `WraithWeb.McpController`, `Wraith.Kiro.MCP` |
+| **MCP server**: every admin action as a tool, posts as resources, at `/mcp` for any agent — Kiro CLI, Claude, Cursor; the studio agent uses the same registry | `Wraith.Tools`, `WraithWeb.McpController`, `Wraith.Kiro.MCP` |
 | JSON APIs in Ghost's shape: Content API (read, `?key=`), Admin API (Bearer key or session), Ghost-compatible export and **import of a Ghost site** | `WraithWeb.Api.*`, `Wraith.ApiKeys`, `Wraith.Ghost` |
 | Public site: feed, post, tag, author, subscribe, RSS / JSON Feed / sitemap | `WraithWeb.Site.*`, `WraithWeb.FeedController` |
 | Themes: **18 themes across 6 layouts** (editorial, list, grid, magazine, minimal, journal), picked in a swatch gallery in Settings; token skins + shared base/layout CSS, light/dark | `WraithWeb.Theme`, `WraithWeb.Theme.Layout`, `WraithWeb.Themes`, `lib/wraith_web/themes/*`, `priv/static/themes/*.css` |
@@ -195,10 +195,12 @@ Create a key at `/admin/integrations` and point any client at it:
 kiro-cli mcp add --name wraith --url https://your-site/mcp --header "Authorization: Bearer <key>"
 ```
 
-An Admin key gets every tool; a Content key only the ones annotated
-`readOnlyHint` (list, get, search, docs, export). Destructive tools carry
+An Admin key gets every tool; a Content key only `site_info`, `posts_list`,
+`post_get`, `search`, `tags_list` and `widget_docs`, and those see only
+published posts with the paywall applied. Destructive tools carry
 `destructiveHint`. `resources/list` exposes the settings, the widget guide
-and every post as `wraith://posts/<slug>`. The test
+and every post as `wraith://posts/<slug>` (published ones only for a
+Content key). The test
 `test/wraith_web/mcp_test.exs` drives the whole site lifecycle through the
 endpoint and checks the catalogue against the admin's actions.
 

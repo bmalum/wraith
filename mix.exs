@@ -11,9 +11,81 @@ defmodule Wraith.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      # docs: `mix wraith.site` builds them into _site/docs with the guides
+      name: "Wraith",
+      source_url: "https://github.com/bmalum/wraith",
+      homepage_url: "https://bmalum.github.io/wraith/",
+      docs: &docs/0
     ]
   end
+
+  # A function, not a list: `mix wraith.site` writes the guides into
+  # _build/guides first and ex_doc reads this afterwards. Plain `mix docs`
+  # (no guides generated) falls back to the README.
+  @guides ~w(overview run-it themes widgets agent-studio mcp-server mcp-tools
+             storage-layout security deploy tests)
+  defp docs do
+    generated =
+      for g <- @guides, File.exists?("_build/guides/#{g}.md"), do: "_build/guides/#{g}.md"
+
+    [
+      main: if(generated == [], do: "readme", else: "overview"),
+      extras: if(generated == [], do: ["README.md"], else: generated),
+      groups_for_extras: [
+        Guides: ~r{/(overview|run-it|themes|widgets|agent-studio|deploy)\.md$},
+        Reference: ~r{/(mcp-server|mcp-tools|storage-layout|security|tests)\.md$}
+      ],
+      groups_for_modules: [
+        "Content & publishing": [
+          Wraith.Content,
+          Wraith.Markdown,
+          Wraith.Embed,
+          Wraith.Search,
+          Wraith.Newsletter,
+          Wraith.Comments,
+          Wraith.Images,
+          Wraith.Uploads,
+          Wraith.Uploads.Local,
+          Wraith.Uploads.S3,
+          Wraith.Slug,
+          Wraith.Ghost
+        ],
+        "Members & billing": [Wraith.Members, Wraith.Billing, Wraith.Billing.API, Wraith.Tokens],
+        "Staff & access": [
+          Wraith.Accounts,
+          Wraith.Policy,
+          Wraith.ApiKeys,
+          Wraith.Vault,
+          Wraith.RateLimit,
+          Wraith.SafeHTTP
+        ],
+        Widgets: ~r/^Wraith\.Widgets/,
+        "Agents & MCP": [Wraith.Tools, ~r/^Wraith\.Studio/, ~r/^Wraith\.Kiro/],
+        Storage: ~r/^Wraith\.Store/,
+        Themes: [WraithWeb.Theme, WraithWeb.Theme.Layout, ~r/^WraithWeb\.Themes/],
+        "Web: public site": [
+          ~r/^WraithWeb\.Site\./,
+          WraithWeb.SiteComponents,
+          WraithWeb.SiteHooks
+        ],
+        "Web: admin": ~r/^WraithWeb\.Admin\./,
+        "Web: APIs & plumbing": ~r/^WraithWeb\./
+      ],
+      source_ref: "main",
+      logo: "site/assets/mark.svg",
+      favicon: "site/assets/mark.svg",
+      assets: %{"site/assets/docs" => "assets"},
+      before_closing_head_tag: &docs_head/1,
+      formatters: ["html"]
+    ]
+  end
+
+  # the docs share the site's two typefaces
+  defp docs_head(:html),
+    do: ~s(<link rel="stylesheet" href="assets/docs.css">)
+
+  defp docs_head(_), do: ""
 
   # Configuration for the OTP application.
   #
@@ -45,6 +117,8 @@ defmodule Wraith.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.2.0"},
       {:lazy_html, ">= 0.1.0", only: :test},
+      # API docs + guides for the project site (`mix wraith.site`)
+      {:ex_doc, "~> 0.40.4", only: :dev, runtime: false},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.5", runtime: Mix.env() == :dev},

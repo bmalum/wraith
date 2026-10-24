@@ -12,7 +12,7 @@ defmodule Wraith.Billing do
       `customer.subscription.updated` (active/trialing) → `paid`;
       `customer.subscription.deleted` / unpaid → `free`
 
-  `Wraith.Billing.API` is the HTTP seam (swapped for a fake in tests).
+  `Billing.API` (internal) is the HTTP seam (swapped for a fake in tests).
   """
   alias Wraith.{Members, Settings, Store}
   alias Wraith.Store.Keys

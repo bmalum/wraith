@@ -1,0 +1,254 @@
+<% import Mix.Tasks.Wraith.Site, only: [h: 1] %><!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wraith: Ghost’s publishing model on Phoenix LiveView</title>
+  <meta name="description" content="A self-hosted publishing platform in Elixir: members, newsletters, paid tiers and <%= @theme_count %> themes, plus live widgets, one table on DynamoDB or Postgres, and an MCP server for agents.">
+  <meta property="og:title" content="Wraith">
+  <meta property="og:description" content="Ghost’s publishing model, rebuilt on Phoenix LiveView.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="<%= @homepage %>shots/paper-home.webp">
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/Fraunces.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/PublicSans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/gallery.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/mark.svg" alt="" width="28" height="28">Wraith</a>
+      <nav class="nav" aria-label="Site">
+        <a class="opt" href="#themes">Themes</a>
+        <a class="opt" href="#widgets">Widgets</a>
+        <a class="opt" href="#agents">Agents</a>
+        <a class="opt" href="#ghost">From Ghost</a>
+        <a href="docs/">Docs</a>
+        <a href="<%= @source_url %>">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="title">
+      <div class="hero-copy">
+      <h1 id="title">Ghost’s publishing model, rebuilt on Phoenix LiveView.</h1>
+      <p class="lede">
+        Members, newsletters, paid tiers, comments and <%= @theme_word %> themes, as you would
+        expect from a Ghost-style platform. Then the parts that are Wraith’s own: widgets
+        readers use together in real time, one table on DynamoDB or Postgres, and an MCP
+        server that lets an agent run the whole site.
+      </p>
+      <div class="actions">
+        <a class="button" href="docs/run-it.html">Run it locally</a>
+        <a href="<%= @source_url %>">Source on GitHub</a>
+      </div>
+      <div class="quick">
+        <pre><code><span class="p">$ </span>git clone <%= @source_url %>.git
+<span class="p">$ </span>cd wraith &amp;&amp; mix setup
+<span class="p">$ </span>mix phx.server
+<span class="c"># then open localhost:4000/admin/setup</span></code></pre>
+        <p class="note">Needs Elixir <%= @elixir %> and Erlang/OTP. Development uses an in-memory store, so there is no database to set up.</p>
+      </div>
+      </div>
+      <figure class="hero-shot">
+        <img src="shots/hero.webp" alt="A post in the Paper theme: Writing at 2 a.m., with a feature image and a live counter widget" width="1000" height="1043" fetchpriority="high" decoding="async">
+        <figcaption>A post with a live counter, in the default Paper theme.</figcaption>
+      </figure>
+    </section>
+
+    <section class="gallery wrap" id="themes" aria-labelledby="themes-title">
+      <div class="gallery-head prose">
+        <h2 id="themes-title"><%= @theme_count_word %> themes in the box.</h2>
+        <p>
+          <%= @layout_count_word %> layouts with three skins each, picked in Settings. A theme covers
+          every page a reader sees: front page, posts, tags, authors, search and sign-up.
+          It is a Phoenix layout plus a map of CSS tokens, compiled into the release, so no
+          template code is loaded at runtime.
+        </p>
+      </div>
+
+      <div class="gallery-grid" data-gallery data-initial-theme="paper" data-initial-view="home" hidden>
+        <div class="controls">
+          <div class="views" role="group" aria-label="View">
+            <button type="button" data-view-option="home" aria-pressed="true">Front page</button>
+            <button type="button" data-view-option="post" aria-pressed="false">Post</button>
+            <button type="button" data-view-option="mobile" aria-pressed="false">Phone</button>
+          </div>
+          <%= for layout <- @layouts do %>
+          <div class="group">
+            <p><strong><%= h(layout.label) %></strong> <%= h(layout.blurb) %></p>
+            <div class="chips" role="group" aria-label="<%= h(layout.label) %> themes">
+              <%= for t <- layout.themes do %>
+              <button type="button" class="chip" aria-pressed="false" data-theme="<%= h(t.name) %>" data-label="<%= h(t.label) %>" data-layout="<%= h(layout.label) %> layout" data-desc="<%= h(t.description) %>"><span class="swatch" aria-hidden="true"><%= for c <- t.swatch do %><i style="background:<%= h(c) %>"></i><% end %></span><%= h(t.label) %></button>
+              <% end %>
+            </div>
+          </div>
+          <% end %>
+        </div>
+
+        <figure>
+          <div class="frame" data-view="home">
+            <div class="frame-scroll" tabindex="0" role="region" aria-label="Theme screenshot, scrollable">
+              <img src="shots/paper-home.webp" alt="The Paper theme, front page" width="1200" height="1286" fetchpriority="high" decoding="async">
+            </div>
+          </div>
+          <figcaption class="caption">
+            <strong data-cap-name>Paper</strong><span data-cap-layout>Editorial layout</span><span data-cap-desc></span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <noscript>
+        <div class="columns">
+          <%= for layout <- @layouts do %>
+          <div>
+            <h3><%= h(layout.label) %></h3>
+            <ul>
+              <%= for t <- layout.themes do %>
+              <li><%= h(t.label) %>: <a href="shots/<%= t.name %>-home.webp">front page</a>, <a href="shots/<%= t.name %>-post.webp">post</a>, <a href="shots/<%= t.name %>-mobile.webp">phone</a></li>
+              <% end %>
+            </ul>
+          </div>
+          <% end %>
+        </div>
+      </noscript>
+    </section>
+
+    <section class="band" id="widgets" aria-labelledby="widgets-title">
+      <div class="wrap split is-code">
+        <div class="stack prose">
+          <h2 id="widgets-title">Posts that stay live.</h2>
+          <p>
+            Put a counter, a poll, reactions or a countdown in a post with one line of
+            Markdown. Every reader of the page shares the widget’s state, so a vote in one
+            tab shows up in every other open tab at once.
+          </p>
+          <pre><code><%= h(@widget_line) %></code></pre>
+          <p>
+            Widgets are Lua. You write them in the admin next to a live preview, every save
+            is a version you can roll back to, and they run in a sandbox: no file access,
+            network only to hosts you allow, 250&nbsp;ms per call and 64&nbsp;KB of state.
+          </p>
+          <figure>
+            <img src="shots/widgets.webp" alt="A counter reading 0, labelled Readers who agree, and a poll asking Tabs or spaces with three options" width="720" height="470" loading="lazy" decoding="async">
+            <figcaption>The counter and poll from the demo post, in the Paper theme.</figcaption>
+          </figure>
+        </div>
+        <div class="stack">
+          <p class="note">A whole widget: a clap button every reader shares.</p>
+          <pre><code><%= h(@widget_lua) %></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="agents" aria-labelledby="agents-title">
+      <div class="wrap split">
+        <div class="stack prose">
+          <h2 id="agents-title">An agent can run the whole site.</h2>
+          <p>
+            Everything the admin can do is an MCP tool, <%= @tool_count %> of them: drafting and
+            publishing posts, sending newsletters, managing members, writing and testing
+            widgets, changing the theme. Connect Kiro CLI, Claude or Cursor to
+            <code>/mcp</code> with an Admin key. Tools respect staff roles, and a Content key
+            gets <%= @content_tool_count %> read tools that see only what the public site shows.
+          </p>
+          <pre><code>kiro-cli mcp add --name wraith \
+  --url https://your-site/mcp \
+  --header "Authorization: Bearer &lt;admin key&gt;"</code></pre>
+          <p>
+            Inside the admin, the agent studio runs a Kiro agent on a Lambda MicroVM with the
+            same tools. You watch the transcript and approve each change before it is made.
+            Without a MicroVM configured it runs a scripted offline agent, so the flow works
+            on a laptop too.
+          </p>
+          <p class="note"><a href="docs/mcp-tools.html">Every tool, with its arguments</a></p>
+        </div>
+        <table class="data">
+          <caption class="note">The MCP catalogue, generated from <code>Wraith.Tools</code>.</caption>
+          <thead><tr><th scope="col">Area</th><th scope="col">Examples</th><th scope="col" class="n">Tools</th></tr></thead>
+          <tbody>
+            <%= for g <- @tool_groups do %>
+            <tr><td><%= h(g.label) %></td><td><%= for {n, i} <- Enum.with_index(g.examples) do %><%= if i > 0, do: ", " %><code><%= h(n) %></code><% end %></td><td class="n"><%= g.count %></td></tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="band" id="ghost" aria-labelledby="ghost-title">
+      <div class="wrap">
+        <div class="prose">
+          <h2 id="ghost-title">Coming from Ghost.</h2>
+          <p>
+            Export your site in Ghost under Settings, Labs, Export, and upload the file in
+            Wraith’s admin under Integrations. Existing slugs and emails are skipped, so you
+            can run the import again.
+          </p>
+        </div>
+        <div class="columns">
+          <div>
+            <h3>Comes across</h3>
+            <ul>
+              <li>Posts and pages, with their HTML turned into Markdown.</li>
+              <li>Tags and authors. Authors set a new password by mail.</li>
+              <li>Members, with their status and labels.</li>
+              <li>The Content API, in Ghost’s JSON shape. A front-end written against it needs a new key and little else.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Not there yet</h3>
+            <ul>
+              <li>Ghost themes. Handlebars templates don’t run; Wraith themes are Phoenix components.</li>
+              <li>Stripe links. Paid members keep their status, but billing has to be connected again.</li>
+              <li>Ghost Admin API clients. The JSON is Ghost-shaped, the authentication is a Bearer key, not Ghost’s signed tokens.</li>
+              <li>ActivityPub and the social web.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="storage" aria-labelledby="storage-title">
+      <div class="wrap split">
+        <div class="prose">
+          <h2 id="storage-title">One table, three databases.</h2>
+          <p>
+            Wraith keeps everything in a single table with one secondary index. Run it on
+            DynamoDB, PostgreSQL or Aurora DSQL; development uses an in-memory store. The
+            adapters are small, and the same test suite runs against each one.
+            <code>mix wraith.table</code> creates the table on any of them.
+          </p>
+        </div>
+        <table class="data">
+          <thead><tr><th scope="col">Store</th><th scope="col">Good for</th></tr></thead>
+          <tbody>
+            <tr><td>Memory</td><td>Development and tests, the default in dev. Nothing persists.</td></tr>
+            <tr><td>DynamoDB</td><td>AWS with no database server to run. A TTL clears expired sessions.</td></tr>
+            <tr><td>PostgreSQL</td><td>Any Postgres you already operate. One <code>items</code> table, JSON per row.</td></tr>
+            <tr><td>Aurora DSQL</td><td>Serverless and Postgres-compatible, with an IAM token per connection.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <nav aria-label="Footer">
+        <a href="docs/">Documentation</a>
+        <a href="docs/run-it.html">Run it</a>
+        <a href="docs/deploy.html">Deploy</a>
+        <a href="docs/security.html">Security</a>
+        <a href="<%= @source_url %>">Source</a>
+      </nav>
+      <p>Wraith <%= @version %> is built with Elixir and Phoenix LiveView. Licence: to be decided.</p>
+      <p>The screenshots show The Daily Spectre, the demo content in <code>priv/screenshots/seed.exs</code>.</p>
+      <p>Set in Fraunces and Public Sans, both under the SIL Open Font License (<a href="assets/fonts/OFL-Fraunces.txt">Fraunces</a>, <a href="assets/fonts/OFL-PublicSans.txt">Public Sans</a>).</p>
+    </div>
+  </footer>
+</body>
+</html>

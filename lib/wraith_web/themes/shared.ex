@@ -234,7 +234,7 @@ defmodule WraithWeb.Themes.Shared do
     <span :if={@site["footer"] not in [nil, ""]} class="t-footer-note">{@site["footer"]}</span>
     <span :if={@site["powered_by"] != false} class="t-credit">
       {gettext("Published with")}
-      <a href="https://github.com/mkarrer/wraith" rel="noopener">Wraith</a>
+      <a href="https://github.com/bmalum/wraith" rel="noopener">Wraith</a>
     </span>
     """
   end

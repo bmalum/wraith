@@ -4,7 +4,7 @@ defmodule Wraith.Store.SQL.Token do
   `GET https://<endpoint>/?Action=DbConnectAdmin` with the scheme stripped,
   used as the connection password. Credentials come from ex_aws's chain
   (the same one the DynamoDB store and the MicroVM runtime use). Ported
-  from shadow_corp's `Repo.IamToken`, on top of `ExAws.Auth.presigned_url/9`.
+  from shadow_corp's `Repo.IamToken`, on top of ExAws's presigned-URL signer.
   """
 
   @default_expires 15 * 60

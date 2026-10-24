@@ -1,0 +1,25 @@
+/* ex_doc, in the project site's two typefaces. The fonts live once, in
+   _site/assets/fonts; this file is copied to _site/docs/assets/. */
+@font-face {
+  font-family: "Fraunces";
+  src: url("../../assets/fonts/Fraunces.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Public Sans";
+  src: url("../../assets/fonts/PublicSans.woff2") format("woff2");
+  font-weight: 400 600;
+  font-display: swap;
+}
+
+body {
+  --sansFontFamily: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+}
+
+.content-inner h1,
+.content-inner h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
