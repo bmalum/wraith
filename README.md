@@ -325,3 +325,9 @@ task role allowed to read/write the table (and, for the studio,
 `lambda:*MicroVM*` plus the journal bucket). Set `TRUSTED_PROXIES=1` behind a
 single load balancer. Run `mix wraith.table` once per environment. Everything
 else is in `.env.example`.
+
+## Licence
+
+Apache License 2.0, see [`LICENSE`](LICENSE). The project site's typefaces,
+Fraunces and Public Sans, are under the SIL Open Font License; their licence
+texts are in `site/assets/fonts/`.

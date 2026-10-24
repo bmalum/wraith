@@ -245,7 +245,7 @@
         <a href="docs/security.html">Security</a>
         <a href="<%= @source_url %>">Source</a>
       </nav>
-      <p>Wraith <%= @version %> is built with Elixir and Phoenix LiveView. Licence: to be decided.</p>
+      <p>Wraith <%= @version %> is built with Elixir and Phoenix LiveView, under the <a href="<%= @source_url %>/blob/main/LICENSE">Apache License 2.0</a>.</p>
       <p>The screenshots show The Daily Spectre, the demo content in <code>priv/screenshots/seed.exs</code>.</p>
       <p>Set in Fraunces and Public Sans, both under the SIL Open Font License (<a href="assets/fonts/OFL-Fraunces.txt">Fraunces</a>, <a href="assets/fonts/OFL-PublicSans.txt">Public Sans</a>).</p>
     </div>
