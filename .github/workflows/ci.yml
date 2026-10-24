@@ -51,7 +51,7 @@ jobs:
         # git for the heroicons dependency (fetched from GitHub), a C toolchain for NIFs
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential git ca-certificates
+          apt-get install -y --no-install-recommends build-essential git ca-certificates curl
 
       - uses: actions/checkout@v4
 
@@ -75,6 +75,8 @@ jobs:
           mix local.hex --force
           mix local.rebar --force
           mix deps.get
+          # GitHub Releases' redirect headers are too long for :httpc; see the script
+          elixir .github/scripts/prefetch_nifs.exs
 
       # static checks once; they don't depend on the store
       - name: Format, unused deps, warnings

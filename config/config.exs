@@ -24,6 +24,14 @@ config :wraith, Wraith.Mailer, adapter: Swoosh.Adapters.Local
 # code blocks are highlighted by Lumis (a precompiled mdex_native variant)
 config :mdex_native, syntax_highlighter: :lumis
 
+# Fetch both precompiled NIFs from their maintainers' mirrors, not GitHub
+# Releases: GitHub's download redirect answers with ~10.8 KB of headers and
+# OTP's :httpc (which rustler_precompiled uses) stops at 10 KB, so a fresh
+# checkout could not download them. The archives are verified against the
+# checksum files shipped in the Hex packages either way.
+config :mdex_native, artifact_source: :cloudflare
+config :lumis, artifact_source: :cloudflare
+
 # ex_aws rides on Req (no hackney) and Jason
 config :ex_aws,
   http_client: ExAws.Request.Req,
