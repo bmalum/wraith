@@ -45,3 +45,6 @@ npm-debug.log
 # uploaded files (dev)
 /priv/uploads/
 /tmp/
+
+# macOS Finder metadata
+.DS_Store
