@@ -28,6 +28,11 @@ defmodule Wraith.Widgets.Lua do
   """
 
   @timeout_ms 250
+  # `check/1` compiles owner-written source on save (and the shipped built-ins
+  # at boot); it never runs for a reader. The first call after boot also loads
+  # luerl's modules, which on a cold, busy box (CI) can take longer than a
+  # render is allowed. Bounded, but not by the per-render budget.
+  @check_timeout_ms 2_000
   # the Lua process heap (words). A chunk that builds tables past this is
   # killed by the VM, not by us running out of memory. 50M words ≈ 400 MB on
   # 64-bit — generous for a widget, far below "take the node down".
@@ -99,7 +104,7 @@ defmodule Wraith.Widgets.Lua do
         end
       end)
 
-    case Task.yield(task, @timeout_ms) || Task.shutdown(task, :brutal_kill) do
+    case Task.yield(task, @check_timeout_ms) || Task.shutdown(task, :brutal_kill) do
       {:ok, result} -> result
       _ -> {:error, "lua: check timed out"}
     end

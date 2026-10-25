@@ -20,10 +20,9 @@ defmodule WraithWeb.MembersTest do
     assert member["subscribed"]
     Newsletter.send_welcome(member)
 
-    assert_email_sent(fn email ->
-      assert email.subject =~ "Welcome to Wraith" or email.subject =~ "Confirm"
-      email.subject =~ "Welcome to Wraith" or (send(self(), {:email, email}) && true)
-    end)
+    # sign-up mailed the confirmation, confirming mails the welcome: in that order
+    # (render_submit returns only after the LiveView has sent the first)
+    assert_email_sent(fn email -> email.subject =~ "Confirm your subscription" end)
 
     assert_email_sent(fn email ->
       assert email.subject == "Welcome to Wraith"
